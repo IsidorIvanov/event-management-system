@@ -23,7 +23,7 @@ public class Dogadjaj {
     private Long dogadjajId;
 
     // V4: N:1 ka LOKACIJA — obavezno (cardinalnost }o--||)
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false, cascade = CascadeType.PERSIST)
     @JoinColumn(name = "lokacija_id", nullable = false)
     private Lokacija lokacija;
 

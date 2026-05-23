@@ -52,6 +52,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/placanja/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
                 .requestMatchers("/api/troskovi/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
                 .requestMatchers("/api/analiza/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
+                .requestMatchers("/api/lokacija/**").hasAnyRole("MENADZER_DOGADJAJA")
 
                 // Svi autentifikovani korisnici
                 .anyRequest().authenticated()
