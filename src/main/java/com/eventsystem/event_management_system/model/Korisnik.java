@@ -54,5 +54,22 @@ public abstract class Korisnik {
         if (status == null) {
             status = StatusKorisnika.AKTIVAN;
         }
+        // Spojeno ovde umesto zasebnog @PrePersist
+        resolveTipKorisnika();
+    }
+
+    @PostLoad
+    protected void setTipKorisnikaFromClass() {
+        resolveTipKorisnika();
+    }
+
+    private void resolveTipKorisnika() {
+        if (this instanceof Zaposleni) {
+            tipKorisnika = TipKorisnika.ZAPOSLENI;
+        } else if (this instanceof Klijent) {
+            tipKorisnika = TipKorisnika.KLIJENT;
+        } else if (this instanceof Ucesnik) {
+            tipKorisnika = TipKorisnika.UCESNIK;
+        }
     }
 }
