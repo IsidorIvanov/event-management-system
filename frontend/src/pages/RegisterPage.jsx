@@ -15,6 +15,24 @@ const ULOGA_LABELS = {
   FINANSIJSKI_KONTROLOR: 'Finansijski kontrolor',
 };
 
+const getRegisterErrorMessage = (err) => {
+  if (!err.response) {
+    return 'Server trenutno nije dostupan. Pokušajte ponovo kasnije.';
+  }
+
+  const data = err.response.data;
+  if (data?.details) {
+    return Object.values(data.details).join('. ');
+  }
+
+  const backendMessage = data?.error || data?.message;
+  if (backendMessage?.includes('već registrovan')) {
+    return 'Email adresa je već registrovana.';
+  }
+
+  return backendMessage || 'Registracija nije uspela. Proverite podatke i pokušajte ponovo.';
+};
+
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
     ime: '',
@@ -80,13 +98,7 @@ export default function RegisterPage() {
       await register(payload);
       navigate('/dashboard');
     } catch (err) {
-      const data = err.response?.data;
-      if (data?.details) {
-        const msgs = Object.values(data.details).join('. ');
-        setError(msgs);
-      } else {
-        setError(data?.error || 'Greška prilikom registracije');
-      }
+      setError(getRegisterErrorMessage(err));
     } finally {
       setLoading(false);
     }

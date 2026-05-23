@@ -2,6 +2,23 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+const getLoginErrorMessage = (err) => {
+  if (!err.response) {
+    return 'Server trenutno nije dostupan. Pokušajte ponovo kasnije.';
+  }
+
+  if (err.response.status === 401) {
+    return 'Pogrešan email ili lozinka.';
+  }
+
+  const data = err.response.data;
+  if (data?.details) {
+    return Object.values(data.details).join('. ');
+  }
+
+  return data?.error || data?.message || 'Greška prilikom prijave.';
+};
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [lozinka, setLozinka] = useState('');
@@ -18,8 +35,7 @@ export default function LoginPage() {
       await login(email, lozinka);
       navigate('/dashboard');
     } catch (err) {
-      const msg = err.response?.data?.error || err.response?.data?.message || 'Greška prilikom prijave';
-      setError(msg);
+      setError(getLoginErrorMessage(err));
     } finally {
       setLoading(false);
     }
