@@ -13,7 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -45,6 +47,7 @@ public class NabavkaService {
         return toDto(nabavka);
     }
 
+    @Transactional
     public NabavkaDto create(NabavkaDto dto) {
         Dogadjaj dogadjaj = dogadjajRepository.findById(dto.getDogadjajId())
                 .orElseThrow(() -> new RuntimeException("Dogadjaj nije pronadjen sa id: " + dto.getDogadjajId()));
@@ -61,14 +64,16 @@ public class NabavkaService {
         Nabavka saved = nabavkaRepository.save(nabavka);
         applyStavke(saved, dto.getStavke());
         recalculateTotal(saved);
+        dodeliDobavljacaIzStavki(saved);
         saved = nabavkaRepository.save(saved);
         return getById(saved.getNabavkaId());
     }
 
+    @Transactional
     public NabavkaDto updateStatus(Long id, StatusNabavke status) {
         Nabavka nabavka = findEntity(id);
         nabavka.setStatus(status);
-        return toDto(nabavkaRepository.save(nabavka));
+        return toDto(nabavkaRepository.saveAndFlush(nabavka));
     }
 
     public NabavkaDto assignDobavljac(Long nabavkaId, Long dobavljacId) {
@@ -131,6 +136,35 @@ public class NabavkaService {
                 .map(StavkaNabavke::getUkupnaCena)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         nabavka.setUkupnaCena(total);
+    }
+
+    /**
+     * Pri ručnoj nabavci iz cenovnika: dodeljuje dobavljača sa najvećim udelom u vrednosti stavki.
+     */
+    private void dodeliDobavljacaIzStavki(Nabavka nabavka) {
+        Map<Long, BigDecimal> vrednostPoDobavljacu = new HashMap<>();
+
+        for (StavkaNabavke stavka : nabavka.getStavke()) {
+            if (stavka.getCenovnik() == null || stavka.getCenovnik().getDobavljac() == null) {
+                continue;
+            }
+            Long dobavljacId = stavka.getCenovnik().getDobavljac().getDobavljacId();
+            vrednostPoDobavljacu.merge(dobavljacId, stavka.getUkupnaCena(), BigDecimal::add);
+        }
+
+        if (vrednostPoDobavljacu.isEmpty()) {
+            return;
+        }
+
+        Long izabraniId = vrednostPoDobavljacu.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElseThrow();
+
+        nabavka.setDobavljac(dobavljacService.findEntity(izabraniId));
+        if (nabavka.getStatus() == StatusNabavke.NACRT) {
+            nabavka.setStatus(StatusNabavke.PREDLOZENA);
+        }
     }
 
     private NabavkaDto toDto(Nabavka entity) {

@@ -14,7 +14,7 @@ public interface CenovnikRepository extends JpaRepository<Cenovnik, Long> {
     @Query("""
             SELECT c FROM Cenovnik c
             JOIN FETCH c.dobavljac d
-            WHERE c.dostupnost = true
+            WHERE (c.dostupnost = true OR c.dostupnost IS NULL)
               AND d.status = com.eventsystem.event_management_system.utils.enums.StatusDobavljaca.AKTIVAN
               AND LOWER(c.nazivResursa) = LOWER(:nazivResursa)
             """)
@@ -23,7 +23,7 @@ public interface CenovnikRepository extends JpaRepository<Cenovnik, Long> {
     @Query("""
             SELECT c FROM Cenovnik c
             JOIN FETCH c.dobavljac d
-            WHERE c.dostupnost = true
+            WHERE (c.dostupnost = true OR c.dostupnost IS NULL)
               AND d.status = com.eventsystem.event_management_system.utils.enums.StatusDobavljaca.AKTIVAN
             """)
     List<Cenovnik> findSveDostupne();

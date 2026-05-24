@@ -40,6 +40,25 @@ class PotrebaOpremeDetekcijaServiceTest {
     private PotrebaOpremeDetekcijaService detekcijaService;
 
     @Test
+    void detektujPotrebe_vracaSamoStavkeIzCenovnika() {
+        Dogadjaj dogadjaj = Dogadjaj.builder()
+                .dogadjajId(1L)
+                .naziv("Meetup")
+                .maksKapacitet(50)
+                .build();
+
+        when(dogadjajRepository.findByIdWithLokacija(1L)).thenReturn(Optional.of(dogadjaj));
+        when(sesijaRepository.findAllByDogadjaj_DogadjajId(1L)).thenReturn(List.of());
+        when(cenovnikRepository.findSveDostupne()).thenReturn(List.of(cenovnik("Zvucnici PA")));
+
+        List<DetektovanaPotrebaDto> potrebe = detekcijaService.detektujPotrebe(1L);
+
+        assertThat(potrebe).hasSize(1);
+        assertThat(potrebe.get(0).getNazivResursa()).isEqualTo("Zvucnici PA");
+        assertThat(potrebe.get(0).isPokrivenaUCenovniku()).isTrue();
+    }
+
+    @Test
     void detektujPotrebe_ukljucujeAudioIZaVelikiDogadjajLed() {
         Dogadjaj dogadjaj = Dogadjaj.builder()
                 .dogadjajId(1L)
