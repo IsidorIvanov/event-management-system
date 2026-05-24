@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
+import api from '../services/api';
 
 const ULOGA_DISPLAY = {
   MENADZER_DOGADJAJA: 'Menadžer događaja',
@@ -13,6 +15,185 @@ const TIP_DISPLAY = {
   KLIJENT: 'Klijent',
   UCESNIK: 'Učesnik',
 };
+
+const STATUS_DISPLAY = {
+  OBJAVLJEN: 'Objavljen',
+  AKTIVAN: 'Aktivan',
+  DRAFT: 'Nacrt',
+  ZAVRSEN: 'Završen',
+};
+
+const STATUS_CLASS = {
+  OBJAVLJEN: 'status-badge status-published',
+  AKTIVAN: 'status-badge status-ongoing',
+  DRAFT: 'status-badge status-draft',
+  ZAVRSEN: 'status-badge status-finished',
+};
+
+function formatDate(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('sr-Latn', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function ConfirmModal({ event, onConfirm, onCancel }) {
+  if (!event) return null;
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal-box" onClick={e => e.stopPropagation()}>
+        <div className="modal-icon">🗑️</div>
+        <h3 className="modal-title">Obriši događaj</h3>
+        <p className="modal-body">
+          Da li ste sigurni da želite da obrišete događaj
+          <strong> „{event.naziv}"</strong>?
+          <br />
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Ova akcija se ne može poništiti.</span>
+        </p>
+        <div className="modal-actions">
+          <button className="btn btn-outline" onClick={onCancel}>Otkaži</button>
+          <button className="btn btn-danger" onClick={onConfirm}>Obriši</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProgramSection({ user }) {
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('SVE');
+  const [sortDir, setSortDir] = useState('asc');
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const statusOptions = ['SVE', 'OBJAVLJEN', 'AKTIVAN', 'DRAFT', 'ZAVRSEN'];
+
+  useEffect(() => {
+    api.get('/dogadjaj')
+      .then(res => setEvents(res.data))
+      .catch(() => setError('Greška pri učitavanju događaja.'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const confirmDelete = () => {
+    api.delete(`/dogadjaj/${deleteTarget.dogadjajId}`)
+      .then(() => setEvents(prev => prev.filter(e => e.dogadjajId !== deleteTarget.dogadjajId)))
+      .catch(() => alert('Greška pri brisanju događaja.'))
+      .finally(() => setDeleteTarget(null));
+  };
+
+  const filtered = events
+    .filter(e => statusFilter === 'SVE' || e.status === statusFilter)
+    .filter(e =>
+      e.naziv.toLowerCase().includes(search.toLowerCase()) ||
+      `${e.lokacijaGrad}, ${e.lokacijaDrzava}`.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      const cmp = new Date(a.datumPocetka) - new Date(b.datumPocetka);
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+
+  return (
+    <div className="program-page">
+      <ConfirmModal event={deleteTarget} onConfirm={confirmDelete} onCancel={() => setDeleteTarget(null)} />
+
+      <div className="program-header">
+        <div>
+          <h1>Dobrodošli, {user.ime}!</h1>
+          <p className="page-subtitle">pregled — vaši aktivni i nadolazeći događaji</p>
+        </div>
+        <div className="program-header-actions">
+          <button className="btn btn-outline btn-sm" onClick={() => setStatusFilter('SVE')}>
+            filter: {statusFilter === 'SVE' ? 'svi' : STATUS_DISPLAY[statusFilter]}
+          </button>
+          <button className="btn btn-outline btn-sm" onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}>
+            sortiraj: datum {sortDir === 'asc' ? '↑' : '↓'}
+          </button>
+        </div>
+      </div>
+
+      <div className="info-cards" style={{ marginBottom: '2rem' }}>
+        <div className="info-card">
+          <div className="label">Ukupno događaja</div>
+          <div className="value accent">{events.length}</div>
+          <div className="card-hint">u bazi</div>
+        </div>
+        <div className="info-card">
+          <div className="label">Objavljeni</div>
+          <div className="value success">{events.filter(e => e.status === 'OBJAVLJEN').length}</div>
+          <div className="card-hint">vidljivi učesnicima</div>
+        </div>
+        <div className="info-card">
+          <div className="label">Aktivni</div>
+          <div className="value warning">{events.filter(e => e.status === 'AKTIVAN').length}</div>
+          <div className="card-hint">u toku</div>
+        </div>
+        <div className="info-card">
+          <div className="label">Završeni</div>
+          <div className="value" style={{ color: 'var(--text-muted)' }}>{events.filter(e => e.status === 'ZAVRSEN').length}</div>
+          <div className="card-hint">arhiva</div>
+        </div>
+      </div>
+
+      <div className="events-table-card">
+        <div className="events-table-header">
+          <h2>Događaji</h2>
+          <div className="events-table-controls">
+            <input
+              className="search-input"
+              placeholder="pretraži..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            <select className="status-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+              {statusOptions.map(s => (
+                <option key={s} value={s}>{s === 'SVE' ? 'status: svi' : `status: ${STATUS_DISPLAY[s]}`}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <table className="events-table">
+          <thead>
+            <tr>
+              <th>NAZIV</th><th>DATUM</th><th>LOKACIJA</th><th>STATUS</th><th>AKCIJE</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>Učitavanje...</td></tr>
+            ) : error ? (
+              <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--danger)', padding: '2rem' }}>{error}</td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>Nema događaja koji odgovaraju kriterijumima.</td></tr>
+            ) : filtered.map(event => (
+              <tr key={event.dogadjajId}>
+                <td><span className="event-name-badge">{event.naziv}</span></td>
+                <td>{formatDate(event.datumPocetka)}</td>
+                <td>{event.lokacijaGrad}{event.lokacijaDrzava ? `, ${event.lokacijaDrzava}` : ''}</td>
+                <td>
+                  <span className={STATUS_CLASS[event.status] || 'status-badge status-draft'}>
+                    {STATUS_DISPLAY[event.status] || event.status}
+                  </span>
+                </td>
+                <td>
+                  <div className="action-buttons">
+                    <button className="btn btn-outline btn-xs">Uredi</button>
+                    <button className="btn btn-outline btn-xs">Izveštaj</button>
+                    <button className="btn btn-xs btn-danger-outline" onClick={() => setDeleteTarget(event)}>Obriši</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <button className="fab-btn">+ Novi događaj</button>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const { user, logout, hasRole } = useAuth();
@@ -28,10 +209,10 @@ export default function DashboardPage() {
 
   const initials = `${user.ime?.[0] || ''}${user.prezime?.[0] || ''}`.toUpperCase();
   const isFinansije = hasRole('FINANSIJSKI_KONTROLOR') || hasRole('MENADZER_DOGADJAJA');
+  const isProgram = hasRole('KOORDINATOR_PROGRAMA') || hasRole('MENADZER_DOGADJAJA');
 
   return (
     <div className="dashboard-layout">
-      {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-header">
           <h2>📋 EventSys</h2>
@@ -45,7 +226,6 @@ export default function DashboardPage() {
             <span>🏠</span> <span>Početna</span>
           </Link>
 
-          {/* Finansijski podsistem — samo za FINANSIJSKI_KONTROLOR i MENADZER_DOGADJAJA */}
           {isFinansije && (
             <>
               <Link to="/dashboard/budzet" className={location.pathname.startsWith('/dashboard/budzet') ? 'active' : ''}>
@@ -63,28 +243,18 @@ export default function DashboardPage() {
             </>
           )}
 
-          {/* Resursi — za KOORDINATOR_RESURSA i MENADZER */}
           {(hasRole('KOORDINATOR_RESURSA') || hasRole('MENADZER_DOGADJAJA')) && (
             <Link to="/dashboard/resursi" className={location.pathname.startsWith('/dashboard/resursi') ? 'active' : ''}>
               <span>🏢</span> <span>Resursi</span>
             </Link>
           )}
 
-          {/* Program — za KOORDINATOR_PROGRAMA i MENADZER */}
-          {(hasRole('KOORDINATOR_PROGRAMA') || hasRole('MENADZER_DOGADJAJA')) && (
-            <Link to="/dashboard/program" className={location.pathname.startsWith('/dashboard/program') ? 'active' : ''}>
-              <span>📅</span> <span>Program</span>
-            </Link>
-          )}
-
-          {/* Klijent vidi svoje događaje */}
           {hasRole('KLIJENT') && (
             <Link to="/dashboard/moji-dogadjaji" className={location.pathname.startsWith('/dashboard/moji-dogadjaji') ? 'active' : ''}>
               <span>📋</span> <span>Moji događaji</span>
             </Link>
           )}
 
-          {/* Učesnik vidi registracije */}
           {hasRole('UCESNIK') && (
             <Link to="/dashboard/registracije" className={location.pathname.startsWith('/dashboard/registracije') ? 'active' : ''}>
               <span>🎫</span> <span>Moje registracije</span>
@@ -106,47 +276,48 @@ export default function DashboardPage() {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="main-content">
-        <h1>Dobrodošli, {user.ime}!</h1>
-        <p className="page-subtitle">
-          Prijavljeni ste kao {TIP_DISPLAY[user.tipKorisnika]}
-          {user.uloga && ` — ${ULOGA_DISPLAY[user.uloga]}`}
-        </p>
-
-        <div className="info-cards">
-          <div className="info-card">
-            <div className="label">Tip naloga</div>
-            <div className="value accent">{TIP_DISPLAY[user.tipKorisnika]}</div>
-          </div>
-
-          {user.uloga && (
-            <div className="info-card">
-              <div className="label">Uloga</div>
-              <div className="value success">{ULOGA_DISPLAY[user.uloga]}</div>
-            </div>
-          )}
-
-          <div className="info-card">
-            <div className="label">Email</div>
-            <div className="value" style={{ fontSize: '1rem', wordBreak: 'break-all' }}>{user.email}</div>
-          </div>
-
-          <div className="info-card">
-            <div className="label">ID Korisnika</div>
-            <div className="value warning">#{user.korisnikId}</div>
-          </div>
-        </div>
-
-        {isFinansije && (
-          <div className="info-card" style={{ padding: '2rem' }}>
-            <h3 style={{ marginBottom: '1rem' }}>🏦 Finansijski podsistem</h3>
-            <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              Imate pristup upravljanju budžetima, fakturama, troškovima i plaćanjima.
-              Koristite navigaciju sa leve strane za pristup modulima. Funkcionalnost
-              upravljanja budžetom i planiranja troškova po kategorijama je u razvoju.
+        {isProgram ? (
+          <ProgramSection user={user} />
+        ) : (
+          <>
+            <h1>Dobrodošli, {user.ime}!</h1>
+            <p className="page-subtitle">
+              Prijavljeni ste kao {TIP_DISPLAY[user.tipKorisnika]}
+              {user.uloga && ` — ${ULOGA_DISPLAY[user.uloga]}`}
             </p>
-          </div>
+
+            <div className="info-cards">
+              <div className="info-card">
+                <div className="label">Tip naloga</div>
+                <div className="value accent">{TIP_DISPLAY[user.tipKorisnika]}</div>
+              </div>
+              {user.uloga && (
+                <div className="info-card">
+                  <div className="label">Uloga</div>
+                  <div className="value success">{ULOGA_DISPLAY[user.uloga]}</div>
+                </div>
+              )}
+              <div className="info-card">
+                <div className="label">Email</div>
+                <div className="value" style={{ fontSize: '1rem', wordBreak: 'break-all' }}>{user.email}</div>
+              </div>
+              <div className="info-card">
+                <div className="label">ID Korisnika</div>
+                <div className="value warning">#{user.korisnikId}</div>
+              </div>
+            </div>
+
+            {isFinansije && (
+              <div className="info-card" style={{ padding: '2rem' }}>
+                <h3 style={{ marginBottom: '1rem' }}>🏦 Finansijski podsistem</h3>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  Imate pristup upravljanju budžetima, fakturama, troškovima i plaćanjima.
+                  Koristite navigaciju sa leve strane za pristup modulima.
+                </p>
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>

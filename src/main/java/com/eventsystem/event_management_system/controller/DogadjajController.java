@@ -1,11 +1,14 @@
 package com.eventsystem.event_management_system.controller;
 
 import com.eventsystem.event_management_system.dto.DogadjajDto;
+import com.eventsystem.event_management_system.dto.DogadjajResponseDto;
 import com.eventsystem.event_management_system.service.DogadjajService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -13,6 +16,11 @@ import org.springframework.web.bind.annotation.*;
 public class DogadjajController {
 
     private final DogadjajService dogadjajService;
+
+    @GetMapping("")
+    public ResponseEntity<List<DogadjajResponseDto>> getAllDogadjaji() {
+        return ResponseEntity.ok(dogadjajService.getAllDogadjaji());
+    }
 
     @PostMapping("")
     public ResponseEntity<DogadjajDto> createDogadjaj(@Valid @RequestBody DogadjajDto dto) {
