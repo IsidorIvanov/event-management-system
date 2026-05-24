@@ -4,6 +4,7 @@ import { useNavigate, Link, useLocation, Routes, Route } from 'react-router-dom'
 import api from '../services/api';
 import UpsertEventModal from '../components/UpsertEventModal.jsx';
 import UpsertLokacijaModal from '../components/UpsertLokacijaModal.jsx';
+import EventDetailPage from '../components/EventDetailPage.jsx';
 import { useToast } from '../components/ToastNotification';
 
 const ULOGA_DISPLAY = {
@@ -52,6 +53,7 @@ function ConfirmModal({ event, onConfirm, onCancel }) {
 
 function ProgramSection({ user }) {
   const toast = useToast();
+  const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -172,7 +174,14 @@ function ProgramSection({ user }) {
               <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>Nema rezultata.</td></tr>
             ) : filtered.map(event => (
               <tr key={event.dogadjajId}>
-                <td><span className="event-name-badge">{event.naziv}</span></td>
+                <td>
+                  <span
+                    className="event-name-badge event-name-link"
+                    onClick={() => navigate(`/dashboard/dogadjaj/${event.dogadjajId}`)}
+                  >
+                    {event.naziv}
+                  </span>
+                </td>
                 <td>{formatDate(event.datumPocetka)}</td>
                 <td>{event.lokacijaGrad}{event.lokacijaDrzava ? `, ${event.lokacijaDrzava}` : ''}</td>
                 <td>
@@ -183,7 +192,7 @@ function ProgramSection({ user }) {
                 <td>
                   <div className="action-buttons">
                     <button className="btn btn-outline btn-xs" onClick={() => setEditTarget(event)}>Uredi</button>
-                    <button className="btn btn-outline btn-xs">Izveštaj</button>
+                    <button className="btn btn-outline btn-xs" onClick={() => navigate(`/dashboard/dogadjaj/${event.dogadjajId}`)}>Izveštaj</button>
                     <button className="btn btn-xs btn-danger-outline" onClick={() => setDeleteTarget(event)}>Obriši</button>
                   </div>
                 </td>
@@ -383,6 +392,7 @@ export default function DashboardPage() {
       <main className="main-content">
         <Routes>
           <Route path="lokacije" element={<LokacijaSection />} />
+          <Route path="dogadjaj/:id" element={<EventDetailPage />} />
           <Route path="*" element={
             isProgram ? <ProgramSection user={user} /> : (
               <>

@@ -71,6 +71,12 @@ public class DogadjajService {
                 .collect(Collectors.toList());
     }
 
+    public DogadjajResponseDto getDogadjajById(Long id) {
+        Dogadjaj d = dogadjajRepository.findByIdWithLokacija(id)
+                .orElseThrow(() -> new RuntimeException("Dogadjaj not found with id: " + id));
+        return toResponseDto(d);
+    }
+
     private DogadjajResponseDto toResponseDto(Dogadjaj d) {
         Lokacija l = d.getLokacija();
         return new DogadjajResponseDto(
