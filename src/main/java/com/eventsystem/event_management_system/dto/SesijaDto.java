@@ -1,6 +1,6 @@
 package com.eventsystem.event_management_system.dto;
 
-import com.eventsystem.event_management_system.utils.TipSesije;
+import com.eventsystem.event_management_system.utils.enums.TipSesije;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -48,5 +48,5 @@ public class SesijaDto {
 
     private final String opis;
 
-    private Set<Long> govornikIds;
+    private Set<GovornikDto> govornici;
 }

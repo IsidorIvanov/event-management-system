@@ -1,7 +1,7 @@
 package com.eventsystem.event_management_system.dto;
 
-import com.eventsystem.event_management_system.utils.TipKorisnika;
-import com.eventsystem.event_management_system.utils.UlogaZaposlenog;
+import com.eventsystem.event_management_system.utils.enums.TipKorisnika;
+import com.eventsystem.event_management_system.utils.enums.UlogaZaposlenog;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
