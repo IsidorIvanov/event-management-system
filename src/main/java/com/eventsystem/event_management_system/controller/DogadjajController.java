@@ -23,7 +23,7 @@ public class DogadjajController {
     }
 
     @PostMapping("")
-    public ResponseEntity<DogadjajDto> createDogadjaj(@Valid @RequestBody DogadjajDto dto) {
+    public ResponseEntity<DogadjajResponseDto> createDogadjaj(@Valid @RequestBody DogadjajDto dto) {
         return ResponseEntity.ok(dogadjajService.saveDogadjaj(dto));
     }
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import api from '../services/api';
+import CreateEventModal from '../components/CreateEventModal';
 
 const ULOGA_DISPLAY = {
   MENADZER_DOGADJAJA: 'Menadžer događaja',
@@ -55,6 +56,7 @@ function ProgramSection({ user }) {
   const [statusFilter, setStatusFilter] = useState('SVE');
   const [sortDir, setSortDir] = useState('asc');
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [showCreate, setShowCreate]     = useState(false);
 
   useEffect(() => {
     api.get('/dogadjaj')
@@ -89,6 +91,12 @@ function ProgramSection({ user }) {
   return (
     <div className="program-page">
       <ConfirmModal event={deleteTarget} onConfirm={confirmDelete} onCancel={() => setDeleteTarget(null)} />
+      {showCreate && (
+        <CreateEventModal
+          onClose={() => setShowCreate(false)}
+          onCreated={(newEvent) => setEvents(prev => [...prev, newEvent])}
+        />
+      )}
 
       <div className="program-header">
         <div>
@@ -164,7 +172,7 @@ function ProgramSection({ user }) {
         </table>
       </div>
 
-      <button className="fab-btn">+ Novi događaj</button>
+      <button className="fab-btn" onClick={() => setShowCreate(true)}>+ Novi događaj</button>
     </div>
   );
 }

@@ -1,16 +1,26 @@
 package com.eventsystem.event_management_system.service;
 
 import com.eventsystem.event_management_system.dto.LokacijaDto;
+import com.eventsystem.event_management_system.dto.LokacijaResponseDto;
 import com.eventsystem.event_management_system.model.Lokacija;
 import com.eventsystem.event_management_system.repository.LokacijaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class LokacijaService {
 
     private final LokacijaRepository lokacijaRepository;
+
+    public List<LokacijaResponseDto> getAllLokacije() {
+        return lokacijaRepository.findAll().stream()
+                .map(l -> new LokacijaResponseDto(l.getLokacijaId(), l.getNaziv(), l.getAdresa(), l.getGrad(), l.getDrzava()))
+                .collect(Collectors.toList());
+    }
 
     public LokacijaDto saveLokacija(LokacijaDto dto) {
         Lokacija novaLokacija = Lokacija.builder()

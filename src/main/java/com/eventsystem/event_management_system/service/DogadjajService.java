@@ -22,7 +22,7 @@ public class DogadjajService {
 
     private final LokacijaRepository lokacijaRepository;
 
-    public DogadjajDto saveDogadjaj(DogadjajDto dto) {
+    public DogadjajResponseDto saveDogadjaj(DogadjajDto dto) {
         Lokacija lokacija = lokacijaRepository.findById(dto.getLokacijaId())
                 .orElseThrow(() -> new RuntimeException("Lokacija not found with id: " + dto.getLokacijaId()));
 
@@ -37,7 +37,7 @@ public class DogadjajService {
 
         dogadjajRepository.save(dogadjaj);
 
-        return dto;
+        return toResponseDto(dogadjaj);
     }
 
     public DogadjajDto updateDogadjaj(Long id, DogadjajDto dto) {
@@ -68,7 +68,23 @@ public class DogadjajService {
 
     public List<DogadjajResponseDto> getAllDogadjaji() {
         return dogadjajRepository.findAllWithLokacija().stream()
-                .map(DogadjajDtoMapper::toResponseDto)
+                .map(this::toResponseDto)
                 .collect(Collectors.toList());
+    }
+
+    private DogadjajResponseDto toResponseDto(Dogadjaj d) {
+        Lokacija l = d.getLokacija();
+        return new DogadjajResponseDto(
+                d.getDogadjajId(),
+                d.getNaziv(),
+                d.getDatumPocetka().toString(),
+                d.getDatumZavrsetka().toString(),
+                d.getMaksKapacitet(),
+                d.getOpis(),
+                d.getStatus(),
+                l != null ? l.getNaziv() : "",
+                l != null ? l.getGrad() : "",
+                l != null ? l.getDrzava() : ""
+        );
     }
 }
