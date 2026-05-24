@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import UpsertEventModal from '../components/UpsertEventModal.jsx';
+import { useToast } from '../components/ToastNotification';
 
 const ULOGA_DISPLAY = {
   MENADZER_DOGADJAJA: 'Menadžer događaja',
@@ -49,6 +50,7 @@ function ConfirmModal({ event, onConfirm, onCancel }) {
 }
 
 function ProgramSection({ user }) {
+  const toast = useToast();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -68,8 +70,11 @@ function ProgramSection({ user }) {
 
   const confirmDelete = () => {
     api.delete(`/dogadjaj/${deleteTarget.dogadjajId}`)
-      .then(() => setEvents(prev => prev.filter(e => e.dogadjajId !== deleteTarget.dogadjajId)))
-      .catch(() => alert('Greška pri brisanju događaja.'))
+      .then(() => {
+        setEvents(prev => prev.filter(e => e.dogadjajId !== deleteTarget.dogadjajId));
+        toast(`Događaj „${deleteTarget.naziv}" je uspešno obrisan.`, 'success');
+      })
+      .catch(() => toast('Greška pri brisanju događaja.', 'error'))
       .finally(() => setDeleteTarget(null));
   };
 
@@ -95,7 +100,10 @@ function ProgramSection({ user }) {
       {showCreate && (
         <UpsertEventModal
           onClose={() => setShowCreate(false)}
-          onCreated={(newEvent) => setEvents(prev => [...prev, newEvent])}
+          onCreated={(newEvent) => {
+            setEvents(prev => [...prev, newEvent]);
+            toast(`Događaj „${newEvent.naziv}" je uspešno kreiran.`, 'success');
+          }}
         />
       )}
       {editTarget && (
@@ -105,6 +113,7 @@ function ProgramSection({ user }) {
           onCreated={(updated) => {
             setEvents(prev => prev.map(e => e.dogadjajId === updated.dogadjajId ? updated : e));
             setEditTarget(null);
+            toast(`Događaj „${updated.naziv}" je uspešno izmenjen.`, 'success');
           }}
         />
       )}
