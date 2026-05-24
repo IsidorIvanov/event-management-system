@@ -1,6 +1,6 @@
 package com.eventsystem.event_management_system.dto;
 
-import com.eventsystem.event_management_system.utils.TipKorisnika;
+import com.eventsystem.event_management_system.utils.enums.TipKorisnika;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
