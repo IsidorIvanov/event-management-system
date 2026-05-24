@@ -367,6 +367,309 @@ body {
   color: var(--text-muted);
 }
 
+/* ===================== Resursi ===================== */
+
+.field-error {
+  display: block;
+  color: var(--danger);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+.resursi-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1.5rem;
+}
+
+.date-range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-left: auto;
+}
+
+.date-range label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  gap: 0.25rem;
+}
+
+.date-range input[type="date"] {
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font);
+}
+
+.lokacija-list {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.lokacija-list-sidebar {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+
+.lokacija-list-sidebar h3,
+.lokacija-list-detail h3 {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.lokacija-list-sidebar ul {
+  list-style: none;
+}
+
+.lokacija-item {
+  width: 100%;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: var(--font);
+}
+
+.lokacija-item span {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.lokacija-item.active,
+.lokacija-item:hover {
+  background: var(--accent-subtle);
+  border-color: var(--border);
+}
+
+.lokacija-list-detail {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.detail-meta {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.sala-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.sala-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+}
+
+.sala-card h4 {
+  margin-bottom: 0.5rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.item-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0;
+  font-family: var(--font);
+}
+
+.btn-link.danger {
+  color: var(--danger);
+}
+
+.empty-hint {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.kalendar-section {
+  margin-top: 1rem;
+}
+
+.kalendar-section h2 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.sala-kalendar .kalendar-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.kalendar-sala-block {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.kalendar-legend {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.8rem;
+  margin-bottom: 0.75rem;
+}
+
+.legend-free::before,
+.legend-busy::before {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.legend-free::before {
+  background: var(--success-subtle);
+  border: 1px solid var(--success);
+}
+
+.legend-busy::before {
+  background: var(--danger-subtle);
+  border: 1px solid var(--danger);
+}
+
+.kalendar-day {
+  margin-bottom: 0.75rem;
+}
+
+.kalendar-day-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--text-secondary);
+}
+
+.kalendar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 4px;
+}
+
+.kalendar-slot {
+  padding: 0.35rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  min-height: 40px;
+  border: 1px solid var(--border);
+}
+
+.kalendar-slot.free {
+  background: var(--success-subtle);
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.kalendar-slot.busy {
+  background: var(--danger-subtle);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.slot-time {
+  display: block;
+  font-weight: 600;
+}
+
+.slot-label {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.modal-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-card h3 {
+  margin-bottom: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.resource-form .btn-primary {
+  flex: 0 0 auto;
+}
+
 /* ===================== Responsive ===================== */
 
 @media (max-width: 768px) {
@@ -381,8 +684,10 @@ body {
     overflow: hidden;
   }
   .sidebar-header h2,
-  .sidebar-nav a span,
   .sidebar-footer .user-meta {
     display: none;
+  }
+  .lokacija-list {
+    grid-template-columns: 1fr;
   }
 }

@@ -9,6 +9,7 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -53,12 +54,16 @@ public class SecurityConfig {
                 .requestMatchers("/api/troskovi/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
                 .requestMatchers("/api/analiza/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
 
+                .requestMatchers(HttpMethod.GET, "/api/lokacija/**").hasAnyRole(
+                        "MENADZER_DOGADJAJA", "KOORDINATOR_RESURSA", "KOORDINATOR_PROGRAMA")
                 .requestMatchers("/api/lokacija/**").hasAnyRole("MENADZER_DOGADJAJA")
                 .requestMatchers("/api/dogadjaj/**").hasAnyRole("KOORDINATOR_PROGRAMA", "MENADZER_DOGADJAJA")
                 .requestMatchers("/api/sesija/**").hasAnyRole("KOORDINATOR_PROGRAMA")
                 .requestMatchers("/api/govornik/**").hasAnyRole("KOORDINATOR_PROGRAMA")
                 .requestMatchers("/api/tip-karte/**").hasAnyRole("KOORDINATOR_PROGRAMA")
 
+                .requestMatchers(HttpMethod.GET, "/api/sala/**").hasAnyRole(
+                        "KOORDINATOR_RESURSA", "MENADZER_DOGADJAJA", "KOORDINATOR_PROGRAMA")
                 .requestMatchers("/api/sala/**").hasAnyRole("KOORDINATOR_RESURSA")
 
                 // Svi autentifikovani korisnici
