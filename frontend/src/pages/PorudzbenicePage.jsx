@@ -17,14 +17,10 @@ const STATUS_NABAVKE = {
   U_OBRADI: 'U obradi',
   PREDLOZENA: 'Predložena',
   POTVRDJENA: 'Potvrđena',
+  U_ISPORUCI: 'U isporuci',
   ODBIJENA: 'Odbijena',
   ZAVRSENA: 'Završena',
 };
-
-const KRITERIJUMI = [
-  { value: 'NAJNIZA_CENA', label: 'Najniža cena' },
-  { value: 'NAJBOLJI_REJTING', label: 'Najbolji rejting' },
-];
 
 const STATUS_OPTIONS = ['KREIRANA', 'POSLATA', 'POTVRDJENA', 'U_ISPORUCI', 'ISPORUCENA', 'OTKAZANA'];
 
@@ -58,8 +54,6 @@ export default function PorudzbenicePage() {
   const [nabavke, setNabavke] = useState([]);
   const [porudzbenice, setPorudzbenice] = useState([]);
   const [selectedNabavkaId, setSelectedNabavkaId] = useState('');
-  const [kriterijum, setKriterijum] = useState('NAJNIZA_CENA');
-  const [predlog, setPredlog] = useState(null);
 
   const dostupniCenovnik = cenovnik.filter((c) => c.dostupnost !== false);
 
@@ -111,12 +105,6 @@ export default function PorudzbenicePage() {
         ...(s.cenovnikId ? { cenovnikId: s.cenovnikId } : {}),
       }));
 
-  const getPotrebneStavkeIzNabavke = () => {
-    const n = nabavke.find((x) => x.nabavkaId === Number(selectedNabavkaId));
-    if (!n?.stavke?.length) return null;
-    return n.stavke.map((s) => ({ nazivResursa: s.nazivResursa, kolicina: s.kolicina }));
-  };
-
   const handleCenovnikMultiSelect = (e) => {
     const ids = Array.from(e.target.selectedOptions).map((o) => Number(o.value));
     const nove = ids.map((cenovnikId) => {
@@ -159,17 +147,20 @@ export default function PorudzbenicePage() {
   const handleDetekcija = async () => {
     if (!selectedDogadjajId) return;
     setBusy(true);
-    setPredlog(null);
     try {
-      const res = await nabavkaApi.validirajPotrebe(selectedDogadjajId);
-      const stavke = res.data.detektovanePotrebe.map((p) => ({
+      const res = await nabavkaApi.detektujPotrebe(selectedDogadjajId);
+      const stavke = res.data.map((p) => ({
         nazivResursa: p.nazivResursa,
         kolicina: p.kolicina,
         cenovnikId: p.preporuceniCenovnikId || null,
       }));
       setAutoStavke(stavke);
-      setAutoUpozorenja(res.data.upozorenja || []);
-      toast(`Detektovano ${stavke.length} potreba za događaj.`, 'success');
+      setAutoUpozorenja(stavke.length === 0
+        ? ['Nema odgovarajućih stavki u cenovniku za ovaj događaj.']
+        : []);
+      toast(stavke.length > 0
+        ? `Pronađeno ${stavke.length} stavki iz cenovnika.`
+        : 'Nema stavki u cenovniku za predložene potrebe.', stavke.length > 0 ? 'success' : 'warning');
     } catch (err) {
       toast(extractError(err), 'error');
     } finally {
@@ -186,28 +177,9 @@ export default function PorudzbenicePage() {
     setBusy(true);
     try {
       const res = await nabavkaApi.createNabavka({ dogadjajId: Number(selectedDogadjajId), stavke });
-      toast(`Nabavka #${res.data.nabavkaId} kreirana (automatski).`, 'success');
+      toast(`Nabavka #${res.data.nabavkaId} kreirana. Dobavljač: ${res.data.dobavljacNaziv || '—'}.`, 'success');
       setSelectedNabavkaId(String(res.data.nabavkaId));
-      await loadNabavkeIPorudzbenice(selectedDogadjajId);
-    } catch (err) {
-      toast(extractError(err), 'error');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handlePrimeniSelekciju = async () => {
-    const potrebneStavke = getPotrebneStavkeIzNabavke() || stavkeZaApi(autoStavke);
-    if (!selectedNabavkaId || potrebneStavke.length === 0) return;
-    setBusy(true);
-    try {
-      const res = await nabavkaApi.primeniSelekciju({
-        nabavkaId: Number(selectedNabavkaId),
-        kriterijum,
-        potrebneStavke,
-      });
-      setPredlog(res.data);
-      toast(`Dobavljač ${res.data.dobavljacNaziv} dodeljen.`, 'success');
+      setAutoStavke([]);
       await loadNabavkeIPorudzbenice(selectedDogadjajId);
     } catch (err) {
       toast(extractError(err), 'error');
@@ -232,11 +204,17 @@ export default function PorudzbenicePage() {
 
   const handleStatusChange = async (porudzbenicaId, status) => {
     try {
-      await nabavkaApi.updatePorudzbenicaStatus(porudzbenicaId, status);
+      const res = await nabavkaApi.updatePorudzbenicaStatus(porudzbenicaId, status);
+      setPorudzbenice((prev) =>
+        prev.map((p) => (p.porudzbenicaId === porudzbenicaId ? res.data : p))
+      );
+      if (selectedDogadjajId) {
+        await loadNabavkeIPorudzbenice(selectedDogadjajId);
+      }
       toast('Status ažuriran.', 'success');
-      await loadNabavkeIPorudzbenice(selectedDogadjajId);
     } catch (err) {
       toast(extractError(err), 'error');
+      await loadNabavkeIPorudzbenice(selectedDogadjajId);
     }
   };
 
@@ -264,7 +242,6 @@ export default function PorudzbenicePage() {
               setManualStavke([]);
               setAutoStavke([]);
               setAutoUpozorenja([]);
-              setPredlog(null);
             }}
             disabled={loading}
           >
@@ -378,33 +355,6 @@ export default function PorudzbenicePage() {
                   Kreiraj nabavku
                 </button>
               </div>
-
-              {selectedNabavka && (
-                <div className="nabavka-panel" style={{ marginTop: '1.25rem' }}>
-                  <h3>Nabavka #{selectedNabavka.nabavkaId} — dalji koraci</h3>
-                  <div className="porudzbenice-actions">
-                    <select className="status-select" value={kriterijum} onChange={(e) => setKriterijum(e.target.value)}>
-                      {KRITERIJUMI.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
-                    </select>
-                    <button type="button" className="btn btn-primary btn-sm" onClick={handlePrimeniSelekciju} disabled={busy}>
-                      Primeni selekciju dobavljača
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-sm"
-                      onClick={handleGenerisiPorudzbenicu}
-                      disabled={busy || !selectedNabavka.dobavljacId || imaPorudzbenicu}
-                    >
-                      Generiši porudžbenicu
-                    </button>
-                  </div>
-                  {predlog && (
-                    <div className="info-card" style={{ marginTop: '1rem', padding: '1rem' }}>
-                      <strong>{predlog.dobavljacNaziv}</strong> — {formatMoney(predlog.ukupnaProcenjenaCena)}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
 
@@ -437,6 +387,19 @@ export default function PorudzbenicePage() {
                     ))}
                   </tbody>
                 </table>
+              )}
+
+              {selectedNabavka && (
+                <div className="porudzbenice-actions" style={{ padding: '0 1.25rem 1rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={handleGenerisiPorudzbenicu}
+                    disabled={busy || !selectedNabavka.dobavljacId || imaPorudzbenicu}
+                  >
+                    Generiši porudžbenicu
+                  </button>
+                </div>
               )}
             </div>
 

@@ -2,6 +2,7 @@ package com.eventsystem.event_management_system.controller;
 
 import com.eventsystem.event_management_system.dto.GenerisiPorudzbenicuRequestDto;
 import com.eventsystem.event_management_system.dto.PorudzbenicaDto;
+import com.eventsystem.event_management_system.dto.StatusUpdateDto;
 import com.eventsystem.event_management_system.service.PorudzbenicaService;
 import com.eventsystem.event_management_system.utils.enums.StatusPorudzbenice;
 import jakarta.validation.Valid;
@@ -10,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/nabavka/porudzbenica")
@@ -42,11 +42,13 @@ public class PorudzbenicaController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<PorudzbenicaDto> updateStatus(
             @PathVariable Long id,
-            @RequestBody Map<String, StatusPorudzbenice> body
+            @Valid @RequestBody StatusUpdateDto body
     ) {
-        StatusPorudzbenice status = body.get("status");
-        if (status == null) {
-            throw new RuntimeException("Polje 'status' je obavezno.");
+        StatusPorudzbenice status;
+        try {
+            status = StatusPorudzbenice.valueOf(body.getStatus().trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Nepoznat status porudžbenice: " + body.getStatus());
         }
         return ResponseEntity.ok(porudzbenicaService.updateStatus(id, status));
     }
