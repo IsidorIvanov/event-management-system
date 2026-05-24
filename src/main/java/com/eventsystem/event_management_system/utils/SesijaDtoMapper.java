@@ -23,6 +23,7 @@ public class SesijaDtoMapper {
                 s.getKapacitet(),
                 s.getOpis()
         );
+        dto.setSesijaId(s.getSesijaId());
         dto.setGovornici(
                 s.getGovornici().stream()
                         .map(g -> GovornikDto.builder()

@@ -45,7 +45,7 @@ public class SesijaService {
 
     @Transactional(readOnly = true)
     public SesijaDto getSesijaById(Long id) {
-        Sesija sesija = sesijaRepository.findById(id)
+        Sesija sesija = sesijaRepository.findByIdWithGovornici(id)
                 .orElseThrow(() -> new RuntimeException("Sesija not found with id: " + id));
         return toDto(sesija);
     }
@@ -108,11 +108,12 @@ public class SesijaService {
 
         sesijaRepository.save(novaSesija);
 
-        return dto;
+        return toDto(novaSesija);
     }
 
+    @Transactional
     public SesijaDto updateSesija(Long id, SesijaDto dto) {
-        Sesija existingSesija = sesijaRepository.findById(id)
+        Sesija existingSesija = sesijaRepository.findByIdWithGovornici(id)
                 .orElseThrow(() -> new RuntimeException("Sesija not found with id: " + id));
 
         existingSesija.setNaziv(dto.getNaziv());
@@ -125,7 +126,7 @@ public class SesijaService {
 
         sesijaRepository.save(existingSesija);
 
-        return dto;
+        return toDto(existingSesija);
     }
 
     public void deleteSesija(Long id) {
@@ -137,7 +138,7 @@ public class SesijaService {
 
     @Transactional
     public SesijaDto addGovornikToSesija(Long sesijaId, Long govornikId) {
-        Sesija sesija = sesijaRepository.findById(sesijaId)
+        Sesija sesija = sesijaRepository.findByIdWithGovornici(sesijaId)
                 .orElseThrow(() -> new RuntimeException("Sesija not found with id: " + sesijaId));
 
         Govornik govornik = govornikRepository.findById(govornikId)
