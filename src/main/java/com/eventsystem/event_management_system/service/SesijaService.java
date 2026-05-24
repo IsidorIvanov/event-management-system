@@ -1,5 +1,6 @@
 package com.eventsystem.event_management_system.service;
 
+import com.eventsystem.event_management_system.dto.SesijaDetaljDto;
 import com.eventsystem.event_management_system.dto.SesijaDto;
 import com.eventsystem.event_management_system.model.Dogadjaj;
 import com.eventsystem.event_management_system.model.Govornik;
@@ -47,6 +48,43 @@ public class SesijaService {
         Sesija sesija = sesijaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Sesija not found with id: " + id));
         return toDto(sesija);
+    }
+
+    @Transactional(readOnly = true)
+    public SesijaDetaljDto getSesijaDetalj(Long id) {
+        Sesija sesija = sesijaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Sesija nije pronadjena sa id: " + id));
+
+        var dogadjaj = sesija.getDogadjaj();
+        var lokacija = sesija.getSala().getLokacija();
+
+        return SesijaDetaljDto.builder()
+                .sesijaId(sesija.getSesijaId())
+                .naziv(sesija.getNaziv())
+                .datum(sesija.getDatum())
+                .vremePocetka(sesija.getVremePocetka())
+                .vremeZavrsetka(sesija.getVremeZavrsetka())
+                .tip(sesija.getTip())
+                .kapacitet(sesija.getKapacitet())
+                .opis(sesija.getOpis())
+                .nazivSale(sesija.getSala().getId().getNazivSale())
+                .lokacijaId(lokacija.getLokacijaId())
+                .lokacijaNaziv(lokacija.getNaziv())
+                .dogadjajId(dogadjaj.getDogadjajId())
+                .dogadjajNaziv(dogadjaj.getNaziv())
+                .dogadjajStatus(dogadjaj.getStatus())
+                .dogadjajDatumOd(dogadjaj.getDatumPocetka())
+                .dogadjajDatumDo(dogadjaj.getDatumZavrsetka())
+                .dogadjajOpis(dogadjaj.getOpis())
+                .govornici(sesija.getGovornici().stream()
+                        .map(g -> SesijaDetaljDto.GovornikPregledDto.builder()
+                                .ime(g.getIme())
+                                .prezime(g.getPrezime())
+                                .kompanija(g.getKompanija())
+                                .pozicija(g.getPozicija())
+                                .build())
+                        .toList())
+                .build();
     }
 
     public SesijaDto createSesija(SesijaDto dto) {

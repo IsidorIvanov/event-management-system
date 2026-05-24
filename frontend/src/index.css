@@ -811,6 +811,92 @@ body {
   border-color: rgba(239, 68, 68, 0.35);
 }
 
+.kalendar-slot.clickable {
+  cursor: pointer;
+}
+
+.kalendar-slot.clickable:hover {
+  filter: brightness(1.1);
+  border-color: var(--danger);
+}
+
+.detalj-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.detalj-header h3 {
+  margin: 0;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+.btn-close:hover {
+  color: var(--text-primary);
+}
+
+.detalj-section {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.detalj-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.detalj-section h4 {
+  font-size: 0.95rem;
+  margin-bottom: 0.75rem;
+  color: var(--accent);
+}
+
+.detalj-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.6rem;
+}
+
+.detalj-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.detalj-value {
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.detalj-govornici {
+  list-style: none;
+  font-size: 0.9rem;
+}
+
+.detalj-govornici li {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.detalj-govornici li:last-child {
+  border-bottom: none;
+}
+
 .slot-time {
   display: block;
   font-weight: 600;

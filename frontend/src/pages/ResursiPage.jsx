@@ -5,8 +5,10 @@ import LokacijaIObjekatForm from '../components/resursi/LokacijaIObjekatForm';
 import SalaForm from '../components/resursi/SalaForm';
 import LokacijaSalaList from '../components/resursi/LokacijaSalaList';
 import SalaKalendar, { formatDate, addDays } from '../components/resursi/SalaKalendar';
+import SesijaDetaljModal from '../components/resursi/SesijaDetaljModal';
 import * as lokacijaApi from '../services/lokacijaService';
 import * as salaApi from '../services/salaService';
+import * as sesijaApi from '../services/sesijaService';
 
 function extractError(err) {
   const data = err.response?.data;
@@ -31,6 +33,9 @@ export default function ResursiPage() {
   const [error, setError] = useState(null);
 
   const [modal, setModal] = useState(null);
+  const [sesijaDetalj, setSesijaDetalj] = useState(null);
+  const [sesijaDetaljLoading, setSesijaDetaljLoading] = useState(false);
+  const [sesijaDetaljError, setSesijaDetaljError] = useState(null);
   const [datumOd, setDatumOd] = useState(formatDate(new Date()));
   const [datumDo, setDatumDo] = useState(addDays(formatDate(new Date()), 6));
 
@@ -95,6 +100,25 @@ export default function ResursiPage() {
   };
 
   const closeModal = () => setModal(null);
+
+  const handleSlotClick = async (sesijaId) => {
+    setSesijaDetalj(null);
+    setSesijaDetaljError(null);
+    setSesijaDetaljLoading(true);
+    try {
+      const res = await sesijaApi.getSesijaDetalj(sesijaId);
+      setSesijaDetalj(res.data);
+    } catch (err) {
+      setSesijaDetaljError(extractError(err));
+    } finally {
+      setSesijaDetaljLoading(false);
+    }
+  };
+
+  const closeSesijaDetalj = () => {
+    setSesijaDetalj(null);
+    setSesijaDetaljError(null);
+  };
 
   const handleCreateLokacijaSaSalom = async ({ lokacija, sala }) => {
     try {
@@ -265,10 +289,20 @@ export default function ResursiPage() {
               <SalaKalendar
                 dostupnost={dostupnost}
                 loading={kalendarLoading}
+                onSlotClick={handleSlotClick}
               />
             </section>
           )}
         </>
+      )}
+
+      {(sesijaDetalj || sesijaDetaljLoading || sesijaDetaljError) && (
+        <SesijaDetaljModal
+          detalj={sesijaDetalj}
+          loading={sesijaDetaljLoading}
+          error={sesijaDetaljError}
+          onClose={closeSesijaDetalj}
+        />
       )}
 
       {modal?.type === 'lokacija-create' && (
