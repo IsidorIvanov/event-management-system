@@ -60,5 +60,6 @@ public class Sesija {
             joinColumns = @JoinColumn(name = "sesija_id"),
             inverseJoinColumns = @JoinColumn(name = "govornik_id")
     )
+    @Builder.Default
     private Set<Govornik> govornici = new HashSet<>();
 }

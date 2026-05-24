@@ -49,4 +49,6 @@ public class SesijaDto {
     private final String opis;
 
     private Set<GovornikDto> govornici;
+
+    private Long sesijaId;
 }
