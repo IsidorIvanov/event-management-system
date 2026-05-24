@@ -112,7 +112,7 @@ export default function SalaForm({
           {errors.kapacitet && <span className="field-error">{errors.kapacitet}</span>}
         </div>
         <div className="form-group">
-          <label htmlFor="baznaCenaPoDanu">Bazna cena / dan (RSD)</label>
+          <label htmlFor="baznaCenaPoDanu">Osnovna cena / dan (RSD)</label>
           <input
             id="baznaCenaPoDanu"
             type="number"

@@ -8,7 +8,7 @@ function addDays(dateStr, days) {
   return formatDate(d);
 }
 
-export default function SalaKalendar({ dostupnost, loading, onRefresh }) {
+export default function SalaKalendar({ dostupnost, loading }) {
   if (loading) {
     return <p className="empty-hint">Učitavanje kalendara...</p>;
   }
@@ -21,14 +21,9 @@ export default function SalaKalendar({ dostupnost, loading, onRefresh }) {
 
   return (
     <div className="sala-kalendar">
-      <div className="kalendar-toolbar">
-        <span>
-          Period: {dostupnost.datumOd} — {dostupnost.datumDo}
-        </span>
-        <button type="button" className="btn btn-outline" style={{ width: 'auto' }} onClick={onRefresh}>
-          Osveži
-        </button>
-      </div>
+      <p className="kalendar-period">
+        Period: {dostupnost.datumOd} — {dostupnost.datumDo}
+      </p>
 
       <div className="kalendar-sala-block">
         <div className="kalendar-legend">

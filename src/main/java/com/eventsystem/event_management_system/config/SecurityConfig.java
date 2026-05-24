@@ -64,7 +64,7 @@ public class SecurityConfig {
 
                 .requestMatchers(HttpMethod.GET, "/api/sala/**").hasAnyRole(
                         "KOORDINATOR_RESURSA", "MENADZER_DOGADJAJA", "KOORDINATOR_PROGRAMA")
-                .requestMatchers("/api/sala/**").hasAnyRole("KOORDINATOR_RESURSA")
+                .requestMatchers("/api/sala/**").hasAnyRole("KOORDINATOR_RESURSA", "MENADZER_DOGADJAJA")
 
                 // Svi autentifikovani korisnici
                 .anyRequest().authenticated()

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import LokacijaForm from '../components/resursi/LokacijaForm';
+import LokacijaIObjekatForm from '../components/resursi/LokacijaIObjekatForm';
 import SalaForm from '../components/resursi/SalaForm';
 import LokacijaSalaList from '../components/resursi/LokacijaSalaList';
 import SalaKalendar, { formatDate, addDays } from '../components/resursi/SalaKalendar';
@@ -18,7 +19,7 @@ function extractError(err) {
 export default function ResursiPage() {
   const { hasRole } = useAuth();
   const canManageLokacija = hasRole('MENADZER_DOGADJAJA');
-  const canManageSala = hasRole('KOORDINATOR_RESURSA');
+  const canManageSala = hasRole('KOORDINATOR_RESURSA') || hasRole('MENADZER_DOGADJAJA');
 
   const [lokacije, setLokacije] = useState([]);
   const [selectedLokacijaId, setSelectedLokacijaId] = useState(null);
@@ -63,11 +64,7 @@ export default function ResursiPage() {
     try {
       const res = await salaApi.getDostupnost(lokacijaId, datumOd, datumDo);
       const salaData = res.data.sale?.find((s) => s.nazivSale === nazivSale);
-      setDostupnost(
-        salaData
-          ? { ...res.data, sale: [salaData] }
-          : null
-      );
+      setDostupnost(salaData ? { ...res.data, sale: [salaData] } : null);
     } catch (err) {
       setError(extractError(err));
       setDostupnost(null);
@@ -99,10 +96,19 @@ export default function ResursiPage() {
 
   const closeModal = () => setModal(null);
 
-  const handleCreateLokacija = async (data) => {
+  const handleCreateLokacijaSaSalom = async ({ lokacija, sala }) => {
     try {
-      await lokacijaApi.createLokacija(data);
-      setMessage('Lokacija je uspešno kreirana.');
+      const res = await lokacijaApi.createLokacija(lokacija);
+      const newId = res.data.lokacijaId;
+      if (sala && canManageSala) {
+        await salaApi.createSala({ ...sala, lokacijaId: newId });
+      }
+      setMessage(
+        sala
+          ? 'Lokacija i sala su uspešno kreirane.'
+          : 'Lokacija je uspešno kreirana.'
+      );
+      setSelectedLokacijaId(newId);
       closeModal();
       await loadLokacije();
     } catch (err) {
@@ -110,9 +116,9 @@ export default function ResursiPage() {
     }
   };
 
-  const handleUpdateLokacija = async (data) => {
+  const handleUpdateLokacijaById = async (id, data) => {
     try {
-      await lokacijaApi.updateLokacija(modal.lokacija.lokacijaId, data);
+      await lokacijaApi.updateLokacija(id, data);
       setMessage('Lokacija je uspešno izmenjena.');
       closeModal();
       await loadLokacije();
@@ -149,13 +155,18 @@ export default function ResursiPage() {
     }
   };
 
-  const handleUpdateSala = async (data) => {
+  const handleUpdateSalaByRef = async (sala, data) => {
     try {
-      await salaApi.updateSala(modal.sala.lokacijaId, modal.sala.nazivSale, data);
+      await salaApi.updateSala(sala.lokacijaId, sala.nazivSale, data);
       setMessage('Sala je uspešno izmenjena.');
       closeModal();
       await loadLokacije();
-      if (selectedSala) await loadDostupnost(selectedSala.lokacijaId, selectedSala.nazivSale);
+      if (
+        selectedSala?.lokacijaId === sala.lokacijaId &&
+        selectedSala?.nazivSale === sala.nazivSale
+      ) {
+        await loadDostupnost(sala.lokacijaId, sala.nazivSale);
+      }
     } catch (err) {
       setError(extractError(err));
     }
@@ -174,7 +185,6 @@ export default function ResursiPage() {
         setDostupnost(null);
       }
       await loadLokacije();
-      if (selectedSala) await loadDostupnost(selectedSala.lokacijaId, selectedSala.nazivSale);
     } catch (err) {
       setError(extractError(err));
     }
@@ -186,14 +196,14 @@ export default function ResursiPage() {
     <>
       <h1>Resursi — lokacije i sale</h1>
       <p className="page-subtitle">
-        Pregled objekata, upravljanje kapacitetima i vizuelni kalendar dostupnosti po satima.
+        Pregled objekata i kalendar dostupnosti sala po satima.
       </p>
 
       {message && <div className="success-msg">{message}</div>}
       {error && <div className="error-msg">{error}</div>}
 
-      <div className="resursi-toolbar">
-        {canManageLokacija && (
+      {canManageLokacija && (
+        <div className="resursi-toolbar">
           <button
             type="button"
             className="btn btn-primary"
@@ -202,8 +212,8 @@ export default function ResursiPage() {
           >
             + Nova lokacija
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {loading ? (
         <p className="empty-hint">Učitavanje lokacija...</p>
@@ -248,14 +258,13 @@ export default function ResursiPage() {
                     style={{ width: 'auto' }}
                     onClick={handlePrikaziKalendar}
                   >
-                    Osveži period
+                    Osveži
                   </button>
                 </div>
               </div>
               <SalaKalendar
                 dostupnost={dostupnost}
                 loading={kalendarLoading}
-                onRefresh={handlePrikaziKalendar}
               />
             </section>
           )}
@@ -264,9 +273,20 @@ export default function ResursiPage() {
 
       {modal?.type === 'lokacija-create' && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-card modal-card-wide" onClick={(e) => e.stopPropagation()}>
             <h3>Nova lokacija</h3>
-            <LokacijaForm onSubmit={handleCreateLokacija} onCancel={closeModal} submitLabel="Kreiraj" />
+            {canManageSala ? (
+              <LokacijaIObjekatForm
+                onSubmit={handleCreateLokacijaSaSalom}
+                onCancel={closeModal}
+              />
+            ) : (
+              <LokacijaForm
+                onSubmit={(data) => handleCreateLokacijaSaSalom({ lokacija: data, sala: null })}
+                onCancel={closeModal}
+                submitLabel="Kreiraj lokaciju"
+              />
+            )}
           </div>
         </div>
       )}
@@ -274,10 +294,10 @@ export default function ResursiPage() {
       {modal?.type === 'lokacija-edit' && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3>Izmena lokacije</h3>
+            <h3>Izmena lokacije — {modal.lokacija.naziv}</h3>
             <LokacijaForm
               initial={modal.lokacija}
-              onSubmit={handleUpdateLokacija}
+              onSubmit={(data) => handleUpdateLokacijaById(modal.lokacija.lokacijaId, data)}
               onCancel={closeModal}
               submitLabel="Sačuvaj izmene"
             />
@@ -307,7 +327,7 @@ export default function ResursiPage() {
               lokacijaId={modal.sala.lokacijaId}
               initial={modal.sala}
               isEdit
-              onSubmit={handleUpdateSala}
+              onSubmit={(data) => handleUpdateSalaByRef(modal.sala, data)}
               onCancel={closeModal}
               submitLabel="Sačuvaj izmene"
             />
