@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import ResursiPage from './ResursiPage';
 import PorudzbenicePage from './PorudzbenicePage';
+import BudzetPage from './BudzetPage';
 import api from '../services/api';
 import UpsertEventModal from '../components/UpsertEventModal.jsx';
 import UpsertLokacijaModal from '../components/UpsertLokacijaModal.jsx';
@@ -468,9 +469,7 @@ export default function DashboardPage() {
           <Route path="lokacije" element={<LokacijaSection />} />
           <Route path="porudzbenice" element={<PorudzbenicePage />} />
           <Route path="dogadjaj/:id" element={<EventDetailPage />} />
-          <Route path="budzet" element={
-            <FinansijePage title="Budžeti" description="pregled i upravljanje budžetima događaja" />
-          } />
+          <Route path="budzet" element={<BudzetPage />} />
           <Route path="fakture" element={
             <FinansijePage title="Fakture" description="pregled i upravljanje fakturama" />
           } />
