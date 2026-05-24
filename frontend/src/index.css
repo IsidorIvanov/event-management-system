@@ -625,7 +625,210 @@ body {
   color: var(--text-muted);
 }
 
-/* ===================== Program Page ===================== */
+
+/* ===================== Resursi ===================== */
+
+.field-error {
+  display: block;
+  color: var(--danger);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+.resursi-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+
+.tab-btn {
+  padding: 0.65rem 1.25rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.resursi-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1.5rem;
+}
+
+.admin-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.admin-sidebar {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+
+.admin-sidebar h3 {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.admin-new-btn {
+  width: 100%;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+}
+
+.admin-lok-list {
+  list-style: none;
+}
+
+.admin-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.admin-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.admin-panel h3 {
+  font-size: 1.05rem;
+  margin-bottom: 1rem;
+}
+
+.admin-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.admin-panel-header h3 {
+  margin-bottom: 0;
+}
+
+.form-section-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin: 0.75rem 0 0.5rem;
+}
+
+.form-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 1rem 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+}
+
+.checkbox-label input {
+  width: auto;
+  accent-color: var(--accent);
+}
+
+.admin-sala-picker {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.sala-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sala-chip {
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.sala-chip:hover,
+.sala-chip.active {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.sala-chip-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+
+.date-range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-left: auto;
+}
+
+.date-range label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  gap: 0.25rem;
+}
+
+.date-range input[type="date"] {
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font);
+}
 
 .program-page {
   position: relative;
@@ -755,6 +958,392 @@ body {
   outline: none;
   cursor: pointer;
 }
+
+
+.lokacija-list {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.lokacija-list-sidebar {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+
+.lokacija-list-sidebar h3,
+.lokacija-list-detail h3 {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.lokacija-list-sidebar ul {
+  list-style: none;
+}
+
+.lokacija-item {
+  width: 100%;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: var(--font);
+}
+
+.lokacija-item span {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.lokacija-item.active,
+.lokacija-item:hover {
+  background: var(--accent-subtle);
+  border-color: var(--border);
+}
+
+.lokacija-list-detail {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.detail-meta {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.sala-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.sala-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.sala-card:hover {
+  border-color: var(--accent);
+}
+
+.sala-card.active {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.sala-card h4 {
+  margin-bottom: 0.5rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.item-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0;
+  font-family: var(--font);
+}
+
+.btn-link.danger {
+  color: var(--danger);
+}
+
+.empty-hint {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.kalendar-section {
+  margin-top: 1rem;
+}
+
+.kalendar-section-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.kalendar-section-header h2 {
+  font-size: 1.2rem;
+}
+
+.kalendar-subtitle {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.kalendar-badge {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--accent);
+  margin-top: 0.5rem;
+  font-weight: 600;
+}
+
+.kalendar-period {
+  margin-bottom: 1rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.kalendar-sala-block {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.kalendar-legend {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.8rem;
+  margin-bottom: 0.75rem;
+}
+
+.legend-free::before,
+.legend-busy::before {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.legend-free::before {
+  background: var(--success-subtle);
+  border: 1px solid var(--success);
+}
+
+.legend-busy::before {
+  background: var(--danger-subtle);
+  border: 1px solid var(--danger);
+}
+
+.kalendar-day {
+  margin-bottom: 0.75rem;
+}
+
+.kalendar-day-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--text-secondary);
+}
+
+.kalendar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 4px;
+}
+
+.kalendar-slot {
+  padding: 0.35rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  min-height: 40px;
+  border: 1px solid var(--border);
+}
+
+.kalendar-slot.free {
+  background: var(--success-subtle);
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.kalendar-slot.busy {
+  background: var(--danger-subtle);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.kalendar-slot.clickable {
+  cursor: pointer;
+}
+
+.kalendar-slot.clickable:hover {
+  filter: brightness(1.1);
+  border-color: var(--danger);
+}
+
+.detalj-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.detalj-header h3 {
+  margin: 0;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+.btn-close:hover {
+  color: var(--text-primary);
+}
+
+.detalj-section {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.detalj-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.detalj-section h4 {
+  font-size: 0.95rem;
+  margin-bottom: 0.75rem;
+  color: var(--accent);
+}
+
+.detalj-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.6rem;
+}
+
+.detalj-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.detalj-value {
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.detalj-govornici {
+  list-style: none;
+  font-size: 0.9rem;
+}
+
+.detalj-govornici li {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.detalj-govornici li:last-child {
+  border-bottom: none;
+}
+
+.slot-time {
+  display: block;
+  font-weight: 600;
+}
+
+.slot-label {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.modal-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-card-wide {
+  max-width: 560px;
+}
+
+.modal-card h3 {
+  margin-bottom: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.resource-form .btn-primary {
+  flex: 0 0 auto;
+}
+
+/* ===================== Responsive ===================== */
+=======
+
 
 .events-table {
   width: 100%;
@@ -1043,8 +1632,13 @@ body {
     overflow: hidden;
   }
   .sidebar-header h2,
-  .sidebar-nav a span,
   .sidebar-footer .user-meta {
     display: none;
+  }
+  .lokacija-list {
+    grid-template-columns: 1fr;
+  }
+  .admin-layout {
+    grid-template-columns: 1fr;
   }
 }

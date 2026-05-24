@@ -1,5 +1,6 @@
 package com.eventsystem.event_management_system.controller;
 
+import com.eventsystem.event_management_system.dto.SesijaDetaljDto;
 import com.eventsystem.event_management_system.dto.SesijaDto;
 import com.eventsystem.event_management_system.service.SesijaService;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,11 @@ public class SesijaController {
     @GetMapping("/{id}")
     public ResponseEntity<SesijaDto> getSesijaById(@PathVariable Long id) {
         return ResponseEntity.ok(sesijaService.getSesijaById(id));
+    }
+
+    @GetMapping("/{id}/detalj")
+    public ResponseEntity<SesijaDetaljDto> getSesijaDetalj(@PathVariable Long id) {
+        return ResponseEntity.ok(sesijaService.getSesijaDetalj(id));
     }
 
     @PostMapping("/{sesijaId}/govornici/{govornikId}")

@@ -18,8 +18,13 @@ public class LokacijaController {
     private final LokacijaService lokacijaService;
 
     @GetMapping("")
-    public ResponseEntity<List<LokacijaResponseDto>> getAllLokacije() {
+    public ResponseEntity<List<LokacijaDto>> getAllLokacije() {
         return ResponseEntity.ok(lokacijaService.getAllLokacije());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<LokacijaDto> getLokacijaById(@PathVariable Long id) {
+        return ResponseEntity.ok(lokacijaService.getLokacijaById(id));
     }
 
     @PostMapping("")
@@ -35,6 +40,6 @@ public class LokacijaController {
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteLokacija(@PathVariable Long id) {
         lokacijaService.deleteLokacija(id);
-        return ResponseEntity.ok("Lokacija with id " + id + " deleted successfully.");
+        return ResponseEntity.ok("Lokacija sa id " + id + " uspesno obrisana.");
     }
 }

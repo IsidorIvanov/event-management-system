@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface SalaRepository extends JpaRepository<Sala, SalaId> {
 
     Optional<Sala> findByLokacijaLokacijaIdAndIdNazivSale(Long lokacijaId, String nazivSale);
+
+    List<Sala> findByLokacija_LokacijaId(Long lokacijaId);
 }

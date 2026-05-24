@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useLocation, Routes, Route } from 'react-router-dom';
+import ResursiPage from './ResursiPage';
 import api from '../services/api';
 import UpsertEventModal from '../components/UpsertEventModal.jsx';
 import UpsertLokacijaModal from '../components/UpsertLokacijaModal.jsx';
@@ -24,6 +25,55 @@ const STATUS_CLASS = {
   DRAFT:     'status-badge status-draft',
   ZAVRSEN:   'status-badge status-finished',
 };
+
+function DashboardHome() {
+  const { user, hasRole } = useAuth();
+  const isFinansije = hasRole('FINANSIJSKI_KONTROLOR') || hasRole('MENADZER_DOGADJAJA');
+
+  return (
+    <>
+      <h1>Dobrodošli, {user.ime}!</h1>
+      <p className="page-subtitle">
+        Prijavljeni ste kao {TIP_DISPLAY[user.tipKorisnika]}
+        {user.uloga && ` — ${ULOGA_DISPLAY[user.uloga]}`}
+      </p>
+
+      <div className="info-cards">
+        <div className="info-card">
+          <div className="label">Tip naloga</div>
+          <div className="value accent">{TIP_DISPLAY[user.tipKorisnika]}</div>
+        </div>
+
+        {user.uloga && (
+          <div className="info-card">
+            <div className="label">Uloga</div>
+            <div className="value success">{ULOGA_DISPLAY[user.uloga]}</div>
+          </div>
+        )}
+
+        <div className="info-card">
+          <div className="label">Email</div>
+          <div className="value" style={{ fontSize: '1rem', wordBreak: 'break-all' }}>{user.email}</div>
+        </div>
+
+        <div className="info-card">
+          <div className="label">ID Korisnika</div>
+          <div className="value warning">#{user.korisnikId}</div>
+        </div>
+      </div>
+
+      {isFinansije && (
+        <div className="info-card" style={{ padding: '2rem' }}>
+          <h3 style={{ marginBottom: '1rem' }}>Finansijski podsistem</h3>
+          <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            Imate pristup upravljanju budžetima, fakturama, troškovima i plaćanjima.
+            Koristite navigaciju sa leve strane za pristup modulima.
+          </p>
+        </div>
+      )}
+    </>
+  );
+}
 
 const STATUS_OPTIONS = ['SVE', 'OBJAVLJEN', 'AKTIVAN', 'DRAFT', 'ZAVRSEN'];
 
@@ -391,6 +441,8 @@ export default function DashboardPage() {
 
       <main className="main-content">
         <Routes>
+          <Route index element={<DashboardHome />} />
+          <Route path="resursi" element={<ResursiPage />} />
           <Route path="lokacije" element={<LokacijaSection />} />
           <Route path="dogadjaj/:id" element={<EventDetailPage />} />
           <Route path="*" element={
