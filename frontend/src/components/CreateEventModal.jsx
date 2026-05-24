@@ -10,20 +10,46 @@ const EMPTY_FORM = {
   opis: '',
 };
 
+const today = new Date().toISOString().split('T')[0];
+
+function validate(form) {
+  const errors = {};
+  if (!form.naziv.trim())           errors.naziv         = 'Naziv događaja je obavezan.';
+  if (!form.lokacijaId)             errors.lokacijaId    = 'Molimo izaberite lokaciju.';
+  if (!form.datumPocetka)           errors.datumPocetka  = 'Datum početka je obavezan.';
+  else if (form.datumPocetka < today) errors.datumPocetka = 'Datum početka ne može biti u prošlosti.';
+  if (!form.datumZavrsetka)              errors.datumZavrsetka = 'Datum završetka je obavezan.';
+  else if (form.datumZavrsetka < form.datumPocetka) errors.datumZavrsetka = 'Datum završetka ne može biti pre datuma početka.';
+  if (!form.maksKapacitet)          errors.maksKapacitet = 'Kapacitet je obavezan.';
+  else if (Number(form.maksKapacitet) < 1) errors.maksKapacitet = 'Kapacitet mora biti najmanje 1.';
+  return errors;
+}
+
 export default function CreateEventModal({ onClose, onCreated }) {
-  const [form, setForm]         = useState(EMPTY_FORM);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [lokacije, setLokacije] = useState([]);
   const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     api.get('/lokacija').then(res => setLokacije(res.data)).catch(() => {});
   }, []);
 
-  const set = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }));
+  const set = (field) => (e) => {
+    const value = e.target.value;
+    setForm(f => ({ ...f, [field]: value }));
+    // clear error on change
+    if (fieldErrors[field]) setFieldErrors(fe => ({ ...fe, [field]: undefined }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const errors = validate(form);
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -41,6 +67,10 @@ export default function CreateEventModal({ onClose, onCreated }) {
     }
   };
 
+  const F = ({ name }) => fieldErrors[name]
+    ? <span className="field-error">⚠ {fieldErrors[name]}</span>
+    : null;
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box modal-large" onClick={e => e.stopPropagation()}>
@@ -51,15 +81,24 @@ export default function CreateEventModal({ onClose, onCreated }) {
 
         {error && <div className="error-msg">{error}</div>}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div className="form-group">
             <label>Naziv događaja *</label>
-            <input value={form.naziv} onChange={set('naziv')} placeholder="npr. DevConf Spring '26" required maxLength={200} />
+            <input
+              value={form.naziv} onChange={set('naziv')}
+              placeholder="npr. DevConf Spring '26"
+              maxLength={200}
+              className={fieldErrors.naziv ? 'input-error' : ''}
+            />
+            <F name="naziv" />
           </div>
 
           <div className="form-group">
             <label>Lokacija *</label>
-            <select value={form.lokacijaId} onChange={set('lokacijaId')} required>
+            <select
+              value={form.lokacijaId} onChange={set('lokacijaId')}
+              className={fieldErrors.lokacijaId ? 'input-error' : ''}
+            >
               <option value="">— Izaberi lokaciju —</option>
               {lokacije.map(l => (
                 <option key={l.lokacijaId} value={l.lokacijaId}>
@@ -67,22 +106,38 @@ export default function CreateEventModal({ onClose, onCreated }) {
                 </option>
               ))}
             </select>
+            <F name="lokacijaId" />
           </div>
 
           <div className="form-row">
             <div className="form-group">
               <label>Datum početka *</label>
-              <input type="date" value={form.datumPocetka} onChange={set('datumPocetka')} required />
+              <input
+                type="date" value={form.datumPocetka} onChange={set('datumPocetka')}
+                min={today}
+                className={fieldErrors.datumPocetka ? 'input-error' : ''}
+              />
+              <F name="datumPocetka" />
             </div>
             <div className="form-group">
               <label>Datum završetka *</label>
-              <input type="date" value={form.datumZavrsetka} onChange={set('datumZavrsetka')} required />
+              <input
+                type="date" value={form.datumZavrsetka} onChange={set('datumZavrsetka')}
+                min={form.datumPocetka || today}
+                className={fieldErrors.datumZavrsetka ? 'input-error' : ''}
+              />
+              <F name="datumZavrsetka" />
             </div>
           </div>
 
           <div className="form-group">
             <label>Maksimalni kapacitet *</label>
-            <input type="number" value={form.maksKapacitet} onChange={set('maksKapacitet')} placeholder="npr. 500" required min={1} />
+            <input
+              type="number" value={form.maksKapacitet} onChange={set('maksKapacitet')}
+              placeholder="npr. 500" min={1}
+              className={fieldErrors.maksKapacitet ? 'input-error' : ''}
+            />
+            <F name="maksKapacitet" />
           </div>
 
           <div className="form-group">
@@ -101,4 +156,3 @@ export default function CreateEventModal({ onClose, onCreated }) {
     </div>
   );
 }
-
