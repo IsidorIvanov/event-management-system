@@ -2,10 +2,7 @@ package com.eventsystem.event_management_system.model;
 
 import com.eventsystem.event_management_system.utils.TipSesije;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -13,6 +10,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
+@Builder
 @Table(name = "sesija")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
@@ -23,12 +21,10 @@ public class Sesija {
     @Column(name = "sesija_id")
     private Long sesijaId;
 
-    // V21: N:1 ka DOGADJAJ
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "dogadjaj_id", nullable = false)
     private Dogadjaj dogadjaj;
 
-    // V22: N:1 ka SALA — kompozitni FK na (lokacija_id, naziv_sale)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumns({
             @JoinColumn(name = "lokacija_id", referencedColumnName = "lokacija_id", nullable = false),
@@ -58,7 +54,6 @@ public class Sesija {
     @Column(columnDefinition = "TEXT")
     private String opis;
 
-    // V23: M:N sa GOVORNIK — Sesija je vlasnik veze
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "sesija_govornik",
