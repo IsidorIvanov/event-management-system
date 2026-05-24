@@ -22,6 +22,7 @@ export default function ResursiPage() {
 
   const [lokacije, setLokacije] = useState([]);
   const [selectedLokacijaId, setSelectedLokacijaId] = useState(null);
+  const [selectedSala, setSelectedSala] = useState(null);
   const [dostupnost, setDostupnost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [kalendarLoading, setKalendarLoading] = useState(false);
@@ -38,9 +39,15 @@ export default function ResursiPage() {
     try {
       const res = await lokacijaApi.getLokacije();
       setLokacije(res.data);
-      setSelectedLokacijaId((prev) => {
-        if (prev && res.data.some((l) => l.lokacijaId === prev)) return prev;
-        return res.data.length > 0 ? res.data[0].lokacijaId : null;
+      setSelectedLokacijaId((prev) =>
+        prev && res.data.some((l) => l.lokacijaId === prev) ? prev : null
+      );
+      setSelectedSala((prev) => {
+        if (!prev) return null;
+        const lok = res.data.find((l) => l.lokacijaId === prev.lokacijaId);
+        if (!lok) return null;
+        const exists = (lok.sale || []).some((s) => s.nazivSale === prev.nazivSale);
+        return exists ? prev : null;
       });
     } catch (err) {
       setError(extractError(err));
@@ -49,26 +56,46 @@ export default function ResursiPage() {
     }
   }, []);
 
-  const loadDostupnost = useCallback(async () => {
-    if (!selectedLokacijaId) return;
+  const loadDostupnost = useCallback(async (lokacijaId, nazivSale) => {
+    if (!lokacijaId || !nazivSale) return;
     setKalendarLoading(true);
+    setError(null);
     try {
-      const res = await salaApi.getDostupnost(selectedLokacijaId, datumOd, datumDo);
-      setDostupnost(res.data);
+      const res = await salaApi.getDostupnost(lokacijaId, datumOd, datumDo);
+      const salaData = res.data.sale?.find((s) => s.nazivSale === nazivSale);
+      setDostupnost(
+        salaData
+          ? { ...res.data, sale: [salaData] }
+          : null
+      );
     } catch (err) {
       setError(extractError(err));
+      setDostupnost(null);
     } finally {
       setKalendarLoading(false);
     }
-  }, [selectedLokacijaId, datumOd, datumDo]);
+  }, [datumOd, datumDo]);
 
   useEffect(() => {
     loadLokacije();
   }, [loadLokacije]);
 
-  useEffect(() => {
-    loadDostupnost();
-  }, [loadDostupnost]);
+  const handleSelectLokacija = (lokacijaId) => {
+    setSelectedLokacijaId(lokacijaId);
+    setSelectedSala(null);
+    setDostupnost(null);
+  };
+
+  const handleSelectSala = (sala) => {
+    setSelectedSala({ lokacijaId: sala.lokacijaId, nazivSale: sala.nazivSale });
+    setDostupnost(null);
+    loadDostupnost(sala.lokacijaId, sala.nazivSale);
+  };
+
+  const handlePrikaziKalendar = () => {
+    if (!selectedSala) return;
+    loadDostupnost(selectedSala.lokacijaId, selectedSala.nazivSale);
+  };
 
   const closeModal = () => setModal(null);
 
@@ -99,7 +126,11 @@ export default function ResursiPage() {
     try {
       await lokacijaApi.deleteLokacija(lok.lokacijaId);
       setMessage('Lokacija je obrisana.');
-      if (selectedLokacijaId === lok.lokacijaId) setSelectedLokacijaId(null);
+      if (selectedLokacijaId === lok.lokacijaId) {
+        setSelectedLokacijaId(null);
+        setSelectedSala(null);
+        setDostupnost(null);
+      }
       await loadLokacije();
     } catch (err) {
       setError(extractError(err));
@@ -112,7 +143,7 @@ export default function ResursiPage() {
       setMessage('Sala je uspešno kreirana.');
       closeModal();
       await loadLokacije();
-      await loadDostupnost();
+      if (selectedSala) await loadDostupnost(selectedSala.lokacijaId, selectedSala.nazivSale);
     } catch (err) {
       setError(extractError(err));
     }
@@ -124,7 +155,7 @@ export default function ResursiPage() {
       setMessage('Sala je uspešno izmenjena.');
       closeModal();
       await loadLokacije();
-      await loadDostupnost();
+      if (selectedSala) await loadDostupnost(selectedSala.lokacijaId, selectedSala.nazivSale);
     } catch (err) {
       setError(extractError(err));
     }
@@ -135,12 +166,21 @@ export default function ResursiPage() {
     try {
       await salaApi.deleteSala(sala.lokacijaId, sala.nazivSale);
       setMessage('Sala je obrisana.');
+      if (
+        selectedSala?.lokacijaId === sala.lokacijaId &&
+        selectedSala?.nazivSale === sala.nazivSale
+      ) {
+        setSelectedSala(null);
+        setDostupnost(null);
+      }
       await loadLokacije();
-      await loadDostupnost();
+      if (selectedSala) await loadDostupnost(selectedSala.lokacijaId, selectedSala.nazivSale);
     } catch (err) {
       setError(extractError(err));
     }
   };
+
+  const kalendarLokacija = lokacije.find((l) => l.lokacijaId === selectedSala?.lokacijaId);
 
   return (
     <>
@@ -163,19 +203,6 @@ export default function ResursiPage() {
             + Nova lokacija
           </button>
         )}
-        <div className="date-range">
-          <label>
-            Od
-            <input type="date" value={datumOd} onChange={(e) => setDatumOd(e.target.value)} />
-          </label>
-          <label>
-            Do
-            <input type="date" value={datumDo} onChange={(e) => setDatumDo(e.target.value)} />
-          </label>
-          <button type="button" className="btn btn-outline" style={{ width: 'auto' }} onClick={loadDostupnost}>
-            Prikaži kalendar
-          </button>
-        </div>
       </div>
 
       {loading ? (
@@ -185,7 +212,9 @@ export default function ResursiPage() {
           <LokacijaSalaList
             lokacije={lokacije}
             selectedLokacijaId={selectedLokacijaId}
-            onSelectLokacija={setSelectedLokacijaId}
+            selectedSala={selectedSala}
+            onSelectLokacija={handleSelectLokacija}
+            onSelectSala={handleSelectSala}
             onEditLokacija={(lok) => setModal({ type: 'lokacija-edit', lokacija: lok })}
             onDeleteLokacija={handleDeleteLokacija}
             onAddSala={() => setModal({ type: 'sala-create' })}
@@ -195,14 +224,41 @@ export default function ResursiPage() {
             canManageSala={canManageSala}
           />
 
-          <section className="kalendar-section">
-            <h2>Kalendar dostupnosti sala</h2>
-            <SalaKalendar
-              dostupnost={dostupnost}
-              loading={kalendarLoading}
-              onRefresh={loadDostupnost}
-            />
-          </section>
+          {selectedSala && (
+            <section className="kalendar-section">
+              <div className="kalendar-section-header">
+                <h2>
+                  Kalendar — {selectedSala.nazivSale}
+                  {kalendarLokacija && (
+                    <span className="kalendar-subtitle"> ({kalendarLokacija.naziv})</span>
+                  )}
+                </h2>
+                <div className="date-range">
+                  <label>
+                    Od
+                    <input type="date" value={datumOd} onChange={(e) => setDatumOd(e.target.value)} />
+                  </label>
+                  <label>
+                    Do
+                    <input type="date" value={datumDo} onChange={(e) => setDatumDo(e.target.value)} />
+                  </label>
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    style={{ width: 'auto' }}
+                    onClick={handlePrikaziKalendar}
+                  >
+                    Osveži period
+                  </button>
+                </div>
+              </div>
+              <SalaKalendar
+                dostupnost={dostupnost}
+                loading={kalendarLoading}
+                onRefresh={handlePrikaziKalendar}
+              />
+            </section>
+          )}
         </>
       )}
 

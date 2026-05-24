@@ -8,7 +8,9 @@ const TIP_LABELS = {
 export default function LokacijaSalaList({
   lokacije,
   selectedLokacijaId,
+  selectedSala,
   onSelectLokacija,
+  onSelectSala,
   onEditLokacija,
   onDeleteLokacija,
   onAddSala,
@@ -18,6 +20,10 @@ export default function LokacijaSalaList({
   canManageSala,
 }) {
   const selected = lokacije.find((l) => l.lokacijaId === selectedLokacijaId);
+
+  const isSalaSelected = (sala) =>
+    selectedSala?.lokacijaId === sala.lokacijaId &&
+    selectedSala?.nazivSale === sala.nazivSale;
 
   return (
     <div className="lokacija-list">
@@ -54,7 +60,7 @@ export default function LokacijaSalaList({
 
       <div className="lokacija-list-detail">
         {!selected ? (
-          <p className="empty-hint">Izaberite lokaciju za pregled sala.</p>
+          <p className="empty-hint">Kliknite na lokaciju za pregled sala.</p>
         ) : (
           <>
             <div className="detail-header">
@@ -74,28 +80,48 @@ export default function LokacijaSalaList({
             {(selected.sale || []).length === 0 ? (
               <p className="empty-hint">Ova lokacija nema sale.</p>
             ) : (
-              <div className="sala-grid">
-                {selected.sale.map((sala) => (
-                  <div key={`${sala.lokacijaId}-${sala.nazivSale}`} className="sala-card">
-                    <h4>{sala.nazivSale}</h4>
-                    <p>
-                      <span className="badge">{TIP_LABELS[sala.tipSale] || sala.tipSale}</span>
-                    </p>
-                    <p>Kapacitet: <strong>{sala.kapacitet}</strong></p>
-                    <p>Cena/dan: <strong>{Number(sala.baznaCenaPoDanu).toLocaleString('sr-RS')} RSD</strong></p>
-                    {canManageSala && (
-                      <div className="item-actions">
-                        <button type="button" className="btn-link" onClick={() => onEditSala(sala)}>
-                          Izmeni
-                        </button>
-                        <button type="button" className="btn-link danger" onClick={() => onDeleteSala(sala)}>
-                          Obriši
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <>
+                <p className="empty-hint" style={{ marginBottom: '0.75rem' }}>
+                  Kliknite na salu za prikaz kalendara dostupnosti.
+                </p>
+                <div className="sala-grid">
+                  {selected.sale.map((sala) => (
+                    <div
+                      key={`${sala.lokacijaId}-${sala.nazivSale}`}
+                      className={`sala-card ${isSalaSelected(sala) ? 'active' : ''}`}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => onSelectSala(sala)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onSelectSala(sala);
+                        }
+                      }}
+                    >
+                      <h4>{sala.nazivSale}</h4>
+                      <p>
+                        <span className="badge">{TIP_LABELS[sala.tipSale] || sala.tipSale}</span>
+                      </p>
+                      <p>Kapacitet: <strong>{sala.kapacitet}</strong></p>
+                      <p>Cena/dan: <strong>{Number(sala.baznaCenaPoDanu).toLocaleString('sr-RS')} RSD</strong></p>
+                      {isSalaSelected(sala) && (
+                        <span className="kalendar-badge">Kalendar prikazan</span>
+                      )}
+                      {canManageSala && (
+                        <div className="item-actions" onClick={(e) => e.stopPropagation()}>
+                          <button type="button" className="btn-link" onClick={() => onEditSala(sala)}>
+                            Izmeni
+                          </button>
+                          <button type="button" className="btn-link danger" onClick={() => onDeleteSala(sala)}>
+                            Obriši
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </>
         )}

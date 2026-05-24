@@ -489,6 +489,17 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 1rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.sala-card:hover {
+  border-color: var(--accent);
+}
+
+.sala-card.active {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
 }
 
 .sala-card h4 {
@@ -534,9 +545,31 @@ body {
   margin-top: 1rem;
 }
 
-.kalendar-section h2 {
-  font-size: 1.2rem;
+.kalendar-section-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.kalendar-section-header h2 {
+  font-size: 1.2rem;
+}
+
+.kalendar-subtitle {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.kalendar-badge {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--accent);
+  margin-top: 0.5rem;
+  font-weight: 600;
 }
 
 .sala-kalendar .kalendar-toolbar {
