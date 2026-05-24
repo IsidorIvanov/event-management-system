@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import api from '../services/api';
+import UpsertEventModal from '../components/UpsertEventModal.jsx';
+import { useToast } from '../components/ToastNotification';
 
 const ULOGA_DISPLAY = {
   MENADZER_DOGADJAJA: 'Menadžer događaja',
@@ -48,6 +50,7 @@ function ConfirmModal({ event, onConfirm, onCancel }) {
 }
 
 function ProgramSection({ user }) {
+  const toast = useToast();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -55,6 +58,8 @@ function ProgramSection({ user }) {
   const [statusFilter, setStatusFilter] = useState('SVE');
   const [sortDir, setSortDir] = useState('asc');
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [showCreate, setShowCreate]     = useState(false);
+  const [editTarget, setEditTarget]     = useState(null);
 
   useEffect(() => {
     api.get('/dogadjaj')
@@ -65,8 +70,11 @@ function ProgramSection({ user }) {
 
   const confirmDelete = () => {
     api.delete(`/dogadjaj/${deleteTarget.dogadjajId}`)
-      .then(() => setEvents(prev => prev.filter(e => e.dogadjajId !== deleteTarget.dogadjajId)))
-      .catch(() => alert('Greška pri brisanju događaja.'))
+      .then(() => {
+        setEvents(prev => prev.filter(e => e.dogadjajId !== deleteTarget.dogadjajId));
+        toast(`Događaj „${deleteTarget.naziv}" je uspešno obrisan.`, 'success');
+      })
+      .catch(() => toast('Greška pri brisanju događaja.', 'error'))
       .finally(() => setDeleteTarget(null));
   };
 
@@ -89,6 +97,26 @@ function ProgramSection({ user }) {
   return (
     <div className="program-page">
       <ConfirmModal event={deleteTarget} onConfirm={confirmDelete} onCancel={() => setDeleteTarget(null)} />
+      {showCreate && (
+        <UpsertEventModal
+          onClose={() => setShowCreate(false)}
+          onCreated={(newEvent) => {
+            setEvents(prev => [...prev, newEvent]);
+            toast(`Događaj „${newEvent.naziv}" je uspešno kreiran.`, 'success');
+          }}
+        />
+      )}
+      {editTarget && (
+        <UpsertEventModal
+          event={editTarget}
+          onClose={() => setEditTarget(null)}
+          onCreated={(updated) => {
+            setEvents(prev => prev.map(e => e.dogadjajId === updated.dogadjajId ? updated : e));
+            setEditTarget(null);
+            toast(`Događaj „${updated.naziv}" je uspešno izmenjen.`, 'success');
+          }}
+        />
+      )}
 
       <div className="program-header">
         <div>
@@ -153,7 +181,7 @@ function ProgramSection({ user }) {
                 </td>
                 <td>
                   <div className="action-buttons">
-                    <button className="btn btn-outline btn-xs">Uredi</button>
+                    <button className="btn btn-outline btn-xs" onClick={() => setEditTarget(event)}>Uredi</button>
                     <button className="btn btn-outline btn-xs">Izveštaj</button>
                     <button className="btn btn-xs btn-danger-outline" onClick={() => setDeleteTarget(event)}>Obriši</button>
                   </div>
@@ -164,7 +192,7 @@ function ProgramSection({ user }) {
         </table>
       </div>
 
-      <button className="fab-btn">+ Novi događaj</button>
+      <button className="fab-btn" onClick={() => setShowCreate(true)}>+ Novi događaj</button>
     </div>
   );
 }
