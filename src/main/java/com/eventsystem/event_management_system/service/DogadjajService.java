@@ -1,14 +1,18 @@
 package com.eventsystem.event_management_system.service;
 
 import com.eventsystem.event_management_system.dto.DogadjajDto;
+import com.eventsystem.event_management_system.dto.DogadjajResponseDto;
 import com.eventsystem.event_management_system.model.Dogadjaj;
 import com.eventsystem.event_management_system.model.Lokacija;
 import com.eventsystem.event_management_system.repository.DogadjajRepository;
 import com.eventsystem.event_management_system.repository.LokacijaRepository;
+import com.eventsystem.event_management_system.utils.DogadjajDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -60,5 +64,11 @@ public class DogadjajService {
             throw new RuntimeException("Dogadjaj not found with id: " + id);
         }
         dogadjajRepository.deleteById(id);
+    }
+
+    public List<DogadjajResponseDto> getAllDogadjaji() {
+        return dogadjajRepository.findAllWithLokacija().stream()
+                .map(DogadjajDtoMapper::toResponseDto)
+                .collect(Collectors.toList());
     }
 }
