@@ -4,11 +4,14 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
 public class GovornikDto {
+
+    private Long govornikId;
 
     @NotBlank(message = "Ime ne sme biti prazno")
     @Size(max = 100, message = "Ime ne sme biti duze od 100 karaktera")
@@ -30,7 +33,8 @@ public class GovornikDto {
     @Size(max = 150)
     private String email;
 
-    @NotNull(message = "Honorar ne sme biti null")
     @DecimalMin(value = "0.0", message = "Honorar ne sme biti negativan")
     private BigDecimal honorar;
+
+    private List<Long> sesijaIds;
 }

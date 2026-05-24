@@ -149,4 +149,15 @@ public class SesijaService {
 
         return toDto(sesija);
     }
+
+    @Transactional
+    public SesijaDto removeGovornikFromSesija(Long sesijaId, Long govornikId) {
+        Sesija sesija = sesijaRepository.findByIdWithGovornici(sesijaId)
+                .orElseThrow(() -> new RuntimeException("Sesija not found with id: " + sesijaId));
+
+        sesija.getGovornici().removeIf(g -> g.getGovornikId().equals(govornikId));
+        sesijaRepository.save(sesija);
+
+        return toDto(sesija);
+    }
 }

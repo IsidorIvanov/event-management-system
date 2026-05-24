@@ -53,4 +53,11 @@ public class SesijaController {
             @PathVariable Long govornikId) {
         return ResponseEntity.ok(sesijaService.addGovornikToSesija(sesijaId, govornikId));
     }
+
+    @DeleteMapping("/{sesijaId}/govornici/{govornikId}")
+    public ResponseEntity<SesijaDto> removeGovornikFromSesija(
+            @PathVariable Long sesijaId,
+            @PathVariable Long govornikId) {
+        return ResponseEntity.ok(sesijaService.removeGovornikFromSesija(sesijaId, govornikId));
+    }
 }

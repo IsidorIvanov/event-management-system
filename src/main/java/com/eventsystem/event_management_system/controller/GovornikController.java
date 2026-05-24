@@ -17,6 +17,16 @@ public class GovornikController {
 
     private final GovornikService govornikService;
 
+    @GetMapping("")
+    public ResponseEntity<List<GovornikDto>> getAllGovornici() {
+        return ResponseEntity.ok(govornikService.getAllGovornici());
+    }
+
+    @GetMapping("/dogadjaj/{dogadjajId}")
+    public ResponseEntity<List<GovornikDto>> getGovornikByDogadjaj(@PathVariable Long dogadjajId) {
+        return ResponseEntity.ok(govornikService.getGovornikByDogadjaj(dogadjajId));
+    }
+
     @PostMapping("")
     public ResponseEntity<GovornikDto> createGovornik(@Valid @RequestBody GovornikDto govornikDto) {
         return ResponseEntity.ok(govornikService.createGovornik(govornikDto));
