@@ -1,0 +1,133 @@
+package com.eventsystem.event_management_system.service;
+
+import com.eventsystem.event_management_system.dto.*;
+import com.eventsystem.event_management_system.model.Cenovnik;
+import com.eventsystem.event_management_system.model.Dobavljac;
+import com.eventsystem.event_management_system.model.Nabavka;
+import com.eventsystem.event_management_system.repository.CenovnikRepository;
+import com.eventsystem.event_management_system.utils.enums.KriterijumSelekcijeDobavljaca;
+import com.eventsystem.event_management_system.utils.enums.StatusNabavke;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.*;
+
+@Service
+@RequiredArgsConstructor
+public class DobavljacSelekcijaService {
+
+    private final CenovnikRepository cenovnikRepository;
+    private final NabavkaService nabavkaService;
+    private final DobavljacService dobavljacService;
+
+    @Transactional(readOnly = true)
+    public PredlogDobavljacaDto predloziDobavljaca(AutomatskaSelekcijaRequestDto request) {
+        return izracunajPredlog(request.getKriterijum(), request.getPotrebneStavke());
+    }
+
+    @Transactional
+    public PredlogDobavljacaDto primeniAutomatskuSelekciju(AutomatskaSelekcijaRequestDto request) {
+        PredlogDobavljacaDto predlog = izracunajPredlog(request.getKriterijum(), request.getPotrebneStavke());
+        Nabavka nabavka = nabavkaService.findEntityWithDetalji(request.getNabavkaId());
+
+        nabavka.setSelekcijaKriterijum(request.getKriterijum());
+        nabavka.setDobavljac(dobavljacService.findEntity(predlog.getDobavljacId()));
+
+        List<StavkaNabavkeDto> stavke = predlog.getMapiranjeStavki().stream()
+                .map(s -> StavkaNabavkeDto.builder()
+                        .nazivResursa(s.getNazivResursa())
+                        .kolicina(s.getKolicina())
+                        .jedinicnaCena(s.getJedinicnaCena())
+                        .cenovnikId(s.getCenovnikId())
+                        .build())
+                .toList();
+
+        nabavka.getStavke().clear();
+        nabavkaService.applyPredlogStavki(nabavka, stavke);
+        nabavkaService.updateStatus(request.getNabavkaId(), StatusNabavke.U_OBRADI);
+
+        return predlog;
+    }
+
+    private PredlogDobavljacaDto izracunajPredlog(
+            KriterijumSelekcijeDobavljaca kriterijum,
+            List<PotrebnaStavkaDto> potrebne
+    ) {
+        Map<Long, SupplierScore> scores = new HashMap<>();
+
+        for (PotrebnaStavkaDto potrebna : potrebne) {
+            List<Cenovnik> ponude = cenovnikRepository.findDostupnePoNazivuResursa(potrebna.getNazivResursa());
+            for (Cenovnik cenovnik : ponude) {
+                Long dobavljacId = cenovnik.getDobavljac().getDobavljacId();
+                SupplierScore score = scores.computeIfAbsent(dobavljacId, id -> new SupplierScore(cenovnik.getDobavljac()));
+                BigDecimal ukupno = cenovnik.getCenaJedinicna().multiply(BigDecimal.valueOf(potrebna.getKolicina()));
+                score.dodajStavku(potrebna.getNazivResursa(), potrebna.getKolicina(), cenovnik, ukupno);
+            }
+        }
+
+        if (scores.isEmpty()) {
+            throw new RuntimeException("Nema dostupnih ponuda u cenovniku za trazene stavke.");
+        }
+
+        int ukupnoStavki = potrebne.size();
+        Optional<SupplierScore> najboljiPuni = scores.values().stream()
+                .filter(s -> s.pokriveneStavke == ukupnoStavki)
+                .min(comparatorZa(kriterijum));
+
+        boolean pokrivaSve = najboljiPuni.isPresent();
+        SupplierScore izabrani = najboljiPuni.orElseGet(() ->
+                scores.values().stream().min(comparatorZa(kriterijum)).orElseThrow());
+
+        return izabrani.toPredlog(kriterijum, pokrivaSve);
+    }
+
+    private Comparator<SupplierScore> comparatorZa(KriterijumSelekcijeDobavljaca kriterijum) {
+        if (kriterijum == KriterijumSelekcijeDobavljaca.NAJBOLJI_REJTING) {
+            return Comparator.comparing((SupplierScore s) -> s.dobavljac.getRejting()).reversed()
+                    .thenComparing(s -> s.ukupnaCena);
+        }
+        return Comparator.comparing((SupplierScore s) -> s.ukupnaCena)
+                .thenComparing(s -> s.dobavljac.getRejting(), Comparator.reverseOrder());
+    }
+
+    private static class SupplierScore {
+        private final Dobavljac dobavljac;
+        private BigDecimal ukupnaCena = BigDecimal.ZERO;
+        private int pokriveneStavke = 0;
+        private final Set<String> pokriveniNazivi = new HashSet<>();
+        private final List<PredlogDobavljacaDto.StavkaPredlogDto> mapiranje = new ArrayList<>();
+
+        SupplierScore(Dobavljac dobavljac) {
+            this.dobavljac = dobavljac;
+        }
+
+        void dodajStavku(String naziv, int kolicina, Cenovnik cenovnik, BigDecimal ukupno) {
+            if (pokriveniNazivi.add(naziv.toLowerCase())) {
+                pokriveneStavke++;
+            }
+            ukupnaCena = ukupnaCena.add(ukupno);
+            mapiranje.add(PredlogDobavljacaDto.StavkaPredlogDto.builder()
+                    .nazivResursa(naziv)
+                    .kolicina(kolicina)
+                    .cenovnikId(cenovnik.getCenovnikId())
+                    .jedinicnaCena(cenovnik.getCenaJedinicna())
+                    .ukupnaCena(ukupno)
+                    .build());
+        }
+
+        PredlogDobavljacaDto toPredlog(KriterijumSelekcijeDobavljaca kriterijum, boolean pokrivaSve) {
+            return PredlogDobavljacaDto.builder()
+                    .dobavljacId(dobavljac.getDobavljacId())
+                    .dobavljacNaziv(dobavljac.getNaziv())
+                    .kontaktEmail(dobavljac.getKontaktEmail())
+                    .rejting(dobavljac.getRejting())
+                    .ukupnaProcenjenaCena(ukupnaCena)
+                    .kriterijum(kriterijum)
+                    .pokrivaSveStavke(pokrivaSve)
+                    .mapiranjeStavki(mapiranje)
+                    .build();
+        }
+    }
+}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import ResursiPage from './ResursiPage';
+import PorudzbenicePage from './PorudzbenicePage';
 import api from '../services/api';
 import UpsertEventModal from '../components/UpsertEventModal.jsx';
 import UpsertLokacijaModal from '../components/UpsertLokacijaModal.jsx';
@@ -429,7 +430,10 @@ export default function DashboardPage() {
         <nav className="sidebar-nav">
           <NavLink to="/dashboard" icon="🏠" label="Početna" />
           {hasRole('MENADZER_DOGADJAJA') && (
-            <NavLink to="/dashboard/lokacije" icon="📍" label="Lokacije" />
+            <>
+              <NavLink to="/dashboard/lokacije" icon="📍" label="Lokacije" />
+              <NavLink to="/dashboard/porudzbenice" icon="📦" label="Porudžbenice" />
+            </>
           )}
           {isFinansije && <>
             <NavLink to="/dashboard/budzet"   icon="💰" label="Budžeti" />
@@ -462,6 +466,7 @@ export default function DashboardPage() {
           <Route index element={isProgram ? <ProgramSection user={user} /> : <DashboardHome />} />
           <Route path="resursi" element={<ResursiPage />} />
           <Route path="lokacije" element={<LokacijaSection />} />
+          <Route path="porudzbenice" element={<PorudzbenicePage />} />
           <Route path="dogadjaj/:id" element={<EventDetailPage />} />
           <Route path="budzet" element={
             <FinansijePage title="Budžeti" description="pregled i upravljanje budžetima događaja" />
