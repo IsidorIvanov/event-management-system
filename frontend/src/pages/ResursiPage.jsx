@@ -226,18 +226,6 @@ export default function ResursiPage() {
       {message && <div className="success-msg">{message}</div>}
       {error && <div className="error-msg">{error}</div>}
 
-      {canManageLokacija && (
-        <div className="resursi-toolbar">
-          <button
-            type="button"
-            className="btn btn-primary"
-            style={{ width: 'auto' }}
-            onClick={() => setModal({ type: 'lokacija-create' })}
-          >
-            + Nova lokacija
-          </button>
-        </div>
-      )}
 
       {loading ? (
         <p className="empty-hint">Učitavanje lokacija...</p>
