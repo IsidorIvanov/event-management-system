@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link, useLocation, Routes, Route } from 'react-router-dom';
+import { useNavigate, Link, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import ResursiPage from './ResursiPage';
 import api from '../services/api';
 import UpsertEventModal from '../components/UpsertEventModal.jsx';
@@ -379,6 +379,24 @@ function LokacijaSection() {
   );
 }
 
+function FinansijePage({ title, description }) {
+  return (
+    <div className="program-page">
+      <div className="program-header">
+        <div>
+          <h1>{title}</h1>
+          <p className="page-subtitle">{description}</p>
+        </div>
+      </div>
+      <div className="info-card" style={{ padding: '2rem' }}>
+        <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          Modul je u pripremi. Uskoro ćete moći da upravljate ovim delom finansijskog podsistema.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function NavLink({ to, icon, label }) {
   const { pathname } = useLocation();
   const active = to === '/dashboard' ? pathname === to : pathname.startsWith(to);
@@ -441,48 +459,23 @@ export default function DashboardPage() {
 
       <main className="main-content">
         <Routes>
-          <Route index element={<DashboardHome />} />
+          <Route index element={isProgram ? <ProgramSection user={user} /> : <DashboardHome />} />
           <Route path="resursi" element={<ResursiPage />} />
           <Route path="lokacije" element={<LokacijaSection />} />
           <Route path="dogadjaj/:id" element={<EventDetailPage />} />
-          <Route path="*" element={
-            isProgram ? <ProgramSection user={user} /> : (
-              <>
-                <h1>Dobrodošli, {user.ime}!</h1>
-                <p className="page-subtitle">
-                  Prijavljeni ste kao {TIP_DISPLAY[user.tipKorisnika]}
-                  {user.uloga && ` — ${ULOGA_DISPLAY[user.uloga]}`}
-                </p>
-                <div className="info-cards">
-                  <div className="info-card">
-                    <div className="label">Tip naloga</div>
-                    <div className="value accent">{TIP_DISPLAY[user.tipKorisnika]}</div>
-                  </div>
-                  {user.uloga && <div className="info-card">
-                    <div className="label">Uloga</div>
-                    <div className="value success">{ULOGA_DISPLAY[user.uloga]}</div>
-                  </div>}
-                  <div className="info-card">
-                    <div className="label">Email</div>
-                    <div className="value" style={{ fontSize: '1rem', wordBreak: 'break-all' }}>{user.email}</div>
-                  </div>
-                  <div className="info-card">
-                    <div className="label">ID Korisnika</div>
-                    <div className="value warning">#{user.korisnikId}</div>
-                  </div>
-                </div>
-                {isFinansije && (
-                  <div className="info-card" style={{ padding: '2rem' }}>
-                    <h3 style={{ marginBottom: '1rem' }}>🏦 Finansijski podsistem</h3>
-                    <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                      Imate pristup upravljanju budžetima, fakturama, troškovima i plaćanjima.
-                      Koristite navigaciju sa leve strane za pristup modulima.
-                    </p>
-                  </div>
-                )}
-              </>
-            )
+          <Route path="budzet" element={
+            <FinansijePage title="Budžeti" description="pregled i upravljanje budžetima događaja" />
           } />
+          <Route path="fakture" element={
+            <FinansijePage title="Fakture" description="pregled i upravljanje fakturama" />
+          } />
+          <Route path="troskovi" element={
+            <FinansijePage title="Troškovi" description="pregled i evidentiranje troškova" />
+          } />
+          <Route path="placanja" element={
+            <FinansijePage title="Plaćanja" description="pregled i evidentiranje plaćanja" />
+          } />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>
     </div>

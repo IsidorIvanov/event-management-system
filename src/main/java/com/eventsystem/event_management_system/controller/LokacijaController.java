@@ -1,7 +1,6 @@
 package com.eventsystem.event_management_system.controller;
 
 import com.eventsystem.event_management_system.dto.LokacijaDto;
-import com.eventsystem.event_management_system.dto.LokacijaResponseDto;
 import com.eventsystem.event_management_system.service.LokacijaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,12 +27,12 @@ public class LokacijaController {
     }
 
     @PostMapping("")
-    public ResponseEntity<LokacijaResponseDto> createLokacija(@Valid @RequestBody LokacijaDto lokacijaDto) {
+    public ResponseEntity<LokacijaDto> createLokacija(@Valid @RequestBody LokacijaDto lokacijaDto) {
         return ResponseEntity.ok(lokacijaService.saveLokacija(lokacijaDto));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<LokacijaResponseDto> updateLokacija(@PathVariable Long id, @Valid @RequestBody LokacijaDto lokacijaDto) {
+    public ResponseEntity<LokacijaDto> updateLokacija(@PathVariable Long id, @Valid @RequestBody LokacijaDto lokacijaDto) {
         return ResponseEntity.ok(lokacijaService.updateLokacija(id, lokacijaDto));
     }
 
