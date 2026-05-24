@@ -1,7 +1,7 @@
 package com.eventsystem.event_management_system.model;
 
 import com.eventsystem.event_management_system.model.compositePK.TipKarteId;
-import com.eventsystem.event_management_system.utils.VrstaKarte;
+import com.eventsystem.event_management_system.utils.enums.VrstaKarte;
 import jakarta.persistence.*;
 import lombok.*;
 

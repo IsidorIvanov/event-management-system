@@ -4,7 +4,7 @@ import com.eventsystem.event_management_system.dto.LoginRequest;
 import com.eventsystem.event_management_system.dto.RegisterRequest;
 import com.eventsystem.event_management_system.dto.AuthResponse;
 import com.eventsystem.event_management_system.model.*;
-import com.eventsystem.event_management_system.utils.StatusKorisnika;
+import com.eventsystem.event_management_system.utils.enums.StatusKorisnika;
 import com.eventsystem.event_management_system.repository.KorisnikRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.*;

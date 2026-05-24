@@ -1,7 +1,7 @@
 package com.eventsystem.event_management_system.model;
 
-import com.eventsystem.event_management_system.utils.StatusKorisnika;
-import com.eventsystem.event_management_system.utils.TipKorisnika;
+import com.eventsystem.event_management_system.utils.enums.StatusKorisnika;
+import com.eventsystem.event_management_system.utils.enums.TipKorisnika;
 import jakarta.persistence.*;
 import lombok.*;
 

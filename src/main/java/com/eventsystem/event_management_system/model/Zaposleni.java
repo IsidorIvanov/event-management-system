@@ -1,6 +1,6 @@
 package com.eventsystem.event_management_system.model;
 
-import com.eventsystem.event_management_system.utils.UlogaZaposlenog;
+import com.eventsystem.event_management_system.utils.enums.UlogaZaposlenog;
 import jakarta.persistence.*;
 import lombok.*;
 

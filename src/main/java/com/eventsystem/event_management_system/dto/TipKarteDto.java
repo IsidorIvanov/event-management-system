@@ -1,6 +1,6 @@
 package com.eventsystem.event_management_system.dto;
 
-import com.eventsystem.event_management_system.utils.VrstaKarte;
+import com.eventsystem.event_management_system.utils.enums.VrstaKarte;
 import jakarta.validation.constraints.*;
 import lombok.*;
 

@@ -1,7 +1,7 @@
 package com.eventsystem.event_management_system.model;
 
 import com.eventsystem.event_management_system.model.compositePK.SalaId;
-import com.eventsystem.event_management_system.utils.TipSale;
+import com.eventsystem.event_management_system.utils.enums.TipSale;
 import jakarta.persistence.*;
 import lombok.*;
 

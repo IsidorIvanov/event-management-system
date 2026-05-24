@@ -1,6 +1,6 @@
 package com.eventsystem.event_management_system.dto;
 
-import com.eventsystem.event_management_system.utils.TipSale;
+import com.eventsystem.event_management_system.utils.enums.TipSale;
 import jakarta.validation.constraints.*;
 import lombok.*;
 

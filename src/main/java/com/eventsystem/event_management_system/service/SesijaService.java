@@ -2,13 +2,22 @@ package com.eventsystem.event_management_system.service;
 
 import com.eventsystem.event_management_system.dto.SesijaDto;
 import com.eventsystem.event_management_system.model.Dogadjaj;
+import com.eventsystem.event_management_system.model.Govornik;
 import com.eventsystem.event_management_system.model.Sala;
 import com.eventsystem.event_management_system.model.Sesija;
 import com.eventsystem.event_management_system.repository.DogadjajRepository;
+import com.eventsystem.event_management_system.repository.GovornikRepository;
 import com.eventsystem.event_management_system.repository.SalaRepository;
 import com.eventsystem.event_management_system.repository.SesijaRepository;
+import com.eventsystem.event_management_system.utils.SesijaDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.eventsystem.event_management_system.utils.SesijaDtoMapper.toDto;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +28,26 @@ public class SesijaService {
     private final DogadjajRepository dogadjajRepository;
 
     private final SalaRepository salaRepository;
+
+    private final GovornikRepository govornikRepository;
+
+    @Transactional(readOnly = true)
+    public List<SesijaDto> getSesijeByDogadjaj(Long dogadjajId) {
+        if (!dogadjajRepository.existsById(dogadjajId)) {
+            throw new RuntimeException("Dogadjaj not found with id: " + dogadjajId);
+        }
+        return sesijaRepository.findAllByDogadjaj_DogadjajId(dogadjajId)
+                .stream()
+                .map(SesijaDtoMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public SesijaDto getSesijaById(Long id) {
+        Sesija sesija = sesijaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Sesija not found with id: " + id));
+        return toDto(sesija);
+    }
 
     public SesijaDto createSesija(SesijaDto dto) {
         Dogadjaj dogadjaj = dogadjajRepository.findById(dto.getDogadjajId())
@@ -66,5 +95,19 @@ public class SesijaService {
             throw new RuntimeException("Sesija not found with id: " + id);
         }
         sesijaRepository.deleteById(id);
+    }
+
+    @Transactional
+    public SesijaDto addGovornikToSesija(Long sesijaId, Long govornikId) {
+        Sesija sesija = sesijaRepository.findById(sesijaId)
+                .orElseThrow(() -> new RuntimeException("Sesija not found with id: " + sesijaId));
+
+        Govornik govornik = govornikRepository.findById(govornikId)
+                .orElseThrow(() -> new RuntimeException("Govornik not found with id: " + govornikId));
+
+        sesija.getGovornici().add(govornik);
+        sesijaRepository.save(sesija);
+
+        return toDto(sesija);
     }
 }

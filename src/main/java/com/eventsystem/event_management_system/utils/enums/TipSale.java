@@ -1,4 +1,4 @@
-package com.eventsystem.event_management_system.utils;
+package com.eventsystem.event_management_system.utils.enums;
 
 public enum TipSale {
     GLAVNA,

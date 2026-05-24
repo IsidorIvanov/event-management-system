@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/sesija")
 @RequiredArgsConstructor
@@ -27,5 +29,22 @@ public class SesijaController {
     public ResponseEntity<String> deleteSesija(@PathVariable Long id) {
         sesijaService.deleteSesija(id);
         return ResponseEntity.ok("Sesija with id " + id + " deleted successfully.");
+    }
+
+    @GetMapping("/dogadjaj/{dogadjajId}")
+    public ResponseEntity<List<SesijaDto>> getSesijeByDogadjaj(@PathVariable Long dogadjajId) {
+        return ResponseEntity.ok(sesijaService.getSesijeByDogadjaj(dogadjajId));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<SesijaDto> getSesijaById(@PathVariable Long id) {
+        return ResponseEntity.ok(sesijaService.getSesijaById(id));
+    }
+
+    @PostMapping("/{sesijaId}/govornici/{govornikId}")
+    public ResponseEntity<SesijaDto> addGovornikToSesija(
+            @PathVariable Long sesijaId,
+            @PathVariable Long govornikId) {
+        return ResponseEntity.ok(sesijaService.addGovornikToSesija(sesijaId, govornikId));
     }
 }

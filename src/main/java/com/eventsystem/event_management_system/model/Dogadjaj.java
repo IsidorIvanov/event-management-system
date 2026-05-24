@@ -1,6 +1,6 @@
 package com.eventsystem.event_management_system.model;
 
-import com.eventsystem.event_management_system.utils.StatusDogadjaja;
+import com.eventsystem.event_management_system.utils.enums.StatusDogadjaja;
 import jakarta.persistence.*;
 import lombok.*;
 
