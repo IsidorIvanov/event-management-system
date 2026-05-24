@@ -3,14 +3,12 @@ package com.eventsystem.event_management_system.model;
 import com.eventsystem.event_management_system.model.compositePK.TipKarteId;
 import com.eventsystem.event_management_system.utils.VrstaKarte;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.math.BigDecimal;
 
 @Entity
+@Builder
 @Table(name = "tip_karte")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
