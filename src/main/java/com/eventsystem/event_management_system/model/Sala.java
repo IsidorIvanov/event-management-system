@@ -3,16 +3,14 @@ package com.eventsystem.event_management_system.model;
 import com.eventsystem.event_management_system.model.compositePK.SalaId;
 import com.eventsystem.event_management_system.utils.TipSale;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
+@Builder
 @Table(name = "sala")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor

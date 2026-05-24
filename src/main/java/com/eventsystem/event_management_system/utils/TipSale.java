@@ -2,7 +2,7 @@ package com.eventsystem.event_management_system.utils;
 
 public enum TipSale {
     GLAVNA,
-    RADIONICA,
+    WORKSHOP,
     PANEL,
     FOAJE
 }

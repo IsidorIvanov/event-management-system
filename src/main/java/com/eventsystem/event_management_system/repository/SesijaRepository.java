@@ -1,0 +1,7 @@
+package com.eventsystem.event_management_system.repository;
+
+import com.eventsystem.event_management_system.model.Sesija;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface SesijaRepository extends JpaRepository<Sesija, Long> {
+}
