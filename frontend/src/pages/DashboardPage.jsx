@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link, useLocation, Routes, Route } from 'react-router-dom';
 import api from '../services/api';
 import UpsertEventModal from '../components/UpsertEventModal.jsx';
+import UpsertLokacijaModal from '../components/UpsertLokacijaModal.jsx';
 import { useToast } from '../components/ToastNotification';
 
 const ULOGA_DISPLAY = {
@@ -197,6 +198,128 @@ function ProgramSection({ user }) {
   );
 }
 
+function LokacijaSection() {
+  const toast = useToast();
+  const [lokacije, setLokacije]         = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState(null);
+  const [search, setSearch]             = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [modalTarget, setModalTarget]   = useState(undefined); // undefined=closed, null=create, obj=edit
+
+  useEffect(() => {
+    api.get('/lokacija')
+      .then(res => setLokacije(res.data))
+      .catch(() => setError('Greška pri učitavanju lokacija.'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const confirmDelete = () => {
+    api.delete(`/lokacija/${deleteTarget.lokacijaId}`)
+      .then(() => {
+        setLokacije(prev => prev.filter(l => l.lokacijaId !== deleteTarget.lokacijaId));
+        toast(`Lokacija „${deleteTarget.naziv}" je uspešno obrisana.`, 'success');
+      })
+      .catch(() => toast('Greška pri brisanju lokacije.', 'error'))
+      .finally(() => setDeleteTarget(null));
+  };
+
+  const filtered = lokacije.filter(l =>
+    [l.naziv, l.adresa, l.grad, l.drzava].some(s => s.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  return (
+    <div className="program-page">
+      {/* Delete confirm */}
+      {deleteTarget && (
+        <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
+          <div className="modal-box" onClick={e => e.stopPropagation()}>
+            <div className="modal-icon">🗑️</div>
+            <h3 className="modal-title">Obriši lokaciju</h3>
+            <p className="modal-body">
+              Da li ste sigurni da želite da obrišete lokaciju <strong>„{deleteTarget.naziv}"</strong>?<br />
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Ova akcija se ne može poništiti.</span>
+            </p>
+            <div className="modal-actions">
+              <button className="btn btn-outline" onClick={() => setDeleteTarget(null)}>Otkaži</button>
+              <button className="btn btn-danger" onClick={confirmDelete}>Obriši</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upsert modal */}
+      {modalTarget !== undefined && (
+        <UpsertLokacijaModal
+          lokacija={modalTarget}
+          onClose={() => setModalTarget(undefined)}
+          onSaved={(saved) => {
+            if (modalTarget) {
+              setLokacije(prev => prev.map(l => l.lokacijaId === saved.lokacijaId ? saved : l));
+              toast(`Lokacija „${saved.naziv}" je uspešno izmenjena.`, 'success');
+            } else {
+              setLokacije(prev => [...prev, saved]);
+              toast(`Lokacija „${saved.naziv}" je uspešno kreirana.`, 'success');
+            }
+            setModalTarget(undefined);
+          }}
+        />
+      )}
+
+      {/* Header */}
+      <div className="program-header">
+        <div>
+          <h1>Lokacije</h1>
+          <p className="page-subtitle">
+            pregled — sve registrovane lokacije
+            {!loading && <span style={{ marginLeft: '0.75rem', color: 'var(--text-muted)' }}>· {lokacije.length} ukupno</span>}
+          </p>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="events-table-card">
+        <div className="events-table-header">
+          <h2>Lista lokacija</h2>
+          <div className="events-table-controls">
+            <input className="search-input" placeholder="pretraži..." value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+        </div>
+
+        <table className="events-table">
+          <thead>
+            <tr><th>NAZIV</th><th>ADRESA</th><th>GRAD</th><th>DRŽAVA</th><th>AKCIJE</th></tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>Učitavanje...</td></tr>
+            ) : error ? (
+              <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--danger)', padding: '2rem' }}>{error}</td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>Nema rezultata.</td></tr>
+            ) : filtered.map(l => (
+              <tr key={l.lokacijaId}>
+                <td><span className="event-name-badge">{l.naziv}</span></td>
+                <td>{l.adresa}</td>
+                <td>{l.grad}</td>
+                <td>{l.drzava}</td>
+                <td>
+                  <div className="action-buttons">
+                    <button className="btn btn-outline btn-xs" onClick={() => setModalTarget(l)}>Uredi</button>
+                    <button className="btn btn-xs btn-danger-outline" onClick={() => setDeleteTarget(l)}>Obriši</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <button className="fab-btn" onClick={() => setModalTarget(null)}>+ Nova lokacija</button>
+    </div>
+  );
+}
+
 function NavLink({ to, icon, label }) {
   const { pathname } = useLocation();
   const active = to === '/dashboard' ? pathname === to : pathname.startsWith(to);
@@ -228,6 +351,9 @@ export default function DashboardPage() {
 
         <nav className="sidebar-nav">
           <NavLink to="/dashboard" icon="🏠" label="Početna" />
+          {hasRole('MENADZER_DOGADJAJA') && (
+            <NavLink to="/dashboard/lokacije" icon="📍" label="Lokacije" />
+          )}
           {isFinansije && <>
             <NavLink to="/dashboard/budzet"   icon="💰" label="Budžeti" />
             <NavLink to="/dashboard/fakture"  icon="📄" label="Fakture" />
@@ -255,42 +381,47 @@ export default function DashboardPage() {
       </aside>
 
       <main className="main-content">
-        {isProgram ? <ProgramSection user={user} /> : (
-          <>
-            <h1>Dobrodošli, {user.ime}!</h1>
-            <p className="page-subtitle">
-              Prijavljeni ste kao {TIP_DISPLAY[user.tipKorisnika]}
-              {user.uloga && ` — ${ULOGA_DISPLAY[user.uloga]}`}
-            </p>
-            <div className="info-cards">
-              <div className="info-card">
-                <div className="label">Tip naloga</div>
-                <div className="value accent">{TIP_DISPLAY[user.tipKorisnika]}</div>
-              </div>
-              {user.uloga && <div className="info-card">
-                <div className="label">Uloga</div>
-                <div className="value success">{ULOGA_DISPLAY[user.uloga]}</div>
-              </div>}
-              <div className="info-card">
-                <div className="label">Email</div>
-                <div className="value" style={{ fontSize: '1rem', wordBreak: 'break-all' }}>{user.email}</div>
-              </div>
-              <div className="info-card">
-                <div className="label">ID Korisnika</div>
-                <div className="value warning">#{user.korisnikId}</div>
-              </div>
-            </div>
-            {isFinansije && (
-              <div className="info-card" style={{ padding: '2rem' }}>
-                <h3 style={{ marginBottom: '1rem' }}>🏦 Finansijski podsistem</h3>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                  Imate pristup upravljanju budžetima, fakturama, troškovima i plaćanjima.
-                  Koristite navigaciju sa leve strane za pristup modulima.
+        <Routes>
+          <Route path="lokacije" element={<LokacijaSection />} />
+          <Route path="*" element={
+            isProgram ? <ProgramSection user={user} /> : (
+              <>
+                <h1>Dobrodošli, {user.ime}!</h1>
+                <p className="page-subtitle">
+                  Prijavljeni ste kao {TIP_DISPLAY[user.tipKorisnika]}
+                  {user.uloga && ` — ${ULOGA_DISPLAY[user.uloga]}`}
                 </p>
-              </div>
-            )}
-          </>
-        )}
+                <div className="info-cards">
+                  <div className="info-card">
+                    <div className="label">Tip naloga</div>
+                    <div className="value accent">{TIP_DISPLAY[user.tipKorisnika]}</div>
+                  </div>
+                  {user.uloga && <div className="info-card">
+                    <div className="label">Uloga</div>
+                    <div className="value success">{ULOGA_DISPLAY[user.uloga]}</div>
+                  </div>}
+                  <div className="info-card">
+                    <div className="label">Email</div>
+                    <div className="value" style={{ fontSize: '1rem', wordBreak: 'break-all' }}>{user.email}</div>
+                  </div>
+                  <div className="info-card">
+                    <div className="label">ID Korisnika</div>
+                    <div className="value warning">#{user.korisnikId}</div>
+                  </div>
+                </div>
+                {isFinansije && (
+                  <div className="info-card" style={{ padding: '2rem' }}>
+                    <h3 style={{ marginBottom: '1rem' }}>🏦 Finansijski podsistem</h3>
+                    <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                      Imate pristup upravljanju budžetima, fakturama, troškovima i plaćanjima.
+                      Koristite navigaciju sa leve strane za pristup modulima.
+                    </p>
+                  </div>
+                )}
+              </>
+            )
+          } />
+        </Routes>
       </main>
     </div>
   );

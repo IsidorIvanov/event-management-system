@@ -23,12 +23,12 @@ public class LokacijaController {
     }
 
     @PostMapping("")
-    public ResponseEntity<LokacijaDto> createLokacija(@Valid @RequestBody LokacijaDto lokacijaDto) {
+    public ResponseEntity<LokacijaResponseDto> createLokacija(@Valid @RequestBody LokacijaDto lokacijaDto) {
         return ResponseEntity.ok(lokacijaService.saveLokacija(lokacijaDto));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<LokacijaDto> updateLokacija(@PathVariable Long id, @Valid @RequestBody LokacijaDto lokacijaDto) {
+    public ResponseEntity<LokacijaResponseDto> updateLokacija(@PathVariable Long id, @Valid @RequestBody LokacijaDto lokacijaDto) {
         return ResponseEntity.ok(lokacijaService.updateLokacija(id, lokacijaDto));
     }
 

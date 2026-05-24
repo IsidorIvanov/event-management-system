@@ -22,31 +22,30 @@ public class LokacijaService {
                 .collect(Collectors.toList());
     }
 
-    public LokacijaDto saveLokacija(LokacijaDto dto) {
+    public LokacijaResponseDto saveLokacija(LokacijaDto dto) {
         Lokacija novaLokacija = Lokacija.builder()
                 .naziv(dto.getNaziv())
                 .adresa(dto.getAdresa())
                 .grad(dto.getGrad())
                 .drzava(dto.getDrzava())
                 .build();
-
         lokacijaRepository.save(novaLokacija);
-
-        return dto;
+        return toResponseDto(novaLokacija);
     }
 
-    public LokacijaDto updateLokacija(Long id, LokacijaDto dto) {
-        Lokacija existingLokacija = lokacijaRepository.findById(id)
+    public LokacijaResponseDto updateLokacija(Long id, LokacijaDto dto) {
+        Lokacija l = lokacijaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lokacija not found with id: " + id));
+        l.setNaziv(dto.getNaziv());
+        l.setAdresa(dto.getAdresa());
+        l.setGrad(dto.getGrad());
+        l.setDrzava(dto.getDrzava());
+        lokacijaRepository.save(l);
+        return toResponseDto(l);
+    }
 
-        existingLokacija.setNaziv(dto.getNaziv());
-        existingLokacija.setAdresa(dto.getAdresa());
-        existingLokacija.setGrad(dto.getGrad());
-        existingLokacija.setDrzava(dto.getDrzava());
-
-        lokacijaRepository.save(existingLokacija);
-
-        return dto;
+    private LokacijaResponseDto toResponseDto(Lokacija l) {
+        return new LokacijaResponseDto(l.getLokacijaId(), l.getNaziv(), l.getAdresa(), l.getGrad(), l.getDrzava());
     }
 
     public void deleteLokacija(Long id) {
