@@ -1,6 +1,7 @@
 package com.eventsystem.event_management_system.controller;
 
 import com.eventsystem.event_management_system.dto.LokacijaDto;
+import com.eventsystem.event_management_system.model.Lokacija;
 import com.eventsystem.event_management_system.service.LokacijaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -14,8 +15,8 @@ public class LokacijaController {
     private final LokacijaService lokacijaService;
 
     @PostMapping("")
-    public ResponseEntity<LokacijaDto> addLokacija(@RequestBody LokacijaDto lokacijaDto) {
-        return ResponseEntity.ok(lokacijaService.addLokacija(lokacijaDto));
+    public ResponseEntity<LokacijaDto> createLokacija(@RequestBody LokacijaDto lokacijaDto) {
+        return ResponseEntity.ok(lokacijaService.saveLokacija(lokacijaDto));
     }
 
     @PutMapping("/{id}")

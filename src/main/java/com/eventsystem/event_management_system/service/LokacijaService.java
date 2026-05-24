@@ -12,12 +12,13 @@ public class LokacijaService {
 
     private final LokacijaRepository lokacijaRepository;
 
-    public LokacijaDto addLokacija(LokacijaDto dto) {
-        Lokacija novaLokacija = new Lokacija();
-        novaLokacija.setNaziv(dto.getNaziv());
-        novaLokacija.setAdresa(dto.getAdresa());
-        novaLokacija.setGrad(dto.getGrad());
-        novaLokacija.setDrzava(dto.getDrzava());
+    public LokacijaDto saveLokacija(LokacijaDto dto) {
+        Lokacija novaLokacija = Lokacija.builder()
+                .naziv(dto.getNaziv())
+                .adresa(dto.getAdresa())
+                .grad(dto.getGrad())
+                .drzava(dto.getDrzava())
+                .build();
 
         lokacijaRepository.save(novaLokacija);
 

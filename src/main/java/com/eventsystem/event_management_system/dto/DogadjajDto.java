@@ -6,13 +6,17 @@ import lombok.Setter;
 
 @Getter @Setter
 @RequiredArgsConstructor
-public class LokacijaDto {
+public class DogadjajDto {
+
+    private final Long lokacijaId;
 
     private final String naziv;
 
-    private final String adresa;
+    private final String datumPocetka;
 
-    private final String grad;
+    private final String datumZavrsetka;
 
-    private final String drzava;
+    private final Integer maksKapacitet;
+
+    private final String opis;
 }
