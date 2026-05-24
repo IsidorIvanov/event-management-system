@@ -6,7 +6,6 @@ import com.eventsystem.event_management_system.model.Dogadjaj;
 import com.eventsystem.event_management_system.model.Lokacija;
 import com.eventsystem.event_management_system.repository.DogadjajRepository;
 import com.eventsystem.event_management_system.repository.LokacijaRepository;
-import com.eventsystem.event_management_system.utils.DogadjajDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -40,7 +39,7 @@ public class DogadjajService {
         return toResponseDto(dogadjaj);
     }
 
-    public DogadjajDto updateDogadjaj(Long id, DogadjajDto dto) {
+    public DogadjajResponseDto updateDogadjaj(Long id, DogadjajDto dto) {
         Lokacija lokacija = lokacijaRepository.findById(dto.getLokacijaId())
                 .orElseThrow(() -> new RuntimeException("Lokacija not found with id: " + dto.getLokacijaId()));
 
@@ -56,7 +55,7 @@ public class DogadjajService {
 
         dogadjajRepository.save(existingDogadjaj);
 
-        return dto;
+        return toResponseDto(existingDogadjaj);
     }
 
     public void deleteDogadjaj(Long id) {

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import api from '../services/api';
-import CreateEventModal from '../components/CreateEventModal';
+import UpsertEventModal from '../components/UpsertEventModal.jsx';
 
 const ULOGA_DISPLAY = {
   MENADZER_DOGADJAJA: 'Menadžer događaja',
@@ -57,6 +57,7 @@ function ProgramSection({ user }) {
   const [sortDir, setSortDir] = useState('asc');
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [showCreate, setShowCreate]     = useState(false);
+  const [editTarget, setEditTarget]     = useState(null);
 
   useEffect(() => {
     api.get('/dogadjaj')
@@ -92,9 +93,19 @@ function ProgramSection({ user }) {
     <div className="program-page">
       <ConfirmModal event={deleteTarget} onConfirm={confirmDelete} onCancel={() => setDeleteTarget(null)} />
       {showCreate && (
-        <CreateEventModal
+        <UpsertEventModal
           onClose={() => setShowCreate(false)}
           onCreated={(newEvent) => setEvents(prev => [...prev, newEvent])}
+        />
+      )}
+      {editTarget && (
+        <UpsertEventModal
+          event={editTarget}
+          onClose={() => setEditTarget(null)}
+          onCreated={(updated) => {
+            setEvents(prev => prev.map(e => e.dogadjajId === updated.dogadjajId ? updated : e));
+            setEditTarget(null);
+          }}
         />
       )}
 
@@ -161,7 +172,7 @@ function ProgramSection({ user }) {
                 </td>
                 <td>
                   <div className="action-buttons">
-                    <button className="btn btn-outline btn-xs">Uredi</button>
+                    <button className="btn btn-outline btn-xs" onClick={() => setEditTarget(event)}>Uredi</button>
                     <button className="btn btn-outline btn-xs">Izveštaj</button>
                     <button className="btn btn-xs btn-danger-outline" onClick={() => setDeleteTarget(event)}>Obriši</button>
                   </div>

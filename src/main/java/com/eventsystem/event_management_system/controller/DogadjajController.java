@@ -28,7 +28,7 @@ public class DogadjajController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<DogadjajDto> updateDogadjaj(@PathVariable Long id, @Valid @RequestBody DogadjajDto dto) {
+    public ResponseEntity<DogadjajResponseDto> updateDogadjaj(@PathVariable Long id, @Valid @RequestBody DogadjajDto dto) {
         return ResponseEntity.ok(dogadjajService.updateDogadjaj(id, dto));
     }
 
