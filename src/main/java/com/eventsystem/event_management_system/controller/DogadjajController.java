@@ -1,11 +1,14 @@
 package com.eventsystem.event_management_system.controller;
 
 import com.eventsystem.event_management_system.dto.DogadjajDto;
+import com.eventsystem.event_management_system.dto.DogadjajResponseDto;
 import com.eventsystem.event_management_system.service.DogadjajService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -14,13 +17,23 @@ public class DogadjajController {
 
     private final DogadjajService dogadjajService;
 
+    @GetMapping("")
+    public ResponseEntity<List<DogadjajResponseDto>> getAllDogadjaji() {
+        return ResponseEntity.ok(dogadjajService.getAllDogadjaji());
+    }
+
     @PostMapping("")
-    public ResponseEntity<DogadjajDto> createDogadjaj(@Valid @RequestBody DogadjajDto dto) {
+    public ResponseEntity<DogadjajResponseDto> createDogadjaj(@Valid @RequestBody DogadjajDto dto) {
         return ResponseEntity.ok(dogadjajService.saveDogadjaj(dto));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<DogadjajResponseDto> getDogadjaj(@PathVariable Long id) {
+        return ResponseEntity.ok(dogadjajService.getDogadjajById(id));
+    }
+
     @PutMapping("/{id}")
-    public ResponseEntity<DogadjajDto> updateDogadjaj(@PathVariable Long id, @Valid @RequestBody DogadjajDto dto) {
+    public ResponseEntity<DogadjajResponseDto> updateDogadjaj(@PathVariable Long id, @Valid @RequestBody DogadjajDto dto) {
         return ResponseEntity.ok(dogadjajService.updateDogadjaj(id, dto));
     }
 

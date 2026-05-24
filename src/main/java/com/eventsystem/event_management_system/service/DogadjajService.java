@@ -1,6 +1,7 @@
 package com.eventsystem.event_management_system.service;
 
 import com.eventsystem.event_management_system.dto.DogadjajDto;
+import com.eventsystem.event_management_system.dto.DogadjajResponseDto;
 import com.eventsystem.event_management_system.model.Dogadjaj;
 import com.eventsystem.event_management_system.model.Lokacija;
 import com.eventsystem.event_management_system.repository.DogadjajRepository;
@@ -9,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -18,7 +21,7 @@ public class DogadjajService {
 
     private final LokacijaRepository lokacijaRepository;
 
-    public DogadjajDto saveDogadjaj(DogadjajDto dto) {
+    public DogadjajResponseDto saveDogadjaj(DogadjajDto dto) {
         Lokacija lokacija = lokacijaRepository.findById(dto.getLokacijaId())
                 .orElseThrow(() -> new RuntimeException("Lokacija not found with id: " + dto.getLokacijaId()));
 
@@ -33,10 +36,10 @@ public class DogadjajService {
 
         dogadjajRepository.save(dogadjaj);
 
-        return dto;
+        return toResponseDto(dogadjaj);
     }
 
-    public DogadjajDto updateDogadjaj(Long id, DogadjajDto dto) {
+    public DogadjajResponseDto updateDogadjaj(Long id, DogadjajDto dto) {
         Lokacija lokacija = lokacijaRepository.findById(dto.getLokacijaId())
                 .orElseThrow(() -> new RuntimeException("Lokacija not found with id: " + dto.getLokacijaId()));
 
@@ -52,7 +55,7 @@ public class DogadjajService {
 
         dogadjajRepository.save(existingDogadjaj);
 
-        return dto;
+        return toResponseDto(existingDogadjaj);
     }
 
     public void deleteDogadjaj(Long id) {
@@ -60,5 +63,33 @@ public class DogadjajService {
             throw new RuntimeException("Dogadjaj not found with id: " + id);
         }
         dogadjajRepository.deleteById(id);
+    }
+
+    public List<DogadjajResponseDto> getAllDogadjaji() {
+        return dogadjajRepository.findAllWithLokacija().stream()
+                .map(this::toResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    public DogadjajResponseDto getDogadjajById(Long id) {
+        Dogadjaj d = dogadjajRepository.findByIdWithLokacija(id)
+                .orElseThrow(() -> new RuntimeException("Dogadjaj not found with id: " + id));
+        return toResponseDto(d);
+    }
+
+    private DogadjajResponseDto toResponseDto(Dogadjaj d) {
+        Lokacija l = d.getLokacija();
+        return new DogadjajResponseDto(
+                d.getDogadjajId(),
+                d.getNaziv(),
+                d.getDatumPocetka().toString(),
+                d.getDatumZavrsetka().toString(),
+                d.getMaksKapacitet(),
+                d.getOpis(),
+                d.getStatus(),
+                l != null ? l.getNaziv() : "",
+                l != null ? l.getGrad() : "",
+                l != null ? l.getDrzava() : ""
+        );
     }
 }
