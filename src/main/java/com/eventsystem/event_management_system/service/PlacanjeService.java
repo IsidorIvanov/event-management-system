@@ -39,7 +39,7 @@ public class PlacanjeService {
 
     @PreAuthorize("hasRole('FINANSIJSKI_KONTROLOR')")
     @Transactional
-    public Placanje create(Long fakturaId, PlacanjeDto dto) {
+    public PlacanjeDto create(Long fakturaId, PlacanjeDto dto) {
         Faktura f = fakturaService.findEntity(fakturaId);
         validateCreate(f, dto);
         BigDecimal iznos = dto.getIznos().setScale(2, RoundingMode.HALF_EVEN);
@@ -57,12 +57,12 @@ public class PlacanjeService {
                 .build();
         p = placanjeRepository.save(p);
         f.getPlacanja().add(p);
-        return p;
+        return toDto(p);
     }
 
     @PreAuthorize("hasRole('FINANSIJSKI_KONTROLOR')")
     @Transactional
-    public Placanje confirm(Long placanjeId) {
+    public PlacanjeDto confirm(Long placanjeId) {
         Placanje p = findEntity(placanjeId);
         if (p.getStatus() != PlacanjeStatus.PENDING) {
             throw new BadRequestException("Samo PENDING plaćanje može biti potvrđeno.");
@@ -73,18 +73,18 @@ public class PlacanjeService {
 
         fakturaService.recomputePlaceniIznos(p.getFaktura());
         fakturaService.autoUpdateStatus(p.getFaktura());
-        return p;
+        return toDto(p);
     }
 
     @PreAuthorize("hasRole('FINANSIJSKI_KONTROLOR')")
     @Transactional
-    public Placanje fail(Long placanjeId) {
+    public PlacanjeDto fail(Long placanjeId) {
         Placanje p = findEntity(placanjeId);
         if (p.getStatus() != PlacanjeStatus.PENDING) {
             throw new BadRequestException("Samo PENDING plaćanje može biti označeno kao neuspešno.");
         }
         p.setStatus(PlacanjeStatus.FAILED);
-        return placanjeRepository.save(p);
+        return toDto(placanjeRepository.save(p));
     }
 
     private Placanje findEntity(Long placanjeId) {
@@ -133,5 +133,22 @@ public class PlacanjeService {
 
     private BigDecimal safe(BigDecimal value) {
         return value != null ? value : BigDecimal.ZERO;
+    }
+
+    private PlacanjeDto toDto(Placanje placanje) {
+        return PlacanjeDto.builder()
+                .placanjeId(placanje.getPlacanjeId())
+                .fakturaId(placanje.getFaktura() != null ? placanje.getFaktura().getFakturaId() : null)
+                .iznos(placanje.getIznos())
+                .referentniBroj(placanje.getReferentniBroj())
+                .datumPlacanja(placanje.getDatumPlacanja())
+                .metod(placanje.getMetod())
+                .metodPlacanja(placanje.getMetod())
+                .status(placanje.getStatus())
+                .napomena(placanje.getNapomena())
+                .dokumentUrl(placanje.getDokumentUrl())
+                .kreiranoAt(placanje.getKreiranoAt())
+                .potvrdjenoAt(placanje.getPotvrdjenoAt())
+                .build();
     }
 }

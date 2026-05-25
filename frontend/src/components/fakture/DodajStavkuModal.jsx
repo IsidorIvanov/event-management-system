@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import api from "../../services/api";
 
 const EMPTY = {
@@ -19,6 +19,15 @@ export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
   const [budzetiLoading, setBudzetiLoading] = useState(false);
   const [budzetiError, setBudzetiError] = useState(null);
   const [kategorije, setKategorije] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!dogadjajId) {
@@ -61,8 +70,9 @@ export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
     if (error) setError(null);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submittingRef.current) return;
     if (!form.naziv.trim()) return setError("Naziv stavke je obavezan.");
     if (toNumber(form.kolicina) <= 0)
       return setError("Količina mora biti veća od 0.");
@@ -71,15 +81,24 @@ export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
     if (!form.budzetId) return setError("Budžet je obavezan.");
     if (!form.kategorijaId) return setError("Kategorija je obavezna.");
 
-    onSubmit({
-      naziv: form.naziv.trim(),
-      kolicina: String(form.kolicina),
-      jedinicnaCena: String(form.jedinicnaCena || "0"),
-      ukupnaCena: ukupnaCena.toFixed(2),
-      napomena: form.napomena || null,
-      budzetId: Number(form.budzetId),
-      kategorijaId: Number(form.kategorijaId),
-    });
+    submittingRef.current = true;
+    setIsSubmitting(true);
+    try {
+      await onSubmit({
+        naziv: form.naziv.trim(),
+        kolicina: String(form.kolicina),
+        jedinicnaCena: String(form.jedinicnaCena || "0"),
+        ukupnaCena: ukupnaCena.toFixed(2),
+        napomena: form.napomena || null,
+        budzetId: Number(form.budzetId),
+        kategorijaId: Number(form.kategorijaId),
+      });
+    } finally {
+      submittingRef.current = false;
+      if (mountedRef.current) {
+        setIsSubmitting(false);
+      }
+    }
   };
 
   return (
@@ -212,8 +231,9 @@ export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
               type="submit"
               className="btn btn-primary"
               style={{ width: "auto" }}
+              disabled={isSubmitting}
             >
-              Dodaj stavku
+              {isSubmitting ? "Dodavanje..." : "Dodaj stavku"}
             </button>
           </div>
         </form>

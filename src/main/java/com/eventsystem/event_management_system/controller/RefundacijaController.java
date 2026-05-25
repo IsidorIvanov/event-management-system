@@ -1,7 +1,6 @@
 package com.eventsystem.event_management_system.controller;
 
 import com.eventsystem.event_management_system.dto.RefundacijaDto;
-import com.eventsystem.event_management_system.model.Refundacija;
 import com.eventsystem.event_management_system.service.RefundacijaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,25 +16,25 @@ public class RefundacijaController {
 
     @PostMapping("/placanje/{placanjeId}")
     @PreAuthorize("hasRole('FINANSIJSKI_KONTROLOR')")
-    public ResponseEntity<Refundacija> request(@PathVariable Long placanjeId, @RequestBody RefundacijaDto dto) {
+    public ResponseEntity<RefundacijaDto> request(@PathVariable Long placanjeId, @RequestBody RefundacijaDto dto) {
         return ResponseEntity.ok(refundacijaService.request(placanjeId, dto));
     }
 
     @PostMapping("/{id}/approve")
     @PreAuthorize("hasRole('MENADZER_DOGADJAJA')")
-    public ResponseEntity<Refundacija> approve(@PathVariable Long id) {
+    public ResponseEntity<RefundacijaDto> approve(@PathVariable Long id) {
         return ResponseEntity.ok(refundacijaService.approve(id));
     }
 
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasRole('MENADZER_DOGADJAJA')")
-    public ResponseEntity<Refundacija> reject(@PathVariable Long id) {
+    public ResponseEntity<RefundacijaDto> reject(@PathVariable Long id) {
         return ResponseEntity.ok(refundacijaService.reject(id));
     }
 
     @PostMapping("/{id}/execute")
     @PreAuthorize("hasRole('FINANSIJSKI_KONTROLOR')")
-    public ResponseEntity<Refundacija> execute(@PathVariable Long id) {
+    public ResponseEntity<RefundacijaDto> execute(@PathVariable Long id) {
         return ResponseEntity.ok(refundacijaService.execute(id));
     }
 }

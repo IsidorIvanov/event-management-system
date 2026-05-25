@@ -117,6 +117,7 @@ function FakturaDetailModal({
   faktura,
   onClose,
   onAddStavka,
+  onDeleteStavka,
   onNewPlacanje,
   onConfirmPlacanje,
   onFailPlacanje,
@@ -145,12 +146,7 @@ function FakturaDetailModal({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
-        className="modal-card modal-card-wide"
-        style={{
-          width: "min(1100px, 96vw)",
-          maxHeight: "92vh",
-          overflowY: "auto",
-        }}
+        className="modal-card modal-card-wide faktura-detail-modal"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
@@ -165,81 +161,90 @@ function FakturaDetailModal({
           </button>
         </div>
 
-        <div className="info-cards" style={{ marginBottom: "1.5rem" }}>
-          <div className="info-card">
-            <div className="label">Status</div>
-            <StatusBadge
-              value={faktura.status}
-              styleMap={FAKTURA_STATUS_STYLE}
-              labelMap={FAKTURA_STATUS_DISPLAY}
-            />
-          </div>
-          <div className="info-card">
-            <div className="label">Ukupan iznos</div>
-            <div className="value accent">
-              {formatMoney(faktura.ukupnaIznos)}
+        <div className="faktura-detail-scroll">
+          <div className="info-cards faktura-summary-cards">
+            <div className="info-card">
+              <div className="label">Status</div>
+              <StatusBadge
+                value={faktura.status}
+                styleMap={FAKTURA_STATUS_STYLE}
+                labelMap={FAKTURA_STATUS_DISPLAY}
+              />
+            </div>
+            <div className="info-card">
+              <div className="label">Ukupan iznos</div>
+              <div className="value accent">
+                {formatMoney(faktura.ukupnaIznos)}
+              </div>
+            </div>
+            <div className="info-card">
+              <div className="label">Plaćeni iznos</div>
+              <div className="value success">
+                {formatMoney(faktura.placeniIznos)}
+              </div>
+            </div>
+            <div className="info-card">
+              <div className="label">Rok plaćanja</div>
+              <div className="value">{formatDate(faktura.rokPlacanja)}</div>
             </div>
           </div>
-          <div className="info-card">
-            <div className="label">Plaćeni iznos</div>
-            <div className="value success">
-              {formatMoney(faktura.placeniIznos)}
+
+          <div className="faktura-detail-main">
+            <div className="events-table-card faktura-section-card">
+              <h3>Stavke</h3>
+              {faktura.stavke?.length ? (
+                <div className="faktura-table-scroll">
+                  <table className="events-table">
+                    <thead>
+                      <tr>
+                        <th>NAZIV</th>
+                        <th>KOL</th>
+                        <th>JED. CENA</th>
+                        <th>UKUPNO</th>
+                        <th>BUDŽET</th>
+                        <th>KATEGORIJA</th>
+                        {canAddStavka && <th>AKCIJE</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {faktura.stavke.map((stavka) => (
+                        <tr
+                          key={
+                            stavka.stavkaFaktureId ||
+                            `${stavka.redniBroj}-${stavka.naziv}`
+                          }
+                        >
+                          <td>{stavka.naziv}</td>
+                          <td>{stavka.kolicina}</td>
+                          <td>{formatMoney(stavka.jedinicnaCena)}</td>
+                          <td>{formatMoney(stavka.ukupnaCena)}</td>
+                          <td>{stavka.budzetId || "—"}</td>
+                          <td>{stavka.kategorijaId || "—"}</td>
+                          {canAddStavka && (
+                            <td>
+                              <button
+                                className="btn btn-xs btn-danger-outline"
+                                onClick={() => onDeleteStavka(stavka)}
+                              >
+                                Obriši
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p style={{ color: "var(--text-muted)" }}>Nema stavki.</p>
+              )}
             </div>
-          </div>
-          <div className="info-card">
-            <div className="label">Rok plaćanja</div>
-            <div className="value">{formatDate(faktura.rokPlacanja)}</div>
-          </div>
-        </div>
 
-        <div
-          className="events-table-card"
-          style={{ padding: "1.25rem", marginBottom: "1.25rem" }}
-        >
-          <h3 style={{ marginBottom: "1rem" }}>Stavke</h3>
-          {faktura.stavke?.length ? (
-            <table className="events-table">
-              <thead>
-                <tr>
-                  <th>NAZIV</th>
-                  <th>KOL</th>
-                  <th>JED. CENA</th>
-                  <th>UKUPNO</th>
-                  <th>BUDŽET</th>
-                  <th>KATEGORIJA</th>
-                </tr>
-              </thead>
-              <tbody>
-                {faktura.stavke.map((stavka) => (
-                  <tr
-                    key={
-                      stavka.stavkaFaktureId ||
-                      `${stavka.redniBroj}-${stavka.naziv}`
-                    }
-                  >
-                    <td>{stavka.naziv}</td>
-                    <td>{stavka.kolicina}</td>
-                    <td>{formatMoney(stavka.jedinicnaCena)}</td>
-                    <td>{formatMoney(stavka.ukupnaCena)}</td>
-                    <td>{stavka.budzetId || "—"}</td>
-                    <td>{stavka.kategorijaId || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p style={{ color: "var(--text-muted)" }}>Nema stavki.</p>
-          )}
-        </div>
-
-        <div
-          className="events-table-card"
-          style={{ padding: "1.25rem", marginBottom: "1.25rem" }}
-        >
-          <h3 style={{ marginBottom: "1rem" }}>Plaćanja</h3>
-          {faktura.placanja?.length ? (
-            faktura.placanja.map((placanje) => (
-              <div
+            <div className="events-table-card faktura-section-card">
+              <h3>Plaćanja</h3>
+              {faktura.placanja?.length ? (
+                faktura.placanja.map((placanje) => (
+                  <div
                 key={placanje.placanjeId}
                 style={{
                   border: "1px solid rgba(148,163,184,.18)",
@@ -458,10 +463,12 @@ function FakturaDetailModal({
                   )}
                 </div>
               </div>
-            ))
-          ) : (
-            <p style={{ color: "var(--text-muted)" }}>Nema plaćanja.</p>
-          )}
+                ))
+              ) : (
+                <p style={{ color: "var(--text-muted)" }}>Nema plaćanja.</p>
+              )}
+            </div>
+          </div>
         </div>
 
         <div
@@ -622,6 +629,23 @@ export default function FakturePage() {
       }
     } catch (err) {
       toast(extractError(err, "Greška pri dodavanju stavke."), "error");
+    }
+  };
+
+  const handleDeleteStavka = async (stavka) => {
+    const fakturaId = selectedDetail?.fakturaId;
+    const stavkaId = stavka?.stavkaFaktureId;
+    if (!fakturaId || !stavkaId) return;
+    if (!window.confirm("Da li sigurno želiš da obrišeš ovu stavku?")) return;
+
+    try {
+      await fakturaApi.deleteStavka(fakturaId, stavkaId);
+      toast("Stavka je obrisana.", "success");
+      await loadAll();
+      setSelectedId(fakturaId);
+      await loadDetail(fakturaId);
+    } catch (err) {
+      toast(extractError(err, "Greška pri brisanju stavke."), "error");
     }
   };
 
@@ -878,6 +902,7 @@ export default function FakturePage() {
             setSelectedDetail(null);
           }}
           onAddStavka={handleOpenStavka}
+          onDeleteStavka={handleDeleteStavka}
           onNewPlacanje={handleOpenPlacanje}
           onConfirmPlacanje={handleConfirmPlacanje}
           onFailPlacanje={handleFailPlacanje}

@@ -2,7 +2,6 @@ package com.eventsystem.event_management_system.controller;
 
 import com.eventsystem.event_management_system.dto.FakturaDto;
 import com.eventsystem.event_management_system.dto.StavkaFaktureDto;
-import com.eventsystem.event_management_system.model.StavkaFakture;
 import com.eventsystem.event_management_system.service.FakturaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -36,8 +35,15 @@ public class FakturaController {
 
     @PostMapping("/{id}/stavke")
     @PreAuthorize("hasRole('FINANSIJSKI_KONTROLOR')")
-    public ResponseEntity<StavkaFakture> addStavka(@PathVariable Long id, @RequestBody StavkaFaktureDto dto) {
+    public ResponseEntity<StavkaFaktureDto> addStavka(@PathVariable Long id, @RequestBody StavkaFaktureDto dto) {
         return ResponseEntity.ok(fakturaService.addStavka(id, dto));
+    }
+
+    @DeleteMapping("/{fakturaId}/stavke/{stavkaId}")
+    @PreAuthorize("hasRole('FINANSIJSKI_KONTROLOR')")
+    public ResponseEntity<Void> deleteStavka(@PathVariable Long fakturaId, @PathVariable Long stavkaId) {
+        fakturaService.deleteStavka(fakturaId, stavkaId);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/issue")

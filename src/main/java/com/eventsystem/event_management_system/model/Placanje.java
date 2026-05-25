@@ -29,7 +29,8 @@ public class Placanje {
     @JoinColumn(name = "faktura_id", nullable = false)
     private Faktura faktura;
 
-    @OneToMany(mappedBy = "placanje", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @OneToMany(mappedBy = "placanje", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private java.util.List<com.eventsystem.event_management_system.model.Refundacija> refundacije = new java.util.ArrayList<>();
 

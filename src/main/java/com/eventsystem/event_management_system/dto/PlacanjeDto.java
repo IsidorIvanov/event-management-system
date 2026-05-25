@@ -24,6 +24,7 @@ public class PlacanjeDto {
     private String referentniBroj;
     private LocalDate datumPlacanja;
     private MetodPlacanja metod;
+    private MetodPlacanja metodPlacanja;
     private PlacanjeStatus status;
     private String napomena;
     private String dokumentUrl;

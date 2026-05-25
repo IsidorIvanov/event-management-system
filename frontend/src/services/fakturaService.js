@@ -5,6 +5,8 @@ export const getAllFakture = () => api.get("/fakture");
 export const getFakturaById = (id) => api.get(`/fakture/${id}`);
 export const createFaktura = (data) => api.post("/fakture", data);
 export const addStavka = (id, data) => api.post(`/fakture/${id}/stavke`, data);
+export const deleteStavka = (fakturaId, stavkaId) =>
+  api.delete(`/fakture/${fakturaId}/stavke/${stavkaId}`);
 export const issueFaktura = (id) => api.post(`/fakture/${id}/issue`);
 export const cancelFaktura = (id) => api.post(`/fakture/${id}/cancel`);
 

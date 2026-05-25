@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class StavkaFaktureDto {
     private Long stavkaFaktureId;
+    private Long fakturaId;
     private Integer redniBroj;
     private String naziv;
     @JsonFormat(shape = JsonFormat.Shape.STRING)
@@ -23,4 +24,5 @@ public class StavkaFaktureDto {
     private String napomena;
     private Long budzetId;
     private Long kategorijaId;
+    private Long trosakId;
 }

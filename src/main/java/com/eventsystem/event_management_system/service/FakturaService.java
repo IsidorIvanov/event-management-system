@@ -107,7 +107,7 @@ public class FakturaService {
 
     @PreAuthorize("hasRole('FINANSIJSKI_KONTROLOR')")
     @Transactional
-    public StavkaFakture addStavka(Long fakturaId, StavkaFaktureDto dto) {
+    public StavkaFaktureDto addStavka(Long fakturaId, StavkaFaktureDto dto) {
         Faktura f = findEntity(fakturaId);
         if (f.getStatus() != FakturaStatus.DRAFT) {
             throw new BadRequestException("Stavke se mogu dodavati samo dok je faktura u DRAFT statusu.");
@@ -160,7 +160,40 @@ public class FakturaService {
 
         recomputeUkupanIznos(fakturaId);
 
-        return s;
+        return toStavkaDto(s);
+    }
+
+    @PreAuthorize("hasRole('FINANSIJSKI_KONTROLOR')")
+    @Transactional
+    public void deleteStavka(Long fakturaId, Long stavkaId) {
+        Faktura faktura = findEntity(fakturaId);
+        if (faktura.getStatus() != FakturaStatus.DRAFT) {
+            throw new BadRequestException("Stavke se mogu brisati samo dok je faktura u DRAFT statusu.");
+        }
+
+        StavkaFakture stavka = stavkaFaktureRepository.findById(stavkaId)
+                .orElseThrow(() -> new NotFoundException("Stavka fakture nije pronađena sa id: " + stavkaId));
+        Long stavkaFakturaId = stavka.getFaktura() != null ? stavka.getFaktura().getFakturaId() : null;
+        if (!fakturaId.equals(stavkaFakturaId)) {
+            throw new BadRequestException("Stavka ne pripada izabranoj fakturi.");
+        }
+
+        Long budzetId = stavka.getBudzetId();
+        Long kategorijaId = stavka.getKategorijaId();
+        if (faktura.getTip() == TipFakture.ULAZNA && stavka.getTrosakId() != null) {
+            trosakRepository.findById(stavka.getTrosakId()).ifPresent(trosak -> {
+                trosak.setRefundiraniIznos(safe(trosak.getIznos()).setScale(2, RoundingMode.HALF_EVEN));
+                trosakRepository.save(trosak);
+            });
+        }
+
+        stavkaFaktureRepository.delete(stavka);
+        stavkaFaktureRepository.flush();
+        recomputeUkupanIznos(fakturaId);
+
+        if (faktura.getTip() == TipFakture.ULAZNA && budzetId != null && kategorijaId != null) {
+            budzetService.recomputeStavku(budzetId, kategorijaId);
+        }
     }
 
     @PreAuthorize("hasRole('FINANSIJSKI_KONTROLOR')")
@@ -267,17 +300,7 @@ public class FakturaService {
                 .rokPlacanja(e.getRokPlacanja())
                 .napomena(e.getNapomena())
                 .kreiranAt(e.getKreiranAt())
-                .stavke(e.getStavke().stream().map(s -> StavkaFaktureDto.builder()
-                        .stavkaFaktureId(s.getStavkaFaktureId())
-                        .redniBroj(s.getRedniBroj())
-                        .naziv(s.getNaziv())
-                        .kolicina(s.getKolicina())
-                        .jedinicnaCena(s.getJedinicnaCena())
-                        .ukupnaCena(s.getUkupnaCena())
-                        .napomena(s.getNapomena())
-                        .budzetId(s.getBudzetId())
-                        .kategorijaId(s.getKategorijaId())
-                        .build()).toList())
+                .stavke(e.getStavke().stream().map(this::toStavkaDto).toList())
                     .placanja(e.getPlacanja().stream().map(p -> PlacanjeDto.builder()
                         .placanjeId(p.getPlacanjeId())
                         .fakturaId(e.getFakturaId())
@@ -325,6 +348,22 @@ public class FakturaService {
         if (dto.getRokPlacanja().isBefore(dto.getDatumIzdavanja())) {
             throw new BadRequestException("Rok plaćanja ne može biti pre datuma izdavanja.");
         }
+    }
+
+    private StavkaFaktureDto toStavkaDto(StavkaFakture stavka) {
+        return StavkaFaktureDto.builder()
+                .stavkaFaktureId(stavka.getStavkaFaktureId())
+                .fakturaId(stavka.getFaktura() != null ? stavka.getFaktura().getFakturaId() : null)
+                .redniBroj(stavka.getRedniBroj())
+                .naziv(stavka.getNaziv())
+                .kolicina(stavka.getKolicina())
+                .jedinicnaCena(stavka.getJedinicnaCena())
+                .ukupnaCena(stavka.getUkupnaCena())
+                .napomena(stavka.getNapomena())
+                .budzetId(stavka.getBudzetId())
+                .kategorijaId(stavka.getKategorijaId())
+                .trosakId(stavka.getTrosakId())
+                .build();
     }
 
     private FakturaDto saveDraftFaktura(FakturaDto dto, TipFakture tip, Long klijentId, Long dobavljacId) {

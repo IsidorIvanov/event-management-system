@@ -1,5 +1,6 @@
 package com.eventsystem.event_management_system.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,6 +20,7 @@ public class StavkaFakture {
     @Column(name = "stavka_fakture_id")
     private Long stavkaFaktureId;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "faktura_id", nullable = false)
     private Faktura faktura;

@@ -39,7 +39,7 @@ public class RefundacijaService {
 
     @PreAuthorize("hasRole('FINANSIJSKI_KONTROLOR')")
     @Transactional
-    public Refundacija request(Long placanjeId, RefundacijaDto dto) {
+    public RefundacijaDto request(Long placanjeId, RefundacijaDto dto) {
         Placanje p = placanjeRepository.findById(placanjeId)
                 .orElseThrow(() -> new NotFoundException("Plaćanje nije pronađeno sa id: " + placanjeId));
         if (p.getStatus() != PlacanjeStatus.COMPLETED) {
@@ -67,12 +67,12 @@ public class RefundacijaService {
                 .status(RefundacijaStatus.TRAZENA)
                 .kreiranoAt(LocalDateTime.now())
                 .build();
-        return refundacijaRepository.save(r);
+        return toDto(refundacijaRepository.save(r));
     }
 
     @PreAuthorize("hasRole('MENADZER_DOGADJAJA')")
     @Transactional
-    public Refundacija approve(Long refundacijaId) {
+    public RefundacijaDto approve(Long refundacijaId) {
         Refundacija r = findEntity(refundacijaId);
         if (r.getStatus() != RefundacijaStatus.TRAZENA) {
             throw new BadRequestException("Samo TRAZENA refundacija može biti odobrena.");
@@ -84,24 +84,24 @@ public class RefundacijaService {
 
         r.setStatus(RefundacijaStatus.ODOBRENA);
         r.setOdobrioId(odobrioId);
-        return refundacijaRepository.save(r);
+        return toDto(refundacijaRepository.save(r));
     }
 
     @PreAuthorize("hasRole('MENADZER_DOGADJAJA')")
     @Transactional
-    public Refundacija reject(Long refundacijaId) {
+    public RefundacijaDto reject(Long refundacijaId) {
         Refundacija r = findEntity(refundacijaId);
         if (r.getStatus() != RefundacijaStatus.TRAZENA) {
             throw new BadRequestException("Samo TRAZENA refundacija može biti odbijena.");
         }
         r.setStatus(RefundacijaStatus.ODBIJENA);
         r.setOdobrioId(currentUserService.getCurrentZaposleni().getKorisnikId());
-        return refundacijaRepository.save(r);
+        return toDto(refundacijaRepository.save(r));
     }
 
     @PreAuthorize("hasRole('FINANSIJSKI_KONTROLOR')")
     @Transactional
-    public Refundacija execute(Long refundacijaId) {
+    public RefundacijaDto execute(Long refundacijaId) {
         Refundacija r = findEntity(refundacijaId);
         if (r.getStatus() != RefundacijaStatus.ODOBRENA) {
             throw new BadRequestException("Refundacija mora biti odobrena pre izvršenja.");
@@ -120,7 +120,7 @@ public class RefundacijaService {
 
         fakturaService.recomputePlaceniIznos(f);
         fakturaService.autoUpdateStatus(f);
-        return r;
+        return toDto(r);
     }
 
     private void allocateRefundToAutoCosts(Long fakturaId, BigDecimal refundIznos) {
@@ -198,5 +198,19 @@ public class RefundacijaService {
 
     private BigDecimal safe(BigDecimal value) {
         return value != null ? value : BigDecimal.ZERO;
+    }
+
+    private RefundacijaDto toDto(Refundacija refundacija) {
+        return RefundacijaDto.builder()
+                .refundacijaId(refundacija.getRefundacijaId())
+                .placanjeId(refundacija.getPlacanje() != null ? refundacija.getPlacanje().getPlacanjeId() : null)
+                .iznos(refundacija.getIznos())
+                .status(refundacija.getStatus())
+                .kreiraoId(refundacija.getKreiraoId())
+                .odobrioId(refundacija.getOdobrioId())
+                .izvrsenoAt(refundacija.getIzvrsenoAt())
+                .kreiranoAt(refundacija.getKreiranoAt())
+                .razlog(refundacija.getRazlog())
+                .build();
     }
 }
