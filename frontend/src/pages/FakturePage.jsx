@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/ToastNotification";
+import api from "../services/api";
 import KreirajFakturuModal from "../components/fakture/KreirajFakturuModal.jsx";
 import DodajStavkuModal from "../components/fakture/DodajStavkuModal.jsx";
 import KreirajPlacanjeModal from "../components/fakture/KreirajPlacanjeModal.jsx";
@@ -444,6 +445,8 @@ export default function FakturePage() {
   const [selectedId, setSelectedId] = useState(null);
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [dogadjaji, setDogadjaji] = useState([]);
+  const [dogadjajiLoading, setDogadjajiLoading] = useState(false);
 
   const selectedSummary = useMemo(
     () => fakture.find((f) => f.fakturaId === selectedId) || null,
@@ -486,6 +489,17 @@ export default function FakturePage() {
 
   useEffect(() => {
     loadAll();
+  }, []);
+
+  useEffect(() => {
+    setDogadjajiLoading(true);
+    api
+      .get("/dogadjaj")
+      .then((res) => setDogadjaji(res.data || []))
+      .catch(() => {
+        setDogadjaji([]);
+      })
+      .finally(() => setDogadjajiLoading(false));
   }, []);
 
   useEffect(() => {
@@ -636,6 +650,7 @@ export default function FakturePage() {
         <KreirajFakturuModal
           onClose={() => setCreateOpen(false)}
           onSubmit={handleCreateFaktura}
+          events={dogadjaji}
         />
       )}
 
@@ -666,6 +681,11 @@ export default function FakturePage() {
           <h1>Fakture</h1>
           <p className="page-subtitle">
             upravljanje fakturama, plaćanjima i refundacijama
+          </p>
+          <p className="page-subtitle" style={{ marginTop: "0.35rem" }}>
+            {dogadjajiLoading
+              ? "Učitavanje događaja za izbor..."
+              : `${dogadjaji.length} događaja dostupno za kreiranje fakture`}
           </p>
         </div>
 
