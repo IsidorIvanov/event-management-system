@@ -2,6 +2,7 @@ package com.eventsystem.event_management_system.dto;
 
 import com.eventsystem.event_management_system.utils.enums.MetodPlacanja;
 import com.eventsystem.event_management_system.utils.enums.PlacanjeStatus;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -17,6 +18,7 @@ import java.util.List;
 public class PlacanjeDto {
     private Long placanjeId;
     private Long fakturaId;
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal iznos;
     private MetodPlacanja metod;
     private PlacanjeStatus status;

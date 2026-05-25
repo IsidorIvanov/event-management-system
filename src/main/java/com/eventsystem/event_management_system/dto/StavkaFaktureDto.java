@@ -1,5 +1,6 @@
 package com.eventsystem.event_management_system.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -14,7 +15,9 @@ public class StavkaFaktureDto {
     private Integer redniBroj;
     private String naziv;
     private Integer kolicina;
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal jedinicnaCena;
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal ukupnaCena;
     private String napomena;
     private Long budzetId;

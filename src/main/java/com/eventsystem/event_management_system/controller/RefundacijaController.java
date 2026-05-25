@@ -17,23 +17,20 @@ public class RefundacijaController {
 
     @PostMapping("/placanje/{placanjeId}")
     @PreAuthorize("hasRole('FINANSIJSKI_KONTROLOR')")
-    public ResponseEntity<Refundacija> request(@PathVariable Long placanjeId, @RequestBody RefundacijaDto dto,
-                                               @RequestHeader(value = "X-User-Id", required = false) Long userId) {
-        return ResponseEntity.ok(refundacijaService.request(placanjeId, dto, userId));
+    public ResponseEntity<Refundacija> request(@PathVariable Long placanjeId, @RequestBody RefundacijaDto dto) {
+        return ResponseEntity.ok(refundacijaService.request(placanjeId, dto));
     }
 
     @PostMapping("/{id}/approve")
     @PreAuthorize("hasRole('MENADZER_DOGADJAJA')")
-    public ResponseEntity<Refundacija> approve(@PathVariable Long id,
-                                               @RequestHeader(value = "X-User-Id", required = false) Long userId) {
-        return ResponseEntity.ok(refundacijaService.approve(id, userId));
+    public ResponseEntity<Refundacija> approve(@PathVariable Long id) {
+        return ResponseEntity.ok(refundacijaService.approve(id));
     }
 
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasRole('MENADZER_DOGADJAJA')")
-    public ResponseEntity<Refundacija> reject(@PathVariable Long id,
-                                              @RequestHeader(value = "X-User-Id", required = false) Long userId) {
-        return ResponseEntity.ok(refundacijaService.reject(id, userId));
+    public ResponseEntity<Refundacija> reject(@PathVariable Long id) {
+        return ResponseEntity.ok(refundacijaService.reject(id));
     }
 
     @PostMapping("/{id}/execute")

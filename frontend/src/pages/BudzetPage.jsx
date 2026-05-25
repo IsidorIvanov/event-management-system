@@ -83,6 +83,9 @@ export default function BudzetPage() {
   useEffect(() => {
     if (selectedDogadjajId) {
       loadBudzeti(selectedDogadjajId).catch((err) => toast(extractError(err), 'error'));
+    } else {
+      setBudzeti([]);
+      setSelectedBudzetId('');
     }
   }, [selectedDogadjajId]);
 

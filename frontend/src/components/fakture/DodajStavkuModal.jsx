@@ -13,7 +13,6 @@ const EMPTY = {
 const toNumber = (value) => Number(value || 0);
 
 export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
-  console.log("DodajStavkuModal dogadjajId=", dogadjajId);
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState(null);
   const [budzeti, setBudzeti] = useState([]);
@@ -32,20 +31,11 @@ export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
     api
       .get(`/budzet/dogadjaj/${dogadjajId}`)
       .then((res) => {
-        console.log("GET /budzet/dogadjaj/ response:", res.data);
-        if (Array.isArray(res.data) && res.data.length > 0) {
-          try {
-            console.log("budzet objekat:", JSON.stringify(res.data[0]));
-          } catch (e) {
-            console.log("budzet objekat (raw):", res.data[0]);
-          }
-        }
         if (!active) return;
         setBudzeti(Array.isArray(res.data) ? res.data : []);
         setBudzetiError(null);
       })
       .catch((err) => {
-        console.error("GET /budzet/dogadjaj/ error:", err);
         if (!active) return;
         setBudzeti([]);
         setBudzetiError("Nije moguće učitati budžete za događaj.");
@@ -76,6 +66,8 @@ export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
     if (!form.naziv.trim()) return setError("Naziv stavke je obavezan.");
     if (toNumber(form.kolicina) <= 0)
       return setError("Količina mora biti veća od 0.");
+    if (!Number.isInteger(toNumber(form.kolicina)))
+      return setError("Količina mora biti ceo broj.");
     if (toNumber(form.jedinicnaCena) < 0)
       return setError("Jedinična cena ne može biti negativna.");
     if (!form.budzetId) return setError("Budžet je obavezan.");
@@ -84,8 +76,8 @@ export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
     onSubmit({
       naziv: form.naziv.trim(),
       kolicina: toNumber(form.kolicina),
-      jedinicnaCena: toNumber(form.jedinicnaCena),
-      ukupnaCena,
+      jedinicnaCena: String(form.jedinicnaCena || "0"),
+      ukupnaCena: ukupnaCena.toFixed(2),
       napomena: form.napomena || null,
       budzetId: Number(form.budzetId),
       kategorijaId: Number(form.kategorijaId),
@@ -124,6 +116,7 @@ export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
               <input
                 type="number"
                 min="1"
+                step="1"
                 className="form-control"
                 value={form.kolicina}
                 onChange={set("kolicina")}

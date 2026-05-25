@@ -15,25 +15,9 @@ export const confirmPlacanje = (id) => api.post(`/placanja/${id}/confirm`);
 export const failPlacanje = (id) => api.post(`/placanja/${id}/fail`);
 
 // Refundacije — vezane za placanje, ne fakturu
-export const requestRefundacija = (placanjeId, data, userId) =>
-  api.post(`/refundacije/placanje/${placanjeId}`, data, {
-    headers: { "X-User-Id": userId },
-  });
-export const approveRefundacija = (id, userId) =>
-  api.post(
-    `/refundacije/${id}/approve`,
-    {},
-    {
-      headers: { "X-User-Id": userId },
-    },
-  );
-export const rejectRefundacija = (id, userId) =>
-  api.post(
-    `/refundacije/${id}/reject`,
-    {},
-    {
-      headers: { "X-User-Id": userId },
-    },
-  );
+export const requestRefundacija = (placanjeId, data) =>
+  api.post(`/refundacije/placanje/${placanjeId}`, data);
+export const approveRefundacija = (id) => api.post(`/refundacije/${id}/approve`);
+export const rejectRefundacija = (id) => api.post(`/refundacije/${id}/reject`);
 export const executeRefundacija = (id) =>
   api.post(`/refundacije/${id}/execute`);

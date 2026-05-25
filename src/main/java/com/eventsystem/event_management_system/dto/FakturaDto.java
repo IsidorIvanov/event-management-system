@@ -2,6 +2,7 @@ package com.eventsystem.event_management_system.dto;
 
 import com.eventsystem.event_management_system.utils.enums.FakturaStatus;
 import com.eventsystem.event_management_system.utils.enums.TipFakture;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -20,7 +21,9 @@ public class FakturaDto {
     private String brojFakture;
     private TipFakture tip;
     private FakturaStatus status;
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal ukupnaIznos;
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal placeniIznos;
     private LocalDate datumIzdavanja;
     private Long dogadjajId;

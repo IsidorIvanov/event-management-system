@@ -35,6 +35,9 @@ const REFUND_STATUS_STYLE = {
   IZVRSENA: { backgroundColor: "#16a34a", color: "#fff" },
 };
 
+const PAYABLE_STATUSES = new Set(["IZDATA", "DELIMICNO_PLACENA", "DOSPELA"]);
+const RESERVED_REFUND_STATUSES = new Set(["TRAZENA", "ODOBRENA", "IZVRSENA"]);
+
 const formatDate = (value) =>
   value
     ? new Date(value).toLocaleDateString("sr-Latn", {
@@ -58,6 +61,16 @@ const extractError = (error, fallback) =>
   error?.response?.data?.error ||
   error?.message ||
   fallback;
+
+const getRemainingDebt = (faktura) =>
+  Math.max(0, Number(faktura?.ukupnaIznos || 0) - Number(faktura?.placeniIznos || 0));
+
+const getRefundableAmount = (placanje) => {
+  const reserved = (placanje?.refundacije || [])
+    .filter((refundacija) => RESERVED_REFUND_STATUSES.has(refundacija.status))
+    .reduce((sum, refundacija) => sum + Number(refundacija.iznos || 0), 0);
+  return Math.max(0, Number(placanje?.iznos || 0) - reserved);
+};
 
 function StatusBadge({ value, styleMap }) {
   return (
@@ -110,9 +123,12 @@ function FakturaDetailModal({
   const canAddStavka = isFinansijski && faktura.status === "DRAFT";
   const canNewPlacanje =
     isFinansijski &&
-    faktura.status !== "PLACENA" &&
-    faktura.status !== "OTKAZANA";
-  const canCancel = isFinansijski && Number(faktura.placeniIznos || 0) === 0;
+    PAYABLE_STATUSES.has(faktura.status) &&
+    getRemainingDebt(faktura) > 0;
+  const canCancel =
+    isFinansijski &&
+    faktura.status !== "OTKAZANA" &&
+    Number(faktura.placeniIznos || 0) === 0;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -287,7 +303,9 @@ function FakturaDetailModal({
                       </button>
                     </>
                   )}
-                  {isFinansijski && placanje.status === "COMPLETED" && (
+                  {isFinansijski &&
+                    placanje.status === "COMPLETED" &&
+                    getRefundableAmount(placanje) > 0 && (
                     <button
                       className="btn btn-outline btn-xs"
                       onClick={() => onRequestRefund(placanje)}
@@ -460,10 +478,6 @@ export default function FakturePage() {
     setLoading(true);
     try {
       const res = await fakturaApi.getAllFakture();
-      console.log(
-        "GET /api/fakture response (sample):",
-        Array.isArray(res.data) && res.data.length ? res.data[0] : res.data,
-      );
       setFakture(res.data);
       setError(null);
     } catch (err) {
@@ -512,11 +526,6 @@ export default function FakturePage() {
   useEffect(() => {
     if (selectedId) loadDetail(selectedId);
   }, [selectedId]);
-
-  useEffect(() => {
-    console.log("selectedDetail:", selectedDetail);
-    console.log("selectedSummary:", selectedSummary);
-  }, [selectedDetail, selectedSummary, stavkaOpen]);
 
   const openDetail = (faktura) => {
     setSelectedId(faktura.fakturaId);
@@ -605,12 +614,12 @@ export default function FakturePage() {
   };
 
   const handleRequestRefund = (placanje) => {
-    setRefundOpen({ placanjeId: placanje.placanjeId });
+    setRefundOpen({ placanje });
   };
 
   const handleRefundSubmit = async (placanjeId, payload) => {
     try {
-      await fakturaApi.requestRefundacija(placanjeId, payload, getUserId());
+      await fakturaApi.requestRefundacija(placanjeId, payload);
       toast("Zahtev za refundaciju je poslat.", "success");
       setRefundOpen(null);
       await refresh();
@@ -624,10 +633,7 @@ export default function FakturePage() {
 
   const handleApproveRefund = async (refundacija) => {
     try {
-      await fakturaApi.approveRefundacija(
-        refundacija.refundacijaId,
-        getUserId(),
-      );
+      await fakturaApi.approveRefundacija(refundacija.refundacijaId);
       toast("Refundacija je odobrena.", "success");
       await refresh();
     } catch (err) {
@@ -637,10 +643,7 @@ export default function FakturePage() {
 
   const handleRejectRefund = async (refundacija) => {
     try {
-      await fakturaApi.rejectRefundacija(
-        refundacija.refundacijaId,
-        getUserId(),
-      );
+      await fakturaApi.rejectRefundacija(refundacija.refundacijaId);
       toast("Refundacija je odbijena.", "success");
       await refresh();
     } catch (err) {
@@ -711,12 +714,13 @@ export default function FakturePage() {
             setPlacanjeFakturaId(null);
           }}
           onSubmit={handleNewPlacanje}
+          faktura={selectedDetail}
         />
       )}
 
       {refundOpen && (
         <RefundacijaModal
-          placanjeId={refundOpen.placanjeId}
+          placanje={refundOpen.placanje}
           onClose={() => setRefundOpen(null)}
           onSubmit={handleRefundSubmit}
         />
