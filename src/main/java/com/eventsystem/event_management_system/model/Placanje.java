@@ -41,6 +41,9 @@ public class Placanje {
     @Column(name = "status", length = 20)
     private PlacanjeStatus status;
 
+    @Column(columnDefinition = "TEXT")
+    private String napomena;
+
     @Column(name = "kreirano_at", nullable = false)
     private LocalDateTime kreiranoAt;
 

@@ -38,6 +38,7 @@ public class RefundacijaService {
         Refundacija r = Refundacija.builder()
             .placanje(p)
                 .iznos(dto.getIznos())
+                .razlog(dto.getRazlog())
                 .kreiraoId(kreiraoId)
                 .status(RefundacijaStatus.TRAZENA)
                 .kreiranoAt(LocalDateTime.now())

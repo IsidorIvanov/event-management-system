@@ -1,6 +1,8 @@
 package com.eventsystem.event_management_system.service;
 
 import com.eventsystem.event_management_system.dto.FakturaDto;
+import com.eventsystem.event_management_system.dto.PlacanjeDto;
+import com.eventsystem.event_management_system.dto.RefundacijaDto;
 import com.eventsystem.event_management_system.dto.StavkaFaktureDto;
 import com.eventsystem.event_management_system.model.Faktura;
 import com.eventsystem.event_management_system.model.StavkaFakture;
@@ -127,6 +129,27 @@ public class FakturaService {
     }
 
     @Transactional
+    public FakturaDto issue(Long fakturaId) {
+        Faktura f = findEntity(fakturaId);
+        if (f.getStatus() != FakturaStatus.DRAFT) {
+            throw new RuntimeException("Samo DRAFT faktura može biti izdata");
+        }
+        if (f.getStavke() == null || f.getStavke().isEmpty()) {
+            throw new RuntimeException("Faktura mora imati bar jednu stavku");
+        }
+
+        BigDecimal ukupno = f.getStavke().stream()
+                .map(StavkaFakture::getUkupnaCena)
+                .filter(x -> x != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        f.setUkupnaIznos(ukupno);
+        f.setStatus(FakturaStatus.IZDATA);
+        fakturaRepository.save(f);
+        return toDto(f);
+    }
+
+    @Transactional
     public void cancelFaktura(Long fakturaId) {
         Faktura f = findEntity(fakturaId);
         if (f.getPlaceniIznos() != null && f.getPlaceniIznos().compareTo(BigDecimal.ZERO) != 0) {
@@ -217,6 +240,27 @@ public class FakturaService {
                         .napomena(s.getNapomena())
                         .budzetId(s.getBudzetId())
                         .kategorijaId(s.getKategorijaId())
+                        .build()).toList())
+                    .placanja(e.getPlacanja().stream().map(p -> PlacanjeDto.builder()
+                        .placanjeId(p.getPlacanjeId())
+                        .fakturaId(e.getFakturaId())
+                        .iznos(p.getIznos())
+                        .metod(p.getMetod())
+                        .status(p.getStatus())
+                        .napomena(p.getNapomena())
+                        .kreiranoAt(p.getKreiranoAt())
+                        .potvrdjenoAt(p.getPotvrdjenoAt())
+                        .refundacije(p.getRefundacije().stream().map(r -> RefundacijaDto.builder()
+                            .refundacijaId(r.getRefundacijaId())
+                            .placanjeId(p.getPlacanjeId())
+                            .iznos(r.getIznos())
+                            .razlog(r.getRazlog())
+                            .status(r.getStatus())
+                            .kreiraoId(r.getKreiraoId())
+                            .odobrioId(r.getOdobrioId())
+                            .izvrsenoAt(r.getIzvrsenoAt())
+                            .kreiranoAt(r.getKreiranoAt())
+                            .build()).toList())
                         .build()).toList())
                 .build();
     }

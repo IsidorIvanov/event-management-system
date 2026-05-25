@@ -28,6 +28,9 @@ public class Refundacija {
     @Column(precision = 14, scale = 2, nullable = false)
     private BigDecimal iznos;
 
+    @Column(columnDefinition = "TEXT")
+    private String razlog;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20)
     private RefundacijaStatus status;

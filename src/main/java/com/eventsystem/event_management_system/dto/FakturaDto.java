@@ -32,4 +32,7 @@ public class FakturaDto {
 
     @Builder.Default
     private List<StavkaFaktureDto> stavke = new ArrayList<>();
+
+    @Builder.Default
+    private List<PlacanjeDto> placanja = new ArrayList<>();
 }

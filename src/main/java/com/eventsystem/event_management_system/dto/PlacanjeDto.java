@@ -6,6 +6,8 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Builder
 @Getter
@@ -18,6 +20,10 @@ public class PlacanjeDto {
     private BigDecimal iznos;
     private MetodPlacanja metod;
     private PlacanjeStatus status;
+    private String napomena;
     private LocalDateTime kreiranoAt;
     private LocalDateTime potvrdjenoAt;
+
+    @Builder.Default
+    private List<RefundacijaDto> refundacije = new ArrayList<>();
 }

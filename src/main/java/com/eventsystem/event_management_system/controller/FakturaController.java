@@ -40,6 +40,12 @@ public class FakturaController {
         return ResponseEntity.ok(fakturaService.addStavka(id, dto));
     }
 
+    @PostMapping("/{id}/issue")
+    @PreAuthorize("hasRole('FINANSIJSKI_KONTROLOR')")
+    public ResponseEntity<FakturaDto> issue(@PathVariable Long id) {
+        return ResponseEntity.ok(fakturaService.issue(id));
+    }
+
     @PostMapping("/{id}/cancel")
     @PreAuthorize("hasRole('FINANSIJSKI_KONTROLOR')")
     public ResponseEntity<Void> cancel(@PathVariable Long id) {

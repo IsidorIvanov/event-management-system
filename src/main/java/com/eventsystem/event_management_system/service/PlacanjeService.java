@@ -24,6 +24,7 @@ public class PlacanjeService {
                 .faktura(f)
                 .iznos(dto.getIznos())
                 .metod(dto.getMetod())
+            .napomena(dto.getNapomena())
                 .status(com.eventsystem.event_management_system.utils.enums.PlacanjeStatus.PENDING)
                 .kreiranoAt(LocalDateTime.now())
                 .build();
