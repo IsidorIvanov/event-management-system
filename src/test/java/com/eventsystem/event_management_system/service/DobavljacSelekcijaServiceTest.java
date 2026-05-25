@@ -18,7 +18,6 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,16 +40,12 @@ class DobavljacSelekcijaServiceTest {
         Dobavljac jeftiniji = dobavljac(1L, "Event Rent", "event@test.rs", BigDecimal.valueOf(4.0));
         Dobavljac skupiji = dobavljac(2L, "Audio Pro", "audio@test.rs", BigDecimal.valueOf(5.0));
 
-        when(cenovnikRepository.findDostupnePoNazivuResursa("Zvucnici PA"))
-                .thenReturn(List.of(
-                        cenovnik(1L, jeftiniji, "Zvucnici PA", BigDecimal.valueOf(13500)),
-                        cenovnik(2L, skupiji, "Zvucnici PA", BigDecimal.valueOf(15000))
-                ));
-        when(cenovnikRepository.findDostupnePoNazivuResursa("Mikrofoni bezicni"))
-                .thenReturn(List.of(
-                        cenovnik(3L, jeftiniji, "Mikrofoni bezicni", BigDecimal.valueOf(7500)),
-                        cenovnik(4L, skupiji, "Mikrofoni bezicni", BigDecimal.valueOf(8000))
-                ));
+        when(cenovnikRepository.findSveDostupne()).thenReturn(List.of(
+                cenovnik(1L, jeftiniji, "Zvucnici PA", BigDecimal.valueOf(13500)),
+                cenovnik(2L, skupiji, "Zvucnici PA", BigDecimal.valueOf(15000)),
+                cenovnik(3L, jeftiniji, "Mikrofoni bezicni", BigDecimal.valueOf(7500)),
+                cenovnik(4L, skupiji, "Mikrofoni bezicni", BigDecimal.valueOf(8000))
+        ));
 
         AutomatskaSelekcijaRequestDto request = AutomatskaSelekcijaRequestDto.builder()
                 .nabavkaId(10L)
@@ -73,11 +68,10 @@ class DobavljacSelekcijaServiceTest {
         Dobavljac boljiRejting = dobavljac(2L, "Audio Pro", "audio@test.rs", BigDecimal.valueOf(4.9));
         Dobavljac losijiRejting = dobavljac(1L, "Event Rent", "event@test.rs", BigDecimal.valueOf(4.0));
 
-        when(cenovnikRepository.findDostupnePoNazivuResursa(anyString()))
-                .thenReturn(List.of(
-                        cenovnik(1L, losijiRejting, "LED rasveta", BigDecimal.valueOf(11000)),
-                        cenovnik(2L, boljiRejting, "LED rasveta", BigDecimal.valueOf(12000))
-                ));
+        when(cenovnikRepository.findSveDostupne()).thenReturn(List.of(
+                cenovnik(1L, losijiRejting, "LED rasveta", BigDecimal.valueOf(11000)),
+                cenovnik(2L, boljiRejting, "LED rasveta", BigDecimal.valueOf(12000))
+        ));
 
         AutomatskaSelekcijaRequestDto request = AutomatskaSelekcijaRequestDto.builder()
                 .nabavkaId(10L)

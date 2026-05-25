@@ -9,6 +9,7 @@ import com.eventsystem.event_management_system.model.Sesija;
 import com.eventsystem.event_management_system.repository.CenovnikRepository;
 import com.eventsystem.event_management_system.repository.DogadjajRepository;
 import com.eventsystem.event_management_system.repository.SesijaRepository;
+import com.eventsystem.event_management_system.utils.TekstNormalizacija;
 import com.eventsystem.event_management_system.utils.enums.TipSesije;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,23 +28,29 @@ public class PotrebaOpremeDetekcijaService {
 
     @Transactional(readOnly = true)
     public List<DetektovanaPotrebaDto> detektujPotrebe(Long dogadjajId) {
+        List<Cenovnik> cenovnik = cenovnikRepository.findSveDostupne();
+        if (cenovnik.isEmpty()) {
+            return List.of();
+        }
+
         Dogadjaj dogadjaj = dogadjajRepository.findByIdWithLokacija(dogadjajId)
                 .orElseThrow(() -> new RuntimeException("Dogadjaj nije pronadjen sa id: " + dogadjajId));
         List<Sesija> sesije = sesijaRepository.findAllByDogadjaj_DogadjajId(dogadjajId);
 
-        Map<String, DetektovanaPotrebaDto> agregirane = new LinkedHashMap<>();
+        Map<String, PotencijalnaPotreba> agregirane = new LinkedHashMap<>();
 
-        dodajPotrebu(agregirane, "Zvučnici PA", 1, "Osnovna audio oprema za događaj", "VISOK");
+        predloziAkoPostojiUCenovniku(cenovnik, agregirane, "zvucnici", 1,
+                "Osnovna audio oprema za događaj", "VISOK");
 
         if (dogadjaj.getMaksKapacitet() != null && dogadjaj.getMaksKapacitet() >= 200) {
             int ledKom = Math.max(1, dogadjaj.getMaksKapacitet() / 200);
-            dodajPotrebu(agregirane, "LED rasveta", ledKom,
+            predloziAkoPostojiUCenovniku(cenovnik, agregirane, "led", ledKom,
                     "Kapacitet događaja >= 200 (" + dogadjaj.getMaksKapacitet() + ")", "VISOK");
         }
 
         if (dogadjaj.getMaksKapacitet() != null && dogadjaj.getMaksKapacitet() >= 500) {
             int bina = Math.max(1, dogadjaj.getMaksKapacitet() / 500);
-            dodajPotrebu(agregirane, "Bina modul", bina,
+            predloziAkoPostojiUCenovniku(cenovnik, agregirane, "bina", bina,
                     "Veliki događaj — kapacitet " + dogadjaj.getMaksKapacitet(), "SREDNJI");
         }
 
@@ -51,40 +58,56 @@ public class PotrebaOpremeDetekcijaService {
                 .filter(s -> s.getTip() == TipSesije.KEYNOTE || s.getTip() == TipSesije.PANEL)
                 .count();
         if (keynotePanel > 0) {
-            dodajPotrebu(agregirane, "Mikrofoni bežični", (int) Math.min(3, Math.max(1, keynotePanel)),
+            predloziAkoPostojiUCenovniku(cenovnik, agregirane, "mikrofon", (int) Math.min(3, Math.max(1, keynotePanel)),
                     "KEYNOTE/PANEL sesije: " + keynotePanel, "VISOK");
         }
 
         long workshop = sesije.stream().filter(s -> s.getTip() == TipSesije.WORKSHOP).count();
         if (workshop >= 2) {
-            dodajPotrebu(agregirane, "Mikrofoni bežični", 1,
+            predloziAkoPostojiUCenovniku(cenovnik, agregirane, "mikrofon", 1,
                     "Dodatni set za " + workshop + " WORKSHOP sesija", "SREDNJI");
         }
 
         if (sesije.size() >= 5) {
-            dodajPotrebu(agregirane, "LED rasveta", 1,
+            predloziAkoPostojiUCenovniku(cenovnik, agregirane, "led", 1,
                     "Više od 5 sesija — dodatna rasveta", "SREDNJI");
         }
 
-        return obogatiCenovnikom(new ArrayList<>(agregirane.values()));
+        return agregirane.values().stream()
+                .map(this::toDto)
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public ValidacijaPotrebaDto validirajPotrebe(Long dogadjajId) {
-        return validirajListu(dogadjajId, detektujPotrebe(dogadjajId));
+        List<DetektovanaPotrebaDto> potrebe = detektujPotrebe(dogadjajId);
+        return validirajListu(dogadjajId, potrebe);
     }
 
     @Transactional(readOnly = true)
     public ValidacijaPotrebaDto validirajUnetePotrebe(Long dogadjajId, List<PotrebnaStavkaDto> unete) {
-        List<DetektovanaPotrebaDto> kaoDetektovane = unete.stream()
-                .map(u -> DetektovanaPotrebaDto.builder()
-                        .nazivResursa(u.getNazivResursa())
-                        .kolicina(u.getKolicina())
-                        .razlog("Ručno uneta stavka")
-                        .prioritet("KORISNIK")
-                        .build())
+        List<Cenovnik> cenovnik = cenovnikRepository.findSveDostupne();
+        List<DetektovanaPotrebaDto> potrebe = unete.stream()
+                .map(u -> mapirajNaCenovnik(u, cenovnik))
+                .filter(Objects::nonNull)
                 .toList();
-        return validirajListu(dogadjajId, obogatiCenovnikom(kaoDetektovane));
+        return validirajListu(dogadjajId, potrebe);
+    }
+
+    private DetektovanaPotrebaDto mapirajNaCenovnik(PotrebnaStavkaDto uneta, List<Cenovnik> cenovnik) {
+        Optional<Cenovnik> match = nadjiNajboljuPonudu(cenovnik, uneta.getNazivResursa());
+        if (match.isEmpty()) {
+            return null;
+        }
+        Cenovnik c = match.get();
+        return DetektovanaPotrebaDto.builder()
+                .nazivResursa(c.getNazivResursa())
+                .kolicina(uneta.getKolicina())
+                .razlog("Ručno uneta stavka")
+                .prioritet("KORISNIK")
+                .pokrivenaUCenovniku(true)
+                .preporuceniCenovnikId(c.getCenovnikId())
+                .build();
     }
 
     private ValidacijaPotrebaDto validirajListu(Long dogadjajId, List<DetektovanaPotrebaDto> potrebe) {
@@ -92,71 +115,76 @@ public class PotrebaOpremeDetekcijaService {
                 .orElseThrow(() -> new RuntimeException("Dogadjaj nije pronadjen sa id: " + dogadjajId));
 
         List<String> upozorenja = new ArrayList<>();
-        List<String> nepokrivene = new ArrayList<>();
-        int pokrivene = 0;
-
-        for (DetektovanaPotrebaDto p : potrebe) {
-            if (p.isPokrivenaUCenovniku()) {
-                pokrivene++;
-            } else {
-                nepokrivene.add(p.getNazivResursa());
-                upozorenja.add("Resurs \"" + p.getNazivResursa() + "\" nije u cenovniku aktivnih dobavljača.");
-            }
-        }
-
         int ukupno = potrebe.size();
-        boolean validno = nepokrivene.isEmpty() && ukupno > 0;
         if (ukupno == 0) {
-            upozorenja.add("Nisu detektovane potrebe za opremu za ovaj događaj.");
+            upozorenja.add("Nema stavki u cenovniku koje odgovaraju potrebama ovog događaja.");
         }
 
         return ValidacijaPotrebaDto.builder()
                 .dogadjajId(dogadjajId)
                 .dogadjajNaziv(dogadjaj.getNaziv())
                 .ukupnoPotreba(ukupno)
-                .pokrivenePotrebe(pokrivene)
-                .validno(validno)
+                .pokrivenePotrebe(ukupno)
+                .validno(ukupno > 0)
                 .detektovanePotrebe(potrebe)
                 .upozorenja(upozorenja)
-                .nepokriveneStavke(nepokrivene)
+                .nepokriveneStavke(List.of())
                 .build();
     }
 
-    private List<DetektovanaPotrebaDto> obogatiCenovnikom(List<DetektovanaPotrebaDto> potrebe) {
-        List<Cenovnik> svi = cenovnikRepository.findSveDostupne();
-        for (DetektovanaPotrebaDto p : potrebe) {
-            Optional<Cenovnik> najbolja = svi.stream()
-                    .filter(c -> naziviSePoklapaju(c.getNazivResursa(), p.getNazivResursa()))
-                    .min(Comparator.comparing(Cenovnik::getCenaJedinicna));
-            najbolja.ifPresent(c -> {
-                p.setPokrivenaUCenovniku(true);
-                p.setPreporuceniCenovnikId(c.getCenovnikId());
-            });
-        }
-        return potrebe;
+    private void predloziAkoPostojiUCenovniku(List<Cenovnik> cenovnik,
+                                              Map<String, PotencijalnaPotreba> mapa,
+                                              String kljucnaRec,
+                                              int kolicina,
+                                              String razlog,
+                                              String prioritet) {
+        nadjiNajboljuPonuduPoKljucnojReci(cenovnik, kljucnaRec).ifPresent(c -> {
+            String kljuc = TekstNormalizacija.normalizuj(c.getNazivResursa());
+            if (mapa.containsKey(kljuc)) {
+                PotencijalnaPotreba postojeca = mapa.get(kljuc);
+                postojeca.kolicina += kolicina;
+                postojeca.razlog = postojeca.razlog + "; " + razlog;
+            } else {
+                mapa.put(kljuc, new PotencijalnaPotreba(c, kolicina, razlog, prioritet));
+            }
+        });
     }
 
-    private boolean naziviSePoklapaju(String izCenovnika, String potreba) {
-        String a = izCenovnika.toLowerCase().trim();
-        String b = potreba.toLowerCase().trim();
-        return a.equals(b) || a.contains(b) || b.contains(a);
+    private Optional<Cenovnik> nadjiNajboljuPonudu(List<Cenovnik> cenovnik, String nazivResursa) {
+        return cenovnik.stream()
+                .filter(c -> TekstNormalizacija.naziviSePodudaraju(c.getNazivResursa(), nazivResursa))
+                .min(Comparator.comparing(Cenovnik::getCenaJedinicna));
     }
 
-    private void dodajPotrebu(Map<String, DetektovanaPotrebaDto> mapa,
-                              String naziv, int kolicina, String razlog, String prioritet) {
-        String kljuc = naziv.toLowerCase();
-        if (mapa.containsKey(kljuc)) {
-            DetektovanaPotrebaDto postojeca = mapa.get(kljuc);
-            postojeca.setKolicina(postojeca.getKolicina() + kolicina);
-            postojeca.setRazlog(postojeca.getRazlog() + "; " + razlog);
-        } else {
-            mapa.put(kljuc, DetektovanaPotrebaDto.builder()
-                    .nazivResursa(naziv)
-                    .kolicina(kolicina)
-                    .razlog(razlog)
-                    .prioritet(prioritet)
-                    .pokrivenaUCenovniku(false)
-                    .build());
+    private Optional<Cenovnik> nadjiNajboljuPonuduPoKljucnojReci(List<Cenovnik> cenovnik, String kljucnaRec) {
+        String k = TekstNormalizacija.normalizuj(kljucnaRec);
+        return cenovnik.stream()
+                .filter(c -> TekstNormalizacija.normalizuj(c.getNazivResursa()).contains(k))
+                .min(Comparator.comparing(Cenovnik::getCenaJedinicna));
+    }
+
+    private DetektovanaPotrebaDto toDto(PotencijalnaPotreba p) {
+        return DetektovanaPotrebaDto.builder()
+                .nazivResursa(p.cenovnik.getNazivResursa())
+                .kolicina(p.kolicina)
+                .razlog(p.razlog)
+                .prioritet(p.prioritet)
+                .pokrivenaUCenovniku(true)
+                .preporuceniCenovnikId(p.cenovnik.getCenovnikId())
+                .build();
+    }
+
+    private static class PotencijalnaPotreba {
+        final Cenovnik cenovnik;
+        int kolicina;
+        String razlog;
+        final String prioritet;
+
+        PotencijalnaPotreba(Cenovnik cenovnik, int kolicina, String razlog, String prioritet) {
+            this.cenovnik = cenovnik;
+            this.kolicina = kolicina;
+            this.razlog = razlog;
+            this.prioritet = prioritet;
         }
     }
 }
