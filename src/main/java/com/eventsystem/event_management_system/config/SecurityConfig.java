@@ -58,9 +58,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/nabavka/**").hasRole("MENADZER_DOGADJAJA")
 
                 .requestMatchers("/api/lokacija/**").hasAnyRole(
-                    "MENADZER_DOGADJAJA", "KOORDINATOR_RESURSA", "KOORDINATOR_PROGRAMA")    
+                        "MENADZER_DOGADJAJA", "KOORDINATOR_RESURSA", "KOORDINATOR_PROGRAMA")
                 .requestMatchers(HttpMethod.GET, "/api/dogadjaj/**").hasAnyRole(
-                    "KOORDINATOR_PROGRAMA", "MENADZER_DOGADJAJA", "FINANSIJSKI_KONTROLOR")
+                        "KOORDINATOR_PROGRAMA", "MENADZER_DOGADJAJA",
+                        "FINANSIJSKI_KONTROLOR", "KOORDINATOR_RESURSA")
                 .requestMatchers("/api/dogadjaj/**").hasAnyRole("KOORDINATOR_PROGRAMA", "MENADZER_DOGADJAJA")
                 .requestMatchers(HttpMethod.GET, "/api/sesija/**").hasAnyRole(
                         "KOORDINATOR_PROGRAMA", "MENADZER_DOGADJAJA", "KOORDINATOR_RESURSA")
@@ -97,7 +98,7 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService); // ← prosleđuješ odmah
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }

@@ -1,21 +1,15 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
-import {
-  useNavigate,
-  Link,
-  useLocation,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-import ResursiPage from "./ResursiPage";
-import PorudzbenicePage from "./PorudzbenicePage";
-import FakturePage from "./FakturePage";
-import api from "../services/api";
-import UpsertEventModal from "../components/UpsertEventModal.jsx";
-import UpsertLokacijaModal from "../components/UpsertLokacijaModal.jsx";
-import EventDetailPage from "../components/EventDetailPage.jsx";
-import { useToast } from "../components/ToastNotification";
+import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate, Link, useLocation, Routes, Route, Navigate } from 'react-router-dom';
+import ResursiPage from './ResursiPage';
+import PorudzbenicePage from './PorudzbenicePage';
+import BudzetPage from './BudzetPage';
+import FakturePage from './FakturePage';
+import api from '../services/api';
+import UpsertEventModal from '../components/UpsertEventModal.jsx';
+import UpsertLokacijaModal from '../components/UpsertLokacijaModal.jsx';
+import EventDetailPage from '../components/EventDetailPage.jsx';
+import { useToast } from '../components/ToastNotification';
 
 const ULOGA_DISPLAY = {
   MENADZER_DOGADJAJA: "Menadžer događaja",
@@ -769,34 +763,14 @@ export default function DashboardPage() {
           <Route path="lokacije" element={<LokacijaSection />} />
           <Route path="porudzbenice" element={<PorudzbenicePage />} />
           <Route path="dogadjaj/:id" element={<EventDetailPage />} />
-          <Route
-            path="budzet"
-            element={
-              <FinansijePage
-                title="Budžeti"
-                description="pregled i upravljanje budžetima događaja"
-              />
-            }
-          />
+          <Route path="budzet" element={<BudzetPage />} />
           <Route path="fakture" element={<FakturePage />} />
-          <Route
-            path="troskovi"
-            element={
-              <FinansijePage
-                title="Troškovi"
-                description="pregled i evidentiranje troškova"
-              />
-            }
-          />
-          <Route
-            path="placanja"
-            element={
-              <FinansijePage
-                title="Plaćanja"
-                description="pregled i evidentiranje plaćanja"
-              />
-            }
-          />
+          <Route path="troskovi" element={
+            <FinansijePage title="Troškovi" description="pregled i evidentiranje troškova" />
+          } />
+          <Route path="placanja" element={
+            <FinansijePage title="Plaćanja" description="pregled i evidentiranje plaćanja" />
+          } />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>

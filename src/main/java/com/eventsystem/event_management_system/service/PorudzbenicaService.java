@@ -68,23 +68,46 @@ public class PorudzbenicaService {
         recalculateTotal(saved);
         saved = porudzbenicaRepository.saveAndFlush(saved);
 
-        nabavkaService.updateStatus(request.getNabavkaId(), StatusNabavke.ZAVRSENA);
+        syncNabavkaStatus(saved, StatusPorudzbenice.KREIRANA);
 
         return getById(saved.getPorudzbenicaId());
     }
 
     @Transactional
     public PorudzbenicaDto updateStatus(Long id, StatusPorudzbenice status) {
-        Porudzbenica p = findEntityWithDetalji(id);
+        Porudzbenica p = porudzbenicaRepository.findByIdWithNabavka(id)
+                .orElseThrow(() -> new RuntimeException("Porudžbenica nije pronadjena sa id: " + id));
+
         p.setStatus(status);
         LocalDateTime now = LocalDateTime.now();
         switch (status) {
             case POSLATA -> p.setPoslataAt(now);
             case POTVRDJENA -> p.setPotvrdjenaAt(now);
+            case U_ISPORUCI -> { /* status only */ }
             case ISPORUCENA -> p.setIsporucenaAt(now);
             default -> { }
         }
-        return toDto(porudzbenicaRepository.save(p));
+
+        porudzbenicaRepository.saveAndFlush(p);
+        syncNabavkaStatus(p, status);
+        return getById(id);
+    }
+
+    private void syncNabavkaStatus(Porudzbenica porudzbenica, StatusPorudzbenice statusPorudzbenice) {
+        Long nabavkaId = porudzbenica.getNabavka().getNabavkaId();
+        StatusNabavke nabavkaStatus = mapPorudzbenicaToNabavka(statusPorudzbenice);
+        nabavkaService.updateStatus(nabavkaId, nabavkaStatus);
+    }
+
+    private StatusNabavke mapPorudzbenicaToNabavka(StatusPorudzbenice statusPorudzbenice) {
+        return switch (statusPorudzbenice) {
+            case KREIRANA -> StatusNabavke.PREDLOZENA;
+            case POSLATA -> StatusNabavke.U_OBRADI;
+            case POTVRDJENA -> StatusNabavke.POTVRDJENA;
+            case U_ISPORUCI -> StatusNabavke.U_ISPORUCI;
+            case ISPORUCENA -> StatusNabavke.ZAVRSENA;
+            case OTKAZANA -> StatusNabavke.ODBIJENA;
+        };
     }
 
     public Porudzbenica findEntityWithDetalji(Long id) {

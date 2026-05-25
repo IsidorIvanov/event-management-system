@@ -5,6 +5,7 @@ public enum StatusNabavke {
     U_OBRADI,
     PREDLOZENA,
     POTVRDJENA,
+    U_ISPORUCI,
     ODBIJENA,
     ZAVRSENA
 }
