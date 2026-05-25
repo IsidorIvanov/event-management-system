@@ -13,6 +13,7 @@ import com.eventsystem.event_management_system.model.compositePK.StavkaBudzetaId
 import com.eventsystem.event_management_system.repository.BudzetRepository;
 import com.eventsystem.event_management_system.repository.DogadjajRepository;
 import com.eventsystem.event_management_system.repository.StavkaBudzetaRepository;
+import com.eventsystem.event_management_system.repository.TrosakRepository;
 import com.eventsystem.event_management_system.utils.enums.BudzetStatus;
 import com.eventsystem.event_management_system.utils.enums.StatusDogadjaja;
 import com.eventsystem.event_management_system.utils.enums.StatusKontrole;
@@ -42,6 +43,7 @@ public class BudzetService {
     private final DogadjajRepository dogadjajRepository;
     private final BudzetKategorijaService kategorijaService;
     private final CurrentUserService currentUserService;
+    private final TrosakRepository trosakRepository;
     private final EntityManager entityManager;
 
     @PreAuthorize("hasAnyRole('FINANSIJSKI_KONTROLOR', 'MENADZER_DOGADJAJA')")
@@ -239,7 +241,10 @@ public class BudzetService {
     @Transactional
     public void recomputeStavku(Long budzetId, Long kategorijaId) {
         StavkaBudzeta stavka = findStavka(budzetId, kategorijaId);
-        stavka.setStatusKontrole(calculateStatusKontrole(stavka.getPlaniraniIznos(), stavka.getStvarniIznos()));
+        BigDecimal stvarniIznos = safe(trosakRepository.sumNetoByBudzetAndKategorija(budzetId, kategorijaId))
+                .setScale(2, RoundingMode.HALF_EVEN);
+        stavka.setStvarniIznos(stvarniIznos);
+        stavka.setStatusKontrole(calculateStatusKontrole(stavka.getPlaniraniIznos(), stvarniIznos));
         stavkaBudzetaRepository.save(stavka);
         // TODO: alert notifikacije (8.1 korak 4) - implementirati kada bude dostupan NotificationService
     }

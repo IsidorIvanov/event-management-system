@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import api from "../../services/api";
 
 const EMPTY = {
   naziv: "",
@@ -11,9 +12,52 @@ const EMPTY = {
 
 const toNumber = (value) => Number(value || 0);
 
-export default function DodajStavkuModal({ onClose, onSubmit }) {
+export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState(null);
+  const [budzeti, setBudzeti] = useState([]);
+  const [budzetiLoading, setBudzetiLoading] = useState(false);
+  const [budzetiError, setBudzetiError] = useState(null);
+  const [kategorije, setKategorije] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!dogadjajId) {
+      setBudzeti([]);
+      setKategorije([]);
+      return;
+    }
+    let active = true;
+    setBudzetiLoading(true);
+    api
+      .get(`/budzet/dogadjaj/${dogadjajId}`)
+      .then((res) => {
+        if (!active) return;
+        setBudzeti(Array.isArray(res.data) ? res.data : []);
+        setBudzetiError(null);
+      })
+      .catch(() => {
+        if (!active) return;
+        setBudzeti([]);
+        setBudzetiError("Nije moguće učitati budžete za događaj.");
+      })
+      .finally(() => {
+        if (!active) return;
+        setBudzetiLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [dogadjajId]);
 
   const ukupnaCena = useMemo(() => {
     const kolicina = toNumber(form.kolicina);
@@ -26,8 +70,9 @@ export default function DodajStavkuModal({ onClose, onSubmit }) {
     if (error) setError(null);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submittingRef.current) return;
     if (!form.naziv.trim()) return setError("Naziv stavke je obavezan.");
     if (toNumber(form.kolicina) <= 0)
       return setError("Količina mora biti veća od 0.");
@@ -36,15 +81,24 @@ export default function DodajStavkuModal({ onClose, onSubmit }) {
     if (!form.budzetId) return setError("Budžet je obavezan.");
     if (!form.kategorijaId) return setError("Kategorija je obavezna.");
 
-    onSubmit({
-      naziv: form.naziv.trim(),
-      kolicina: toNumber(form.kolicina),
-      jedinicnaCena: toNumber(form.jedinicnaCena),
-      ukupnaCena,
-      napomena: form.napomena || null,
-      budzetId: Number(form.budzetId),
-      kategorijaId: Number(form.kategorijaId),
-    });
+    submittingRef.current = true;
+    setIsSubmitting(true);
+    try {
+      await onSubmit({
+        naziv: form.naziv.trim(),
+        kolicina: String(form.kolicina),
+        jedinicnaCena: String(form.jedinicnaCena || "0"),
+        ukupnaCena: ukupnaCena.toFixed(2),
+        napomena: form.napomena || null,
+        budzetId: Number(form.budzetId),
+        kategorijaId: Number(form.kategorijaId),
+      });
+    } finally {
+      submittingRef.current = false;
+      if (mountedRef.current) {
+        setIsSubmitting(false);
+      }
+    }
   };
 
   return (
@@ -64,7 +118,7 @@ export default function DodajStavkuModal({ onClose, onSubmit }) {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Naziv *</label>
+            <label>Opis stavke *</label>
             <input
               className="form-control"
               value={form.naziv}
@@ -78,10 +132,12 @@ export default function DodajStavkuModal({ onClose, onSubmit }) {
               <label>Količina *</label>
               <input
                 type="number"
-                min="1"
+                min="0"
+                step="0.001"
                 className="form-control"
                 value={form.kolicina}
                 onChange={set("kolicina")}
+                placeholder="npr. 2.500"
               />
             </div>
             <div className="form-group">
@@ -99,29 +155,57 @@ export default function DodajStavkuModal({ onClose, onSubmit }) {
 
           <div className="form-row">
             <div className="form-group">
-              <label>Budžet ID *</label>
-              <input
-                type="number"
-                min="1"
+              <label>Budžet *</label>
+              <select
                 className="form-control"
                 value={form.budzetId}
-                onChange={set("budzetId")}
-              />
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setForm((prev) => ({
+                    ...prev,
+                    budzetId: val,
+                    kategorijaId: "",
+                  }));
+                  if (error) setError(null);
+                  const b = budzeti.find(
+                    (x) => String(x.budzetId) === String(val),
+                  );
+                  setKategorije(b ? b.stavke || [] : []);
+                }}
+              >
+                <option value="">Izaberi budžet</option>
+                {budzeti.map((b) => (
+                  <option key={b.budzetId} value={b.budzetId}>
+                    {b.nazivBudzeta}
+                  </option>
+                ))}
+              </select>
+              {budzetiLoading && (
+                <small style={{ color: "var(--text-muted)" }}>
+                  Učitavanje budžeta...
+                </small>
+              )}
             </div>
             <div className="form-group">
-              <label>Kategorija ID *</label>
-              <input
-                type="number"
-                min="1"
+              <label>Kategorija *</label>
+              <select
                 className="form-control"
                 value={form.kategorijaId}
                 onChange={set("kategorijaId")}
-              />
+                disabled={!form.budzetId}
+              >
+                <option value="">Izaberi kategoriju</option>
+                {kategorije.map((s) => (
+                  <option key={s.kategorijaId} value={s.kategorijaId}>
+                    {s.kategorijaNaziv}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
           <div className="form-group">
-            <label>Ukupna cena</label>
+            <label>Ukupno (preview)</label>
             <input
               className="form-control"
               value={ukupnaCena.toFixed(2)}
@@ -147,8 +231,9 @@ export default function DodajStavkuModal({ onClose, onSubmit }) {
               type="submit"
               className="btn btn-primary"
               style={{ width: "auto" }}
+              disabled={isSubmitting}
             >
-              Dodaj stavku
+              {isSubmitting ? "Dodavanje..." : "Dodaj stavku"}
             </button>
           </div>
         </form>

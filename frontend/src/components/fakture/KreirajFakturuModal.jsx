@@ -7,7 +7,9 @@ const EMPTY = {
   datumIzdavanja: "",
   rokPlacanja: "",
   dogadjajId: "",
+  klijentId: "",
   dobavljacId: "",
+  ugovorId: "",
   napomena: "",
 };
 
@@ -21,9 +23,30 @@ const formatEventLabel = (event) => {
         year: "numeric",
       })
     : "bez datuma";
+  const STATUS_DISPLAY = {
+    OBJAVLJEN: "Objavljen",
+    AKTIVAN: "Aktivan",
+    DRAFT: "Nacrt",
+    ZAVRSEN: "Završen",
+  };
 
-  return `${event?.naziv || "Nepoznat događaj"} — ${dateLabel}`;
+  const statusLabel = event?.status
+    ? STATUS_DISPLAY[event.status] || event.status
+    : null;
+
+  return `${event?.naziv || "Nepoznat događaj"} — ${dateLabel}${statusLabel ? ` — ${statusLabel}` : ""}`;
 };
+
+const getClientId = (klijent) => klijent?.klijentId ?? klijent?.korisnikId ?? klijent?.id;
+
+const formatClientLabel = (klijent) =>
+  klijent?.nazivFirme ||
+  [klijent?.ime, klijent?.prezime].filter(Boolean).join(" ") ||
+  klijent?.email ||
+  `Klijent #${getClientId(klijent)}`;
+
+const formatContractLabel = (ugovor) =>
+  `Ugovor #${ugovor.ugovorId}${ugovor.vaziDo ? ` — važi do ${ugovor.vaziDo}` : ""}`;
 
 export default function KreirajFakturuModal({
   onClose,
@@ -35,6 +58,16 @@ export default function KreirajFakturuModal({
   const [loadedEvents, setLoadedEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [eventsError, setEventsError] = useState(null);
+  const [loadedDobavljaci, setLoadedDobavljaci] = useState([]);
+  const [dobavljaciLoading, setDobavljaciLoading] = useState(false);
+  const [dobavljaciError, setDobavljaciError] = useState(null);
+  const [loadedKlijenti, setLoadedKlijenti] = useState([]);
+  const [klijentiLoading, setKlijentiLoading] = useState(false);
+  const [klijentiError, setKlijentiError] = useState(null);
+  const [loadedUgovori, setLoadedUgovori] = useState([]);
+  const [ugovoriLoading, setUgovoriLoading] = useState(false);
+  const [ugovoriError, setUgovoriError] = useState(null);
+  const isUlazna = form.tip === "ULAZNA";
 
   useEffect(() => {
     if (!form.datumIzdavanja) return;
@@ -70,16 +103,119 @@ export default function KreirajFakturuModal({
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    setKlijentiLoading(true);
+    api
+      .get("/klijenti")
+      .then((res) => {
+        if (!active) return;
+        setLoadedKlijenti(Array.isArray(res.data) ? res.data : []);
+        setKlijentiError(null);
+      })
+      .catch(() => {
+        if (!active) return;
+        setLoadedKlijenti([]);
+        setKlijentiError("Nije moguće učitati klijente.");
+      })
+      .finally(() => {
+        if (!active) return;
+        setKlijentiLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isUlazna || !form.dobavljacId) {
+      setLoadedUgovori([]);
+      setUgovoriError(null);
+      setForm((prev) => ({ ...prev, ugovorId: "" }));
+      return;
+    }
+
+    let active = true;
+    setUgovoriLoading(true);
+    api
+      .get("/ugovori", { params: { dobavljacId: form.dobavljacId } })
+      .catch(() => api.get(`/nabavka/ugovor/dobavljac/${form.dobavljacId}`))
+      .then((res) => {
+        if (!active) return;
+        const ugovori = Array.isArray(res.data) ? res.data : [];
+        setLoadedUgovori(ugovori.filter((ugovor) => ugovor.status === "AKTIVAN"));
+        setUgovoriError(null);
+      })
+      .catch(() => {
+        if (!active) return;
+        setLoadedUgovori([]);
+        setUgovoriError("Nije moguće učitati ugovore za dobavljača.");
+      })
+      .finally(() => {
+        if (!active) return;
+        setUgovoriLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [form.dobavljacId, isUlazna]);
+
+  useEffect(() => {
+    let active = true;
+    setDobavljaciLoading(true);
+    api
+      .get("/nabavka/dobavljac")
+      .then((res) => {
+        if (!active) return;
+        setLoadedDobavljaci(Array.isArray(res.data) ? res.data : []);
+        setDobavljaciError(null);
+      })
+      .catch(() => {
+        if (!active) return;
+        setLoadedDobavljaci([]);
+        setDobavljaciError("Nije moguće učitati dobavljače.");
+      })
+      .finally(() => {
+        if (!active) return;
+        setDobavljaciLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const availableEvents = useMemo(
     () => (events.length ? events : loadedEvents),
     [events, loadedEvents],
   );
 
-  const isUlazna = form.tip === "ULAZNA";
-
   const set = (field) => (e) => {
     const value = e.target.value;
     setForm((prev) => ({ ...prev, [field]: value }));
+    if (error) setError(null);
+  };
+
+  const handleTipChange = (e) => {
+    const tip = e.target.value;
+    setForm((prev) => ({
+      ...prev,
+      tip,
+      klijentId: "",
+      dobavljacId: "",
+      ugovorId: "",
+    }));
+    if (error) setError(null);
+  };
+
+  const handleDobavljacChange = (e) => {
+    setForm((prev) => ({
+      ...prev,
+      dobavljacId: e.target.value,
+      ugovorId: "",
+    }));
     if (error) setError(null);
   };
 
@@ -92,15 +228,21 @@ export default function KreirajFakturuModal({
       return setError("Rok plaćanja ne može biti pre datuma izdavanja.");
     if (isUlazna && !form.dobavljacId)
       return setError("Dobavljač je obavezan za ulaznu fakturu.");
+    if (!isUlazna && !form.klijentId)
+      return setError("Klijent je obavezan za izlaznu fakturu.");
     if (!form.dogadjajId) return setError("Događaj je obavezan.");
 
     onSubmit({
       brojFakture: form.brojFakture.trim(),
       tip: form.tip,
+      ukupnaIznos: "0.00",
+      placeniIznos: "0.00",
       datumIzdavanja: form.datumIzdavanja,
       rokPlacanja: form.rokPlacanja,
       dogadjajId: Number(form.dogadjajId),
+      klijentId: isUlazna ? null : Number(form.klijentId),
       dobavljacId: isUlazna ? Number(form.dobavljacId) : null,
+      ugovorId: isUlazna && form.ugovorId ? Number(form.ugovorId) : null,
       napomena: form.napomena || null,
     });
   };
@@ -137,7 +279,7 @@ export default function KreirajFakturuModal({
               <select
                 className="form-control"
                 value={form.tip}
-                onChange={set("tip")}
+                onChange={handleTipChange}
               >
                 <option value="ULAZNA">ULAZNA</option>
                 <option value="IZLAZNA">IZLAZNA</option>
@@ -195,14 +337,89 @@ export default function KreirajFakturuModal({
 
           {isUlazna && (
             <div className="form-group">
-              <label>Dobavljač ID *</label>
-              <input
-                type="number"
-                min="1"
+              <label>Dobavljač *</label>
+              <select
                 className="form-control"
                 value={form.dobavljacId}
-                onChange={set("dobavljacId")}
-              />
+                onChange={handleDobavljacChange}
+              >
+                <option value="">Izaberi dobavljača</option>
+                {loadedDobavljaci.map((d) => (
+                  <option key={d.dobavljacId} value={d.dobavljacId}>
+                    {d.naziv}
+                  </option>
+                ))}
+              </select>
+              {dobavljaciLoading && (
+                <small style={{ color: "var(--text-muted)" }}>
+                  Učitavanje dobavljača...
+                </small>
+              )}
+              {!dobavljaciLoading && !loadedDobavljaci.length && (
+                <small style={{ color: "var(--text-muted)" }}>
+                  {dobavljaciError || "Nema dostupnih dobavljača."}
+                </small>
+              )}
+            </div>
+          )}
+
+          {isUlazna && (
+            <div className="form-group">
+              <label>Ugovor</label>
+              <select
+                className="form-control"
+                value={form.ugovorId}
+                onChange={set("ugovorId")}
+                disabled={!form.dobavljacId || ugovoriLoading}
+              >
+                <option value="">Bez vezanog ugovora</option>
+                {loadedUgovori.map((ugovor) => (
+                  <option key={ugovor.ugovorId} value={ugovor.ugovorId}>
+                    {formatContractLabel(ugovor)}
+                  </option>
+                ))}
+              </select>
+              {ugovoriLoading && (
+                <small style={{ color: "var(--text-muted)" }}>
+                  Učitavanje ugovora...
+                </small>
+              )}
+              {!ugovoriLoading && form.dobavljacId && !loadedUgovori.length && (
+                <small style={{ color: "var(--text-muted)" }}>
+                  {ugovoriError || "Nema aktivnih ugovora za dobavljača."}
+                </small>
+              )}
+            </div>
+          )}
+
+          {!isUlazna && (
+            <div className="form-group">
+              <label>Klijent *</label>
+              <select
+                className="form-control"
+                value={form.klijentId}
+                onChange={set("klijentId")}
+              >
+                <option value="">Izaberi klijenta</option>
+                {loadedKlijenti.map((klijent) => {
+                  const id = getClientId(klijent);
+                  return (
+                    <option key={id} value={id}>
+                      {formatClientLabel(klijent)}
+                    </option>
+                  );
+                })}
+              </select>
+              {klijentiLoading && (
+                <small style={{ color: "var(--text-muted)" }}>
+                  Učitavanje klijenata...
+                </small>
+              )}
+              {!klijentiLoading && !loadedKlijenti.length && (
+                <small style={{ color: "var(--text-muted)" }}>
+                  {klijentiError || "Nema dostupnih klijenata."}
+                </small>
+              )}
             </div>
           )}
 

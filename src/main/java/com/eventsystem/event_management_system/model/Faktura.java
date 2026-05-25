@@ -48,8 +48,14 @@ public class Faktura {
     @Column(name = "dogadjaj_id")
     private Long dogadjajId;
 
+    @Column(name = "klijent_id")
+    private Long klijentId;
+
     @Column(name = "dobavljac_id")
     private Long dobavljacId;
+
+    @Column(name = "ugovor_id")
+    private Long ugovorId;
 
     @Column(name = "kreirao_id")
     private Long kreiraoId;

@@ -2,10 +2,12 @@ package com.eventsystem.event_management_system.model;
 
 import com.eventsystem.event_management_system.utils.enums.MetodPlacanja;
 import com.eventsystem.event_management_system.utils.enums.PlacanjeStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -22,16 +24,24 @@ public class Placanje {
     @Column(name = "placanje_id")
     private Long placanjeId;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "faktura_id", nullable = false)
     private Faktura faktura;
 
-    @OneToMany(mappedBy = "placanje", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @OneToMany(mappedBy = "placanje", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private java.util.List<com.eventsystem.event_management_system.model.Refundacija> refundacije = new java.util.ArrayList<>();
 
     @Column(precision = 14, scale = 2, nullable = false)
     private BigDecimal iznos;
+
+    @Column(name = "referentni_broj", unique = true, length = 64)
+    private String referentniBroj;
+
+    @Column(name = "datum_placanja")
+    private LocalDate datumPlacanja;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "metod", length = 20)
@@ -43,6 +53,9 @@ public class Placanje {
 
     @Column(columnDefinition = "TEXT")
     private String napomena;
+
+    @Column(name = "dokument_url", length = 500)
+    private String dokumentUrl;
 
     @Column(name = "kreirano_at", nullable = false)
     private LocalDateTime kreiranoAt;

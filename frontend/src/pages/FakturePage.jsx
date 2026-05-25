@@ -22,6 +22,15 @@ const FAKTURA_STATUS_STYLE = {
   OTKAZANA: { backgroundColor: "#374151", color: "#fff" },
 };
 
+const FAKTURA_STATUS_DISPLAY = {
+  DRAFT: "Nacrt",
+  IZDATA: "Izdata",
+  DELIMICNO_PLACENA: "Delimično plaćena",
+  PLACENA: "Plaćena",
+  DOSPELA: "Dospela",
+  OTKAZANA: "Otkazana",
+};
+
 const PLACANJE_STATUS_STYLE = {
   PENDING: { backgroundColor: "#f59e0b", color: "#fff" },
   COMPLETED: { backgroundColor: "#16a34a", color: "#fff" },
@@ -34,6 +43,9 @@ const REFUND_STATUS_STYLE = {
   ODBIJENA: { backgroundColor: "#dc2626", color: "#fff" },
   IZVRSENA: { backgroundColor: "#16a34a", color: "#fff" },
 };
+
+const PAYABLE_STATUSES = new Set(["IZDATA", "DELIMICNO_PLACENA", "DOSPELA"]);
+const RESERVED_REFUND_STATUSES = new Set(["TRAZENA", "ODOBRENA", "IZVRSENA"]);
 
 const formatDate = (value) =>
   value
@@ -59,13 +71,23 @@ const extractError = (error, fallback) =>
   error?.message ||
   fallback;
 
-function StatusBadge({ value, styleMap }) {
+const getRemainingDebt = (faktura) =>
+  Math.max(0, Number(faktura?.ukupnaIznos || 0) - Number(faktura?.placeniIznos || 0));
+
+const getRefundableAmount = (placanje) => {
+  const reserved = (placanje?.refundacije || [])
+    .filter((refundacija) => RESERVED_REFUND_STATUSES.has(refundacija.status))
+    .reduce((sum, refundacija) => sum + Number(refundacija.iznos || 0), 0);
+  return Math.max(0, Number(placanje?.iznos || 0) - reserved);
+};
+
+function StatusBadge({ value, styleMap, labelMap = {} }) {
   return (
     <span
       className="status-badge"
       style={styleMap[value] || { backgroundColor: "#6b7280", color: "#fff" }}
     >
-      {value}
+      {labelMap[value] || value}
     </span>
   );
 }
@@ -78,7 +100,11 @@ function FakturaRow({ faktura, onOpen }) {
       </td>
       <td>{TIP_DISPLAY[faktura.tip] || faktura.tip}</td>
       <td>
-        <StatusBadge value={faktura.status} styleMap={FAKTURA_STATUS_STYLE} />
+        <StatusBadge
+          value={faktura.status}
+          styleMap={FAKTURA_STATUS_STYLE}
+          labelMap={FAKTURA_STATUS_DISPLAY}
+        />
       </td>
       <td>{formatMoney(faktura.ukupnaIznos)}</td>
       <td>{formatMoney(faktura.placeniIznos)}</td>
@@ -91,6 +117,7 @@ function FakturaDetailModal({
   faktura,
   onClose,
   onAddStavka,
+  onDeleteStavka,
   onNewPlacanje,
   onConfirmPlacanje,
   onFailPlacanje,
@@ -110,19 +137,16 @@ function FakturaDetailModal({
   const canAddStavka = isFinansijski && faktura.status === "DRAFT";
   const canNewPlacanje =
     isFinansijski &&
-    faktura.status !== "PLACENA" &&
+    PAYABLE_STATUSES.has(faktura.status) &&
+    getRemainingDebt(faktura) > 0;
+  const canCancel =
+    isFinansijski &&
     faktura.status !== "OTKAZANA";
-  const canCancel = isFinansijski && Number(faktura.placeniIznos || 0) === 0;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
-        className="modal-card modal-card-wide"
-        style={{
-          width: "min(1100px, 96vw)",
-          maxHeight: "92vh",
-          overflowY: "auto",
-        }}
+        className="modal-card modal-card-wide faktura-detail-modal"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
@@ -137,80 +161,90 @@ function FakturaDetailModal({
           </button>
         </div>
 
-        <div className="info-cards" style={{ marginBottom: "1.5rem" }}>
-          <div className="info-card">
-            <div className="label">Status</div>
-            <StatusBadge
-              value={faktura.status}
-              styleMap={FAKTURA_STATUS_STYLE}
-            />
-          </div>
-          <div className="info-card">
-            <div className="label">Ukupan iznos</div>
-            <div className="value accent">
-              {formatMoney(faktura.ukupnaIznos)}
+        <div className="faktura-detail-scroll">
+          <div className="info-cards faktura-summary-cards">
+            <div className="info-card">
+              <div className="label">Status</div>
+              <StatusBadge
+                value={faktura.status}
+                styleMap={FAKTURA_STATUS_STYLE}
+                labelMap={FAKTURA_STATUS_DISPLAY}
+              />
+            </div>
+            <div className="info-card">
+              <div className="label">Ukupan iznos</div>
+              <div className="value accent">
+                {formatMoney(faktura.ukupnaIznos)}
+              </div>
+            </div>
+            <div className="info-card">
+              <div className="label">Plaćeni iznos</div>
+              <div className="value success">
+                {formatMoney(faktura.placeniIznos)}
+              </div>
+            </div>
+            <div className="info-card">
+              <div className="label">Rok plaćanja</div>
+              <div className="value">{formatDate(faktura.rokPlacanja)}</div>
             </div>
           </div>
-          <div className="info-card">
-            <div className="label">Plaćeni iznos</div>
-            <div className="value success">
-              {formatMoney(faktura.placeniIznos)}
+
+          <div className="faktura-detail-main">
+            <div className="events-table-card faktura-section-card">
+              <h3>Stavke</h3>
+              {faktura.stavke?.length ? (
+                <div className="faktura-table-scroll">
+                  <table className="events-table">
+                    <thead>
+                      <tr>
+                        <th>NAZIV</th>
+                        <th>KOL</th>
+                        <th>JED. CENA</th>
+                        <th>UKUPNO</th>
+                        <th>BUDŽET</th>
+                        <th>KATEGORIJA</th>
+                        {canAddStavka && <th>AKCIJE</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {faktura.stavke.map((stavka) => (
+                        <tr
+                          key={
+                            stavka.stavkaFaktureId ||
+                            `${stavka.redniBroj}-${stavka.naziv}`
+                          }
+                        >
+                          <td>{stavka.naziv}</td>
+                          <td>{stavka.kolicina}</td>
+                          <td>{formatMoney(stavka.jedinicnaCena)}</td>
+                          <td>{formatMoney(stavka.ukupnaCena)}</td>
+                          <td>{stavka.budzetId || "—"}</td>
+                          <td>{stavka.kategorijaId || "—"}</td>
+                          {canAddStavka && (
+                            <td>
+                              <button
+                                className="btn btn-xs btn-danger-outline"
+                                onClick={() => onDeleteStavka(stavka)}
+                              >
+                                Obriši
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p style={{ color: "var(--text-muted)" }}>Nema stavki.</p>
+              )}
             </div>
-          </div>
-          <div className="info-card">
-            <div className="label">Rok plaćanja</div>
-            <div className="value">{formatDate(faktura.rokPlacanja)}</div>
-          </div>
-        </div>
 
-        <div
-          className="events-table-card"
-          style={{ padding: "1.25rem", marginBottom: "1.25rem" }}
-        >
-          <h3 style={{ marginBottom: "1rem" }}>Stavke</h3>
-          {faktura.stavke?.length ? (
-            <table className="events-table">
-              <thead>
-                <tr>
-                  <th>NAZIV</th>
-                  <th>KOL</th>
-                  <th>JED. CENA</th>
-                  <th>UKUPNO</th>
-                  <th>BUDŽET</th>
-                  <th>KATEGORIJA</th>
-                </tr>
-              </thead>
-              <tbody>
-                {faktura.stavke.map((stavka) => (
-                  <tr
-                    key={
-                      stavka.stavkaFaktureId ||
-                      `${stavka.redniBroj}-${stavka.naziv}`
-                    }
-                  >
-                    <td>{stavka.naziv}</td>
-                    <td>{stavka.kolicina}</td>
-                    <td>{formatMoney(stavka.jedinicnaCena)}</td>
-                    <td>{formatMoney(stavka.ukupnaCena)}</td>
-                    <td>{stavka.budzetId || "—"}</td>
-                    <td>{stavka.kategorijaId || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p style={{ color: "var(--text-muted)" }}>Nema stavki.</p>
-          )}
-        </div>
-
-        <div
-          className="events-table-card"
-          style={{ padding: "1.25rem", marginBottom: "1.25rem" }}
-        >
-          <h3 style={{ marginBottom: "1rem" }}>Plaćanja</h3>
-          {faktura.placanja?.length ? (
-            faktura.placanja.map((placanje) => (
-              <div
+            <div className="events-table-card faktura-section-card">
+              <h3>Plaćanja</h3>
+              {faktura.placanja?.length ? (
+                faktura.placanja.map((placanje) => (
+                  <div
                 key={placanje.placanjeId}
                 style={{
                   border: "1px solid rgba(148,163,184,.18)",
@@ -239,6 +273,26 @@ function FakturaDetailModal({
                     >
                       Kreirano: {formatDate(placanje.kreiranoAt)}
                     </div>
+                    {placanje.referentniBroj && (
+                      <div
+                        style={{
+                          color: "var(--text-secondary)",
+                          marginTop: "0.25rem",
+                        }}
+                      >
+                        Referenca: {placanje.referentniBroj}
+                      </div>
+                    )}
+                    {placanje.datumPlacanja && (
+                      <div
+                        style={{
+                          color: "var(--text-secondary)",
+                          marginTop: "0.25rem",
+                        }}
+                      >
+                        Datum plaćanja: {formatDate(placanje.datumPlacanja)}
+                      </div>
+                    )}
                     {placanje.potvrdjenoAt && (
                       <div
                         style={{
@@ -247,6 +301,23 @@ function FakturaDetailModal({
                         }}
                       >
                         Potvrđeno: {formatDate(placanje.potvrdjenoAt)}
+                      </div>
+                    )}
+                    {placanje.dokumentUrl && (
+                      <div
+                        style={{
+                          color: "var(--text-secondary)",
+                          marginTop: "0.25rem",
+                        }}
+                      >
+                        Dokument:{" "}
+                        <a
+                          href={placanje.dokumentUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          otvori
+                        </a>
                       </div>
                     )}
                   </div>
@@ -287,7 +358,9 @@ function FakturaDetailModal({
                       </button>
                     </>
                   )}
-                  {isFinansijski && placanje.status === "COMPLETED" && (
+                  {isFinansijski &&
+                    placanje.status === "COMPLETED" &&
+                    getRefundableAmount(placanje) > 0 && (
                     <button
                       className="btn btn-outline btn-xs"
                       onClick={() => onRequestRefund(placanje)}
@@ -390,10 +463,12 @@ function FakturaDetailModal({
                   )}
                 </div>
               </div>
-            ))
-          ) : (
-            <p style={{ color: "var(--text-muted)" }}>Nema plaćanja.</p>
-          )}
+                ))
+              ) : (
+                <p style={{ color: "var(--text-muted)" }}>Nema plaćanja.</p>
+              )}
+            </div>
+          </div>
         </div>
 
         <div
@@ -442,6 +517,9 @@ export default function FakturePage() {
   const [stavkaOpen, setStavkaOpen] = useState(false);
   const [placanjeOpen, setPlacanjeOpen] = useState(false);
   const [refundOpen, setRefundOpen] = useState(null);
+  const [stavkaDogadjajId, setStavkaDogadjajId] = useState(null);
+  const [stavkaFakturaId, setStavkaFakturaId] = useState(null);
+  const [placanjeFakturaId, setPlacanjeFakturaId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -511,6 +589,17 @@ export default function FakturePage() {
     setSelectedDetail(faktura);
   };
 
+  const handleOpenStavka = () => {
+    setStavkaDogadjajId(selectedDetail?.dogadjajId ?? null);
+    setStavkaFakturaId(selectedDetail?.fakturaId ?? null);
+    setStavkaOpen(true);
+  };
+
+  const handleOpenPlacanje = () => {
+    setPlacanjeFakturaId(selectedDetail?.fakturaId ?? null);
+    setPlacanjeOpen(true);
+  };
+
   const handleCreateFaktura = async (payload) => {
     try {
       const res = await fakturaApi.createFaktura(payload);
@@ -525,22 +614,54 @@ export default function FakturePage() {
   };
 
   const handleAddStavka = async (payload) => {
+    const fakturaId = stavkaFakturaId;
+
     try {
-      await fakturaApi.addStavka(selectedId, payload);
+      await fakturaApi.addStavka(fakturaId, payload);
       toast("Stavka je dodata.", "success");
       setStavkaOpen(false);
-      await refresh();
+      setStavkaDogadjajId(null);
+      setStavkaFakturaId(null);
+      await loadAll();
+      if (fakturaId) {
+        setSelectedId(fakturaId);
+        await loadDetail(fakturaId);
+      }
     } catch (err) {
       toast(extractError(err, "Greška pri dodavanju stavke."), "error");
     }
   };
 
-  const handleNewPlacanje = async (payload) => {
+  const handleDeleteStavka = async (stavka) => {
+    const fakturaId = selectedDetail?.fakturaId;
+    const stavkaId = stavka?.stavkaFaktureId;
+    if (!fakturaId || !stavkaId) return;
+    if (!window.confirm("Da li sigurno želiš da obrišeš ovu stavku?")) return;
+
     try {
-      await fakturaApi.createPlacanje(selectedId, payload);
+      await fakturaApi.deleteStavka(fakturaId, stavkaId);
+      toast("Stavka je obrisana.", "success");
+      await loadAll();
+      setSelectedId(fakturaId);
+      await loadDetail(fakturaId);
+    } catch (err) {
+      toast(extractError(err, "Greška pri brisanju stavke."), "error");
+    }
+  };
+
+  const handleNewPlacanje = async (payload) => {
+    const fakturaId = placanjeFakturaId;
+
+    try {
+      await fakturaApi.createPlacanje(fakturaId, payload);
       toast("Plaćanje je kreirano.", "success");
       setPlacanjeOpen(false);
-      await refresh();
+      setPlacanjeFakturaId(null);
+      await loadAll();
+      if (fakturaId) {
+        setSelectedId(fakturaId);
+        await loadDetail(fakturaId);
+      }
     } catch (err) {
       toast(extractError(err, "Greška pri kreiranju plaćanja."), "error");
     }
@@ -567,12 +688,12 @@ export default function FakturePage() {
   };
 
   const handleRequestRefund = (placanje) => {
-    setRefundOpen({ placanjeId: placanje.placanjeId });
+    setRefundOpen({ placanje });
   };
 
   const handleRefundSubmit = async (placanjeId, payload) => {
     try {
-      await fakturaApi.requestRefundacija(placanjeId, payload, getUserId());
+      await fakturaApi.requestRefundacija(placanjeId, payload);
       toast("Zahtev za refundaciju je poslat.", "success");
       setRefundOpen(null);
       await refresh();
@@ -586,10 +707,7 @@ export default function FakturePage() {
 
   const handleApproveRefund = async (refundacija) => {
     try {
-      await fakturaApi.approveRefundacija(
-        refundacija.refundacijaId,
-        getUserId(),
-      );
+      await fakturaApi.approveRefundacija(refundacija.refundacijaId);
       toast("Refundacija je odobrena.", "success");
       await refresh();
     } catch (err) {
@@ -599,10 +717,7 @@ export default function FakturePage() {
 
   const handleRejectRefund = async (refundacija) => {
     try {
-      await fakturaApi.rejectRefundacija(
-        refundacija.refundacijaId,
-        getUserId(),
-      );
+      await fakturaApi.rejectRefundacija(refundacija.refundacijaId);
       toast("Refundacija je odbijena.", "success");
       await refresh();
     } catch (err) {
@@ -656,21 +771,30 @@ export default function FakturePage() {
 
       {stavkaOpen && (
         <DodajStavkuModal
-          onClose={() => setStavkaOpen(false)}
+          onClose={() => {
+            setStavkaOpen(false);
+            setStavkaDogadjajId(null);
+            setStavkaFakturaId(null);
+          }}
           onSubmit={handleAddStavka}
+          dogadjajId={stavkaDogadjajId}
         />
       )}
 
       {placanjeOpen && (
         <KreirajPlacanjeModal
-          onClose={() => setPlacanjeOpen(false)}
+          onClose={() => {
+            setPlacanjeOpen(false);
+            setPlacanjeFakturaId(null);
+          }}
           onSubmit={handleNewPlacanje}
+          faktura={selectedDetail}
         />
       )}
 
       {refundOpen && (
         <RefundacijaModal
-          placanjeId={refundOpen.placanjeId}
+          placanje={refundOpen.placanje}
           onClose={() => setRefundOpen(null)}
           onSubmit={handleRefundSubmit}
         />
@@ -777,8 +901,9 @@ export default function FakturePage() {
             setSelectedId(null);
             setSelectedDetail(null);
           }}
-          onAddStavka={() => setStavkaOpen(true)}
-          onNewPlacanje={() => setPlacanjeOpen(true)}
+          onAddStavka={handleOpenStavka}
+          onDeleteStavka={handleDeleteStavka}
+          onNewPlacanje={handleOpenPlacanje}
           onConfirmPlacanje={handleConfirmPlacanje}
           onFailPlacanje={handleFailPlacanje}
           onRequestRefund={handleRequestRefund}
