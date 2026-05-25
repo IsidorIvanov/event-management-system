@@ -22,4 +22,11 @@ public interface StavkaFaktureRepository extends JpaRepository<StavkaFakture, Lo
             WHERE s.faktura.fakturaId = :fakturaId
             """)
     Integer maxRedniBrojByFakturaId(@Param("fakturaId") Long fakturaId);
+
+    @Query("""
+            SELECT COUNT(s)
+            FROM StavkaFakture s
+            WHERE s.faktura.fakturaId = :fakturaId
+            """)
+    long countByFakturaId(@Param("fakturaId") Long fakturaId);
 }

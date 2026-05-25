@@ -2,7 +2,10 @@ import { useState } from "react";
 
 const EMPTY = {
   iznos: "",
-  metod: "GOTOVINA",
+  referentniBroj: "",
+  datumPlacanja: new Date().toISOString().split("T")[0],
+  metod: "BANKOVNI_TRANSFER",
+  dokumentUrl: "",
   napomena: "",
 };
 
@@ -33,10 +36,19 @@ export default function KreirajPlacanjeModal({ onClose, onSubmit, faktura }) {
     if (preostalo > 0 && iznos > preostalo) {
       return setError("Iznos plaćanja ne sme preći preostali dug fakture.");
     }
+    if (!form.referentniBroj.trim()) {
+      return setError("Referentni broj je obavezan.");
+    }
+    if (!form.datumPlacanja) {
+      return setError("Datum plaćanja je obavezan.");
+    }
 
     onSubmit({
       iznos: String(form.iznos),
+      referentniBroj: form.referentniBroj.trim(),
+      datumPlacanja: form.datumPlacanja,
       metod: form.metod,
+      dokumentUrl: form.dokumentUrl.trim() || null,
       napomena: form.napomena || null,
     });
   };
@@ -76,17 +88,47 @@ export default function KreirajPlacanjeModal({ onClose, onSubmit, faktura }) {
           </div>
 
           <div className="form-group">
+            <label>Referentni broj *</label>
+            <input
+              className="form-control"
+              value={form.referentniBroj}
+              onChange={set("referentniBroj")}
+              placeholder="npr. TR-2026-001"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Datum plaćanja *</label>
+            <input
+              type="date"
+              className="form-control"
+              value={form.datumPlacanja}
+              onChange={set("datumPlacanja")}
+            />
+          </div>
+
+          <div className="form-group">
             <label>Metod plaćanja *</label>
             <select
               className="form-control"
               value={form.metod}
               onChange={set("metod")}
             >
-              <option value="GOTOVINA">GOTOVINA</option>
-              <option value="TRANSFER">TRANSFER</option>
+              <option value="BANKOVNI_TRANSFER">BANKOVNI_TRANSFER</option>
               <option value="KARTICA">KARTICA</option>
-              <option value="KOMPENZACIJA">KOMPENZACIJA</option>
+              <option value="GOTOVINA">GOTOVINA</option>
+              <option value="CEK">CEK</option>
             </select>
+          </div>
+
+          <div className="form-group">
+            <label>Dokument URL</label>
+            <input
+              className="form-control"
+              value={form.dokumentUrl}
+              onChange={set("dokumentUrl")}
+              placeholder="https://..."
+            />
           </div>
 
           <div className="form-group">

@@ -21,4 +21,15 @@ public interface RefundacijaRepository extends JpaRepository<Refundacija, Long> 
             @Param("placanjeId") Long placanjeId,
             @Param("statuses") Collection<RefundacijaStatus> statuses
     );
+
+    @Query("""
+            SELECT COALESCE(SUM(r.iznos), 0)
+            FROM Refundacija r
+            WHERE r.placanje.faktura.fakturaId = :fakturaId
+              AND r.status = :status
+            """)
+    BigDecimal sumByFakturaIdAndStatus(
+            @Param("fakturaId") Long fakturaId,
+            @Param("status") RefundacijaStatus status
+    );
 }

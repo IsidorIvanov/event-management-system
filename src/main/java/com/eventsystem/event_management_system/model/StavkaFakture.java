@@ -27,7 +27,8 @@ public class StavkaFakture {
 
     private String naziv;
 
-    private Integer kolicina;
+    @Column(precision = 10, scale = 3)
+    private BigDecimal kolicina;
 
     @Column(precision = 14, scale = 2)
     private BigDecimal jedinicnaCena;

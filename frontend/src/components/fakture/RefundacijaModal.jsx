@@ -55,6 +55,9 @@ export default function RefundacijaModal({ placanje, onClose, onSubmit }) {
       >
         <h3>Zahtev za refundaciju</h3>
         <p className="page-subtitle" style={{ marginTop: "0.35rem" }}>
+          Plaćeni iznos: {formatMoney(placanje?.iznos)}
+        </p>
+        <p className="page-subtitle" style={{ marginTop: "0.35rem" }}>
           Preostalo za refundaciju: {formatMoney(preostalo)}
         </p>
 
@@ -98,7 +101,7 @@ export default function RefundacijaModal({ placanje, onClose, onSubmit }) {
               className="btn btn-primary"
               style={{ width: "auto" }}
             >
-              Pošalji zahtev
+              Zatraži refundaciju
             </button>
           </div>
         </form>

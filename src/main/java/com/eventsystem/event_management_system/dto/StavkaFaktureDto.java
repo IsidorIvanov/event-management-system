@@ -14,7 +14,8 @@ public class StavkaFaktureDto {
     private Long stavkaFaktureId;
     private Integer redniBroj;
     private String naziv;
-    private Integer kolicina;
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private BigDecimal kolicina;
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal jedinicnaCena;
     @JsonFormat(shape = JsonFormat.Shape.STRING)

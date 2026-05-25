@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -35,6 +36,12 @@ public class Placanje {
     @Column(precision = 14, scale = 2, nullable = false)
     private BigDecimal iznos;
 
+    @Column(name = "referentni_broj", unique = true, length = 64)
+    private String referentniBroj;
+
+    @Column(name = "datum_placanja")
+    private LocalDate datumPlacanja;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "metod", length = 20)
     private MetodPlacanja metod;
@@ -45,6 +52,9 @@ public class Placanje {
 
     @Column(columnDefinition = "TEXT")
     private String napomena;
+
+    @Column(name = "dokument_url", length = 500)
+    private String dokumentUrl;
 
     @Column(name = "kreirano_at", nullable = false)
     private LocalDateTime kreiranoAt;

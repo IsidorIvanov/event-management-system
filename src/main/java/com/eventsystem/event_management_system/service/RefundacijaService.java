@@ -11,6 +11,7 @@ import com.eventsystem.event_management_system.repository.RefundacijaRepository;
 import com.eventsystem.event_management_system.repository.TrosakRepository;
 import com.eventsystem.event_management_system.utils.enums.PlacanjeStatus;
 import com.eventsystem.event_management_system.utils.enums.RefundacijaStatus;
+import com.eventsystem.event_management_system.utils.enums.TipFakture;
 import com.eventsystem.event_management_system.utils.enums.TipTroska;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,6 +22,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -112,33 +114,71 @@ public class RefundacijaService {
         // Flow 7.2: propagate to Faktura (recompute) and to Trosak.refundiraniIznos proportionally
         var p = r.getPlacanje();
         var f = p.getFaktura();
-        fakturaService.recomputePlaceniIznos(f);
+        if (f.getTip() == TipFakture.ULAZNA) {
+            allocateRefundToAutoCosts(f.getFakturaId(), r.getIznos());
+        }
 
-        List<Trosak> auto = trosakRepository.findByFakturaIdAndTip(f.getFakturaId(), TipTroska.AUTO_ULAZNA);
-        BigDecimal total = auto.stream().map(Trosak::getIznos).filter(x -> x != null).reduce(BigDecimal.ZERO, BigDecimal::add);
-        Set<String> recomputeKeys = new java.util.HashSet<>();
-        if (total.compareTo(BigDecimal.ZERO) > 0) {
-            for (Trosak t : auto) {
-                BigDecimal proportion = t.getIznos().divide(total, 6, RoundingMode.HALF_EVEN);
-                BigDecimal add = r.getIznos().multiply(proportion).setScale(2, RoundingMode.HALF_EVEN);
-                if (t.getRefundiraniIznos() == null) t.setRefundiraniIznos(BigDecimal.ZERO);
-                BigDecimal updated = t.getRefundiraniIznos().add(add).setScale(2, RoundingMode.HALF_EVEN);
-                if (updated.compareTo(t.getIznos()) > 0) {
-                    updated = t.getIznos().setScale(2, RoundingMode.HALF_EVEN);
-                }
-                t.setRefundiraniIznos(updated);
-                if (t.getBudzetId() != null && t.getKategorijaId() != null) {
-                    recomputeKeys.add(t.getBudzetId() + ":" + t.getKategorijaId());
-                }
+        fakturaService.recomputePlaceniIznos(f);
+        fakturaService.autoUpdateStatus(f);
+        return r;
+    }
+
+    private void allocateRefundToAutoCosts(Long fakturaId, BigDecimal refundIznos) {
+        List<Trosak> auto = trosakRepository.findByFakturaIdAndTip(fakturaId, TipTroska.AUTO_ULAZNA);
+        List<Trosak> eligible = auto.stream()
+                .filter(trosak -> remainingRefundableTrosak(trosak).compareTo(BigDecimal.ZERO) > 0)
+                .toList();
+        BigDecimal totalRemaining = auto.stream()
+                .map(this::remainingRefundableTrosak)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_EVEN);
+        if (totalRemaining.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+
+        BigDecimal amountToAllocate = refundIznos.setScale(2, RoundingMode.HALF_EVEN).min(totalRemaining);
+        BigDecimal allocated = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN);
+        Set<String> recomputeKeys = new HashSet<>();
+
+        for (int i = 0; i < eligible.size(); i++) {
+            Trosak trosak = eligible.get(i);
+            BigDecimal remaining = remainingRefundableTrosak(trosak);
+
+            BigDecimal add;
+            if (i == eligible.size() - 1) {
+                add = amountToAllocate.subtract(allocated).setScale(2, RoundingMode.HALF_EVEN);
+            } else {
+                add = amountToAllocate
+                        .multiply(remaining)
+                        .divide(totalRemaining, 2, RoundingMode.HALF_EVEN);
             }
-            trosakRepository.saveAll(auto);
-            for (String key : recomputeKeys) {
-                String[] parts = key.split(":");
-                budzetService.recomputeStavku(Long.valueOf(parts[0]), Long.valueOf(parts[1]));
+            if (add.compareTo(remaining) > 0) {
+                add = remaining;
+            }
+            if (add.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+
+            trosak.setRefundiraniIznos(safe(trosak.getRefundiraniIznos()).add(add).setScale(2, RoundingMode.HALF_EVEN));
+            allocated = allocated.add(add).setScale(2, RoundingMode.HALF_EVEN);
+            if (trosak.getBudzetId() != null && trosak.getKategorijaId() != null) {
+                recomputeKeys.add(trosak.getBudzetId() + ":" + trosak.getKategorijaId());
             }
         }
 
-        return r;
+        trosakRepository.saveAll(eligible);
+        for (String key : recomputeKeys) {
+            String[] parts = key.split(":");
+            budzetService.recomputeStavku(Long.valueOf(parts[0]), Long.valueOf(parts[1]));
+        }
+    }
+
+    private BigDecimal remainingRefundableTrosak(Trosak trosak) {
+        BigDecimal remaining = safe(trosak.getIznos()).subtract(safe(trosak.getRefundiraniIznos()));
+        if (remaining.compareTo(BigDecimal.ZERO) < 0) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN);
+        }
+        return remaining.setScale(2, RoundingMode.HALF_EVEN);
     }
 
     private Refundacija findEntity(Long refundacijaId) {

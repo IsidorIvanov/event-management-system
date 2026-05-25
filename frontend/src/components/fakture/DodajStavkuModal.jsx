@@ -35,7 +35,7 @@ export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
         setBudzeti(Array.isArray(res.data) ? res.data : []);
         setBudzetiError(null);
       })
-      .catch((err) => {
+      .catch(() => {
         if (!active) return;
         setBudzeti([]);
         setBudzetiError("Nije moguće učitati budžete za događaj.");
@@ -66,8 +66,6 @@ export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
     if (!form.naziv.trim()) return setError("Naziv stavke je obavezan.");
     if (toNumber(form.kolicina) <= 0)
       return setError("Količina mora biti veća od 0.");
-    if (!Number.isInteger(toNumber(form.kolicina)))
-      return setError("Količina mora biti ceo broj.");
     if (toNumber(form.jedinicnaCena) < 0)
       return setError("Jedinična cena ne može biti negativna.");
     if (!form.budzetId) return setError("Budžet je obavezan.");
@@ -75,7 +73,7 @@ export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
 
     onSubmit({
       naziv: form.naziv.trim(),
-      kolicina: toNumber(form.kolicina),
+      kolicina: String(form.kolicina),
       jedinicnaCena: String(form.jedinicnaCena || "0"),
       ukupnaCena: ukupnaCena.toFixed(2),
       napomena: form.napomena || null,
@@ -101,7 +99,7 @@ export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Naziv *</label>
+            <label>Opis stavke *</label>
             <input
               className="form-control"
               value={form.naziv}
@@ -115,11 +113,12 @@ export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
               <label>Količina *</label>
               <input
                 type="number"
-                min="1"
-                step="1"
+                min="0"
+                step="0.001"
                 className="form-control"
                 value={form.kolicina}
                 onChange={set("kolicina")}
+                placeholder="npr. 2.500"
               />
             </div>
             <div className="form-group">
@@ -149,7 +148,6 @@ export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
                     kategorijaId: "",
                   }));
                   if (error) setError(null);
-                  // set categories based on selected budget
                   const b = budzeti.find(
                     (x) => String(x.budzetId) === String(val),
                   );
@@ -188,7 +186,7 @@ export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
           </div>
 
           <div className="form-group">
-            <label>Ukupna cena</label>
+            <label>Ukupno (preview)</label>
             <input
               className="form-control"
               value={ukupnaCena.toFixed(2)}

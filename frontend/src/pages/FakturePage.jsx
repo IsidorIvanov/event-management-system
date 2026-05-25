@@ -22,6 +22,15 @@ const FAKTURA_STATUS_STYLE = {
   OTKAZANA: { backgroundColor: "#374151", color: "#fff" },
 };
 
+const FAKTURA_STATUS_DISPLAY = {
+  DRAFT: "Nacrt",
+  IZDATA: "Izdata",
+  DELIMICNO_PLACENA: "Delimično plaćena",
+  PLACENA: "Plaćena",
+  DOSPELA: "Dospela",
+  OTKAZANA: "Otkazana",
+};
+
 const PLACANJE_STATUS_STYLE = {
   PENDING: { backgroundColor: "#f59e0b", color: "#fff" },
   COMPLETED: { backgroundColor: "#16a34a", color: "#fff" },
@@ -72,13 +81,13 @@ const getRefundableAmount = (placanje) => {
   return Math.max(0, Number(placanje?.iznos || 0) - reserved);
 };
 
-function StatusBadge({ value, styleMap }) {
+function StatusBadge({ value, styleMap, labelMap = {} }) {
   return (
     <span
       className="status-badge"
       style={styleMap[value] || { backgroundColor: "#6b7280", color: "#fff" }}
     >
-      {value}
+      {labelMap[value] || value}
     </span>
   );
 }
@@ -91,7 +100,11 @@ function FakturaRow({ faktura, onOpen }) {
       </td>
       <td>{TIP_DISPLAY[faktura.tip] || faktura.tip}</td>
       <td>
-        <StatusBadge value={faktura.status} styleMap={FAKTURA_STATUS_STYLE} />
+        <StatusBadge
+          value={faktura.status}
+          styleMap={FAKTURA_STATUS_STYLE}
+          labelMap={FAKTURA_STATUS_DISPLAY}
+        />
       </td>
       <td>{formatMoney(faktura.ukupnaIznos)}</td>
       <td>{formatMoney(faktura.placeniIznos)}</td>
@@ -127,8 +140,7 @@ function FakturaDetailModal({
     getRemainingDebt(faktura) > 0;
   const canCancel =
     isFinansijski &&
-    faktura.status !== "OTKAZANA" &&
-    Number(faktura.placeniIznos || 0) === 0;
+    faktura.status !== "OTKAZANA";
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -159,6 +171,7 @@ function FakturaDetailModal({
             <StatusBadge
               value={faktura.status}
               styleMap={FAKTURA_STATUS_STYLE}
+              labelMap={FAKTURA_STATUS_DISPLAY}
             />
           </div>
           <div className="info-card">
@@ -255,6 +268,26 @@ function FakturaDetailModal({
                     >
                       Kreirano: {formatDate(placanje.kreiranoAt)}
                     </div>
+                    {placanje.referentniBroj && (
+                      <div
+                        style={{
+                          color: "var(--text-secondary)",
+                          marginTop: "0.25rem",
+                        }}
+                      >
+                        Referenca: {placanje.referentniBroj}
+                      </div>
+                    )}
+                    {placanje.datumPlacanja && (
+                      <div
+                        style={{
+                          color: "var(--text-secondary)",
+                          marginTop: "0.25rem",
+                        }}
+                      >
+                        Datum plaćanja: {formatDate(placanje.datumPlacanja)}
+                      </div>
+                    )}
                     {placanje.potvrdjenoAt && (
                       <div
                         style={{
@@ -263,6 +296,23 @@ function FakturaDetailModal({
                         }}
                       >
                         Potvrđeno: {formatDate(placanje.potvrdjenoAt)}
+                      </div>
+                    )}
+                    {placanje.dokumentUrl && (
+                      <div
+                        style={{
+                          color: "var(--text-secondary)",
+                          marginTop: "0.25rem",
+                        }}
+                      >
+                        Dokument:{" "}
+                        <a
+                          href={placanje.dokumentUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          otvori
+                        </a>
                       </div>
                     )}
                   </div>

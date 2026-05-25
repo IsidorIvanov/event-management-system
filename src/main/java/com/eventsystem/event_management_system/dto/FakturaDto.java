@@ -27,7 +27,9 @@ public class FakturaDto {
     private BigDecimal placeniIznos;
     private LocalDate datumIzdavanja;
     private Long dogadjajId;
+    private Long klijentId;
     private Long dobavljacId;
+    private Long ugovorId;
     private Long kreiraoId;
     private LocalDate rokPlacanja;
     private String napomena;

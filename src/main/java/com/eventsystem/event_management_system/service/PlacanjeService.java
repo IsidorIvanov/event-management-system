@@ -42,12 +42,16 @@ public class PlacanjeService {
     public Placanje create(Long fakturaId, PlacanjeDto dto) {
         Faktura f = fakturaService.findEntity(fakturaId);
         validateCreate(f, dto);
+        BigDecimal iznos = dto.getIznos().setScale(2, RoundingMode.HALF_EVEN);
 
         Placanje p = Placanje.builder()
                 .faktura(f)
-                .iznos(dto.getIznos().setScale(2, RoundingMode.HALF_EVEN))
+                .iznos(iznos)
+                .referentniBroj(dto.getReferentniBroj())
+                .datumPlacanja(dto.getDatumPlacanja())
                 .metod(dto.getMetod())
                 .napomena(dto.getNapomena())
+                .dokumentUrl(dto.getDokumentUrl())
                 .status(PlacanjeStatus.PENDING)
                 .kreiranoAt(LocalDateTime.now())
                 .build();
@@ -67,8 +71,8 @@ public class PlacanjeService {
         p.setPotvrdjenoAt(LocalDateTime.now());
         placanjeRepository.save(p);
 
-        // algoritam 8.2
         fakturaService.recomputePlaceniIznos(p.getFaktura());
+        fakturaService.autoUpdateStatus(p.getFaktura());
         return p;
     }
 
@@ -95,15 +99,20 @@ public class PlacanjeService {
         if (!PAYABLE_STATUSES.contains(faktura.getStatus())) {
             throw new BadRequestException("Plaćanje je moguće samo za izdate, dospele ili delimično plaćene fakture.");
         }
-        if (dto.getIznos() == null || dto.getIznos().compareTo(BigDecimal.ZERO) <= 0) {
+        BigDecimal iznos = dto.getIznos() != null
+                ? dto.getIznos().setScale(2, RoundingMode.HALF_EVEN)
+                : null;
+        if (iznos == null || iznos.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BadRequestException("Iznos plaćanja mora biti veći od 0.");
         }
         if (dto.getMetod() == null) {
             throw new BadRequestException("Metod plaćanja je obavezan.");
         }
 
-        BigDecimal preostalo = safe(faktura.getUkupnaIznos()).subtract(safe(faktura.getPlaceniIznos()));
-        if (dto.getIznos().compareTo(preostalo) > 0) {
+        BigDecimal preostalo = safe(faktura.getUkupnaIznos())
+                .subtract(safe(faktura.getPlaceniIznos()))
+                .setScale(2, RoundingMode.HALF_EVEN);
+        if (iznos.compareTo(preostalo) > 0) {
             throw new BadRequestException("Iznos plaćanja ne sme preći preostali dug fakture.");
         }
 
