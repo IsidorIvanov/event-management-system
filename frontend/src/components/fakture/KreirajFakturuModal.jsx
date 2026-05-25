@@ -21,8 +21,18 @@ const formatEventLabel = (event) => {
         year: "numeric",
       })
     : "bez datuma";
+  const STATUS_DISPLAY = {
+    OBJAVLJEN: "Objavljen",
+    AKTIVAN: "Aktivan",
+    DRAFT: "Nacrt",
+    ZAVRSEN: "Završen",
+  };
 
-  return `${event?.naziv || "Nepoznat događaj"} — ${dateLabel}`;
+  const statusLabel = event?.status
+    ? STATUS_DISPLAY[event.status] || event.status
+    : null;
+
+  return `${event?.naziv || "Nepoznat događaj"} — ${dateLabel}${statusLabel ? ` — ${statusLabel}` : ""}`;
 };
 
 export default function KreirajFakturuModal({
@@ -35,6 +45,9 @@ export default function KreirajFakturuModal({
   const [loadedEvents, setLoadedEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [eventsError, setEventsError] = useState(null);
+  const [loadedDobavljaci, setLoadedDobavljaci] = useState([]);
+  const [dobavljaciLoading, setDobavljaciLoading] = useState(false);
+  const [dobavljaciError, setDobavljaciError] = useState(null);
 
   useEffect(() => {
     if (!form.datumIzdavanja) return;
@@ -63,6 +76,31 @@ export default function KreirajFakturuModal({
       .finally(() => {
         if (!active) return;
         setEventsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    setDobavljaciLoading(true);
+    api
+      .get("/nabavka/dobavljac")
+      .then((res) => {
+        if (!active) return;
+        setLoadedDobavljaci(Array.isArray(res.data) ? res.data : []);
+        setDobavljaciError(null);
+      })
+      .catch(() => {
+        if (!active) return;
+        setLoadedDobavljaci([]);
+        setDobavljaciError("Nije moguće učitati dobavljače.");
+      })
+      .finally(() => {
+        if (!active) return;
+        setDobavljaciLoading(false);
       });
 
     return () => {
@@ -195,14 +233,29 @@ export default function KreirajFakturuModal({
 
           {isUlazna && (
             <div className="form-group">
-              <label>Dobavljač ID *</label>
-              <input
-                type="number"
-                min="1"
+              <label>Dobavljač *</label>
+              <select
                 className="form-control"
                 value={form.dobavljacId}
                 onChange={set("dobavljacId")}
-              />
+              >
+                <option value="">Izaberi dobavljača</option>
+                {loadedDobavljaci.map((d) => (
+                  <option key={d.dobavljacId} value={d.dobavljacId}>
+                    {d.naziv}
+                  </option>
+                ))}
+              </select>
+              {dobavljaciLoading && (
+                <small style={{ color: "var(--text-muted)" }}>
+                  Učitavanje dobavljača...
+                </small>
+              )}
+              {!dobavljaciLoading && !loadedDobavljaci.length && (
+                <small style={{ color: "var(--text-muted)" }}>
+                  {dobavljaciError || "Nema dostupnih dobavljača."}
+                </small>
+              )}
             </div>
           )}
 

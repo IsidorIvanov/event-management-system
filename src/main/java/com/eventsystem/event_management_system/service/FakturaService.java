@@ -39,6 +39,13 @@ public class FakturaService {
         return fakturaRepository.findById(id).orElseThrow(() -> new RuntimeException("Faktura not found"));
     }
 
+    @Transactional(readOnly = true)
+    public FakturaDto getById(Long id) {
+        Faktura f = fakturaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Faktura not found"));
+        return toDto(f);
+    }
+
     @Transactional
     public FakturaDto create(FakturaDto dto) {
         Faktura f = Faktura.builder()
@@ -215,6 +222,7 @@ public class FakturaService {
         fakturaRepository.save(faktura);
     }
 
+    @Transactional(readOnly = true)
     public FakturaDto toDto(Faktura e) {
         return FakturaDto.builder()
                 .fakturaId(e.getFakturaId())

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import api from "../../services/api";
 
 const EMPTY = {
   naziv: "",
@@ -11,9 +12,53 @@ const EMPTY = {
 
 const toNumber = (value) => Number(value || 0);
 
-export default function DodajStavkuModal({ onClose, onSubmit }) {
+export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
+  console.log("DodajStavkuModal dogadjajId=", dogadjajId);
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState(null);
+  const [budzeti, setBudzeti] = useState([]);
+  const [budzetiLoading, setBudzetiLoading] = useState(false);
+  const [budzetiError, setBudzetiError] = useState(null);
+  const [kategorije, setKategorije] = useState([]);
+
+  useEffect(() => {
+    if (!dogadjajId) {
+      setBudzeti([]);
+      setKategorije([]);
+      return;
+    }
+    let active = true;
+    setBudzetiLoading(true);
+    api
+      .get(`/budzet/dogadjaj/${dogadjajId}`)
+      .then((res) => {
+        console.log("GET /budzet/dogadjaj/ response:", res.data);
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          try {
+            console.log("budzet objekat:", JSON.stringify(res.data[0]));
+          } catch (e) {
+            console.log("budzet objekat (raw):", res.data[0]);
+          }
+        }
+        if (!active) return;
+        setBudzeti(Array.isArray(res.data) ? res.data : []);
+        setBudzetiError(null);
+      })
+      .catch((err) => {
+        console.error("GET /budzet/dogadjaj/ error:", err);
+        if (!active) return;
+        setBudzeti([]);
+        setBudzetiError("Nije moguće učitati budžete za događaj.");
+      })
+      .finally(() => {
+        if (!active) return;
+        setBudzetiLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [dogadjajId]);
 
   const ukupnaCena = useMemo(() => {
     const kolicina = toNumber(form.kolicina);
@@ -99,24 +144,53 @@ export default function DodajStavkuModal({ onClose, onSubmit }) {
 
           <div className="form-row">
             <div className="form-group">
-              <label>Budžet ID *</label>
-              <input
-                type="number"
-                min="1"
+              <label>Budžet *</label>
+              <select
                 className="form-control"
                 value={form.budzetId}
-                onChange={set("budzetId")}
-              />
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setForm((prev) => ({
+                    ...prev,
+                    budzetId: val,
+                    kategorijaId: "",
+                  }));
+                  if (error) setError(null);
+                  // set categories based on selected budget
+                  const b = budzeti.find(
+                    (x) => String(x.budzetId) === String(val),
+                  );
+                  setKategorije(b ? b.stavke || [] : []);
+                }}
+              >
+                <option value="">Izaberi budžet</option>
+                {budzeti.map((b) => (
+                  <option key={b.budzetId} value={b.budzetId}>
+                    {b.nazivBudzeta}
+                  </option>
+                ))}
+              </select>
+              {budzetiLoading && (
+                <small style={{ color: "var(--text-muted)" }}>
+                  Učitavanje budžeta...
+                </small>
+              )}
             </div>
             <div className="form-group">
-              <label>Kategorija ID *</label>
-              <input
-                type="number"
-                min="1"
+              <label>Kategorija *</label>
+              <select
                 className="form-control"
                 value={form.kategorijaId}
                 onChange={set("kategorijaId")}
-              />
+                disabled={!form.budzetId}
+              >
+                <option value="">Izaberi kategoriju</option>
+                {kategorije.map((s) => (
+                  <option key={s.kategorijaId} value={s.kategorijaId}>
+                    {s.kategorijaNaziv}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

@@ -442,6 +442,9 @@ export default function FakturePage() {
   const [stavkaOpen, setStavkaOpen] = useState(false);
   const [placanjeOpen, setPlacanjeOpen] = useState(false);
   const [refundOpen, setRefundOpen] = useState(null);
+  const [stavkaDogadjajId, setStavkaDogadjajId] = useState(null);
+  const [stavkaFakturaId, setStavkaFakturaId] = useState(null);
+  const [placanjeFakturaId, setPlacanjeFakturaId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -457,6 +460,10 @@ export default function FakturePage() {
     setLoading(true);
     try {
       const res = await fakturaApi.getAllFakture();
+      console.log(
+        "GET /api/fakture response (sample):",
+        Array.isArray(res.data) && res.data.length ? res.data[0] : res.data,
+      );
       setFakture(res.data);
       setError(null);
     } catch (err) {
@@ -506,9 +513,25 @@ export default function FakturePage() {
     if (selectedId) loadDetail(selectedId);
   }, [selectedId]);
 
+  useEffect(() => {
+    console.log("selectedDetail:", selectedDetail);
+    console.log("selectedSummary:", selectedSummary);
+  }, [selectedDetail, selectedSummary, stavkaOpen]);
+
   const openDetail = (faktura) => {
     setSelectedId(faktura.fakturaId);
     setSelectedDetail(faktura);
+  };
+
+  const handleOpenStavka = () => {
+    setStavkaDogadjajId(selectedDetail?.dogadjajId ?? null);
+    setStavkaFakturaId(selectedDetail?.fakturaId ?? null);
+    setStavkaOpen(true);
+  };
+
+  const handleOpenPlacanje = () => {
+    setPlacanjeFakturaId(selectedDetail?.fakturaId ?? null);
+    setPlacanjeOpen(true);
   };
 
   const handleCreateFaktura = async (payload) => {
@@ -525,22 +548,37 @@ export default function FakturePage() {
   };
 
   const handleAddStavka = async (payload) => {
+    const fakturaId = stavkaFakturaId;
+
     try {
-      await fakturaApi.addStavka(selectedId, payload);
+      await fakturaApi.addStavka(fakturaId, payload);
       toast("Stavka je dodata.", "success");
       setStavkaOpen(false);
-      await refresh();
+      setStavkaDogadjajId(null);
+      setStavkaFakturaId(null);
+      await loadAll();
+      if (fakturaId) {
+        setSelectedId(fakturaId);
+        await loadDetail(fakturaId);
+      }
     } catch (err) {
       toast(extractError(err, "Greška pri dodavanju stavke."), "error");
     }
   };
 
   const handleNewPlacanje = async (payload) => {
+    const fakturaId = placanjeFakturaId;
+
     try {
-      await fakturaApi.createPlacanje(selectedId, payload);
+      await fakturaApi.createPlacanje(fakturaId, payload);
       toast("Plaćanje je kreirano.", "success");
       setPlacanjeOpen(false);
-      await refresh();
+      setPlacanjeFakturaId(null);
+      await loadAll();
+      if (fakturaId) {
+        setSelectedId(fakturaId);
+        await loadDetail(fakturaId);
+      }
     } catch (err) {
       toast(extractError(err, "Greška pri kreiranju plaćanja."), "error");
     }
@@ -656,14 +694,22 @@ export default function FakturePage() {
 
       {stavkaOpen && (
         <DodajStavkuModal
-          onClose={() => setStavkaOpen(false)}
+          onClose={() => {
+            setStavkaOpen(false);
+            setStavkaDogadjajId(null);
+            setStavkaFakturaId(null);
+          }}
           onSubmit={handleAddStavka}
+          dogadjajId={stavkaDogadjajId}
         />
       )}
 
       {placanjeOpen && (
         <KreirajPlacanjeModal
-          onClose={() => setPlacanjeOpen(false)}
+          onClose={() => {
+            setPlacanjeOpen(false);
+            setPlacanjeFakturaId(null);
+          }}
           onSubmit={handleNewPlacanje}
         />
       )}
@@ -777,8 +823,8 @@ export default function FakturePage() {
             setSelectedId(null);
             setSelectedDetail(null);
           }}
-          onAddStavka={() => setStavkaOpen(true)}
-          onNewPlacanje={() => setPlacanjeOpen(true)}
+          onAddStavka={handleOpenStavka}
+          onNewPlacanje={handleOpenPlacanje}
           onConfirmPlacanje={handleConfirmPlacanje}
           onFailPlacanje={handleFailPlacanje}
           onRequestRefund={handleRequestRefund}

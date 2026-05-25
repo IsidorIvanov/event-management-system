@@ -25,7 +25,7 @@ public class FakturaController {
 
     @GetMapping("/{id}")
     public ResponseEntity<FakturaDto> get(@PathVariable Long id) {
-        return ResponseEntity.ok(fakturaService.toDto(fakturaService.findEntity(id)));
+        return ResponseEntity.ok(fakturaService.getById(id));
     }
 
     @PostMapping

@@ -2,6 +2,7 @@ package com.eventsystem.event_management_system.model;
 
 import com.eventsystem.event_management_system.utils.enums.MetodPlacanja;
 import com.eventsystem.event_management_system.utils.enums.PlacanjeStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,6 +23,7 @@ public class Placanje {
     @Column(name = "placanje_id")
     private Long placanjeId;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "faktura_id", nullable = false)
     private Faktura faktura;

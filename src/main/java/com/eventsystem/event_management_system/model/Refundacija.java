@@ -1,6 +1,7 @@
 package com.eventsystem.event_management_system.model;
 
 import com.eventsystem.event_management_system.utils.enums.RefundacijaStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -21,6 +22,7 @@ public class Refundacija {
     @Column(name = "refundacija_id")
     private Long refundacijaId;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "placanje_id", nullable = false)
     private Placanje placanje;
