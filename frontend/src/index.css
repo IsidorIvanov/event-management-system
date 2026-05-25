@@ -2513,5 +2513,62 @@ textarea.form-input {
   color: #fff;
 }
 
+/* ─── Karte list ─────────────────────────────────────────── */
+.karte-list {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.karte-list-header {
+  display: grid;
+  grid-template-columns: 150px 1fr 140px 100px 190px;
+  gap: 1rem;
+  padding: 0.65rem 1.25rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  align-items: center;
+}
+.karte-list-row {
+  display: grid;
+  grid-template-columns: 150px 1fr 140px 100px 190px;
+  gap: 1rem;
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px dashed var(--border);
+  align-items: center;
+}
+.karte-list-row:last-child { border-bottom: none; }
+.karte-vrsta-col { display: flex; align-items: center; }
+.karte-vrsta-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.karte-detalji-col { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+.karte-naziv-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.karte-naziv { font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+.karte-badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: transparent;
+}
+.karte-opis { font-size: 0.83rem; color: var(--text-secondary); line-height: 1.5; }
+.karte-cena-col { display: flex; align-items: center; }
+.karte-cena { font-size: 0.95rem; font-weight: 600; color: var(--text-primary); }
+.karte-kvota-col { display: flex; align-items: baseline; gap: 0.3rem; }
+.karte-kvota { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
+.karte-kvota-hint { font-size: 0.75rem; color: var(--text-muted); }
+
+
 
 
