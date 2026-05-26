@@ -38,6 +38,10 @@ public class TrosakDto {
 
     private Long evidentiraoId;
 
+    private Long fakturaId;
+
+    private Long stavkaFaktureId;
+
     @NotBlank(message = "Opis troška je obavezan")
     @Size(max = 500, message = "Opis troška može imati najviše 500 karaktera")
     private String opis;
@@ -49,6 +53,9 @@ public class TrosakDto {
 
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal refundiraniIznos;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private BigDecimal netoIznos;
 
     @NotNull(message = "Datum troška je obavezan")
     private LocalDate datumTroska;

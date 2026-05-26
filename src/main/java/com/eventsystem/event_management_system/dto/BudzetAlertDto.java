@@ -18,6 +18,12 @@ public class BudzetAlertDto {
 
     private Long budzetId;
 
+    private String nazivBudzeta;
+
+    private Long dogadjajId;
+
+    private String dogadjajNaziv;
+
     private Long kategorijaId;
 
     private String kategorijaNaziv;

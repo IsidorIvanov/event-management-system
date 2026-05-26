@@ -76,6 +76,15 @@ public class TrosakService {
                 .toList();
     }
 
+    @PreAuthorize("hasAnyRole('FINANSIJSKI_KONTROLOR', 'MENADZER_DOGADJAJA', 'KOORDINATOR_RESURSA', 'KOORDINATOR_PROGRAMA')")
+    @Transactional(readOnly = true)
+    public List<TrosakDto> getAll(Long dogadjajId, Long budzetId, Long kategorijaId, TipTroska tip) {
+        return trosakRepository.findAllFiltered(dogadjajId, budzetId, kategorijaId, tip)
+                .stream()
+                .map(this::toDto)
+                .toList();
+    }
+
     private void validateDto(TrosakDto dto) {
         if (dto == null) {
             throw new BadRequestException("Podaci za trošak su obavezni.");
@@ -124,12 +133,19 @@ public class TrosakService {
                 .dogadjajId(trosak.getDogadjajId())
                 .dobavljacId(trosak.getDobavljacId())
                 .evidentiraoId(trosak.getEvidentiraoId())
+                .fakturaId(trosak.getFakturaId())
+                .stavkaFaktureId(trosak.getStavkaFaktureId())
                 .opis(trosak.getOpis())
                 .iznos(trosak.getIznos())
                 .refundiraniIznos(trosak.getRefundiraniIznos())
+                .netoIznos(safe(trosak.getIznos()).subtract(safe(trosak.getRefundiraniIznos())).setScale(2, RoundingMode.HALF_EVEN))
                 .datumTroska(trosak.getDatumTroska())
                 .tip(trosak.getTip())
                 .kreiranAt(trosak.getKreiranAt())
                 .build();
+    }
+
+    private BigDecimal safe(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
     }
 }

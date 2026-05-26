@@ -26,6 +26,7 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -196,5 +197,51 @@ class BudzetServiceTest {
                 eq(new BigDecimal("0.7000")),
                 eq(new BigDecimal("0.8000"))
         );
+    }
+
+    @Test
+    void getActiveAlerts_returnsOnlyCurrentAlertsWithoutRemembering() {
+        Dogadjaj dogadjaj = Dogadjaj.builder()
+                .dogadjajId(10L)
+                .naziv("Konferencija")
+                .status(StatusDogadjaja.AKTIVAN)
+                .build();
+        Budzet budzet = Budzet.builder()
+                .budzetId(1L)
+                .nazivBudzeta("Operativni budžet")
+                .dogadjaj(dogadjaj)
+                .stavke(List.of(
+                        StavkaBudzeta.builder()
+                                .id(new StavkaBudzetaId(1L, 2L))
+                                .budzet(Budzet.builder().budzetId(1L).build())
+                                .kategorija(BudzetKategorija.builder().kategorijaId(2L).naziv("Catering").build())
+                                .planiraniIznos(new BigDecimal("100.00"))
+                                .stvarniIznos(new BigDecimal("85.00"))
+                                .pragUpozorenja(new BigDecimal("0.8000"))
+                                .pragKriticnog(new BigDecimal("0.9500"))
+                                .build(),
+                        StavkaBudzeta.builder()
+                                .id(new StavkaBudzetaId(1L, 3L))
+                                .budzet(Budzet.builder().budzetId(1L).build())
+                                .kategorija(BudzetKategorija.builder().kategorijaId(3L).naziv("Scena").build())
+                                .planiraniIznos(new BigDecimal("100.00"))
+                                .stvarniIznos(new BigDecimal("20.00"))
+                                .pragUpozorenja(new BigDecimal("0.8000"))
+                                .pragKriticnog(new BigDecimal("0.9500"))
+                                .build()
+                ))
+                .build();
+        budzet.getStavke().forEach(stavka -> stavka.setBudzet(budzet));
+        when(budzetRepository.findAllWithDetalji()).thenReturn(List.of(budzet));
+
+        List<BudzetAlertDto> result = budzetService.getActiveAlerts();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().getKategorijaId()).isEqualTo(2L);
+        assertThat(result.getFirst().getAlertLevel()).isEqualTo(AlertLevel.WARNING);
+        assertThat(result.getFirst().getNazivBudzeta()).isEqualTo("Operativni budžet");
+        assertThat(result.getFirst().getDogadjajId()).isEqualTo(10L);
+        assertThat(result.getFirst().getDogadjajNaziv()).isEqualTo("Konferencija");
+        assertThat(result.getFirst().isNotificationEmitted()).isFalse();
     }
 }

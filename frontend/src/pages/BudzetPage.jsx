@@ -20,6 +20,28 @@ const formatPercent = (value) => {
   return (Number(value) * 100).toLocaleString('sr-Latn', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + '%';
 };
 
+const ALERT_PRIORITY = {
+  NONE: 0,
+  WARNING: 1,
+  CRITICAL: 2,
+  EXCEEDED: 3,
+};
+
+const summarizeBudzetAlerts = (budzet) => {
+  const stavke = budzet?.stavke || [];
+  const activeAlerts = stavke.filter((stavka) => stavka.alertLevel && stavka.alertLevel !== 'NONE');
+  const highestAlert = activeAlerts.reduce((highest, stavka) => {
+    const currentPriority = ALERT_PRIORITY[stavka.alertLevel] || 0;
+    const highestPriority = ALERT_PRIORITY[highest] || 0;
+    return currentPriority > highestPriority ? stavka.alertLevel : highest;
+  }, 'NONE');
+
+  return {
+    activeAlertCount: activeAlerts.length,
+    highestAlert,
+  };
+};
+
 const extractError = (err) => {
   const data = err.response?.data;
   if (typeof data === 'string') return data;
@@ -213,6 +235,13 @@ export default function BudzetPage() {
   const mozeActivate = isFinKontrolor && selectedBudzet?.status === 'APPROVED';
   const mozeClose = isFinKontrolor && selectedBudzet?.status === 'ACTIVE';
   const mozeUnosTroska = selectedBudzet?.status === 'ACTIVE' && (isFinKontrolor || isKoordinatorResursa || isKoordinatorPrograma);
+  const selectedBudzetIndex = budzeti.findIndex((b) => b.budzetId === selectedBudzet?.budzetId);
+  const moveSelectedBudzet = (direction) => {
+    if (budzeti.length === 0 || selectedBudzetIndex < 0) return;
+    const nextIndex = selectedBudzetIndex + direction;
+    if (nextIndex < 0 || nextIndex >= budzeti.length) return;
+    setSelectedBudzetId(String(budzeti[nextIndex].budzetId));
+  };
 
   return (
     <div className="program-page">
@@ -297,6 +326,76 @@ export default function BudzetPage() {
             </select>
           </div>
         </div>
+
+        {budzeti.length > 0 && (
+          <div style={{ marginTop: '1rem' }}>
+            <div className="events-table-header" style={{ marginBottom: '0.75rem' }}>
+              <div>
+                <h3 style={{ margin: 0 }}>Budžeti događaja</h3>
+                <div className="card-hint">
+                  {budzeti.length} budžet{budzeti.length === 1 ? '' : 'a'} za izabrani događaj
+                </div>
+              </div>
+              <div className="action-buttons">
+                <button
+                  className="btn btn-outline btn-xs"
+                  onClick={() => moveSelectedBudzet(-1)}
+                  disabled={selectedBudzetIndex <= 0}
+                >
+                  Prethodni
+                </button>
+                <button
+                  className="btn btn-outline btn-xs"
+                  onClick={() => moveSelectedBudzet(1)}
+                  disabled={selectedBudzetIndex < 0 || selectedBudzetIndex >= budzeti.length - 1}
+                >
+                  Sledeći
+                </button>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '0.85rem',
+              }}
+            >
+              {budzeti.map((budzet) => {
+                const alertSummary = summarizeBudzetAlerts(budzet);
+                const isSelected = budzet.budzetId === selectedBudzet?.budzetId;
+                return (
+                  <button
+                    key={budzet.budzetId}
+                    type="button"
+                    onClick={() => setSelectedBudzetId(String(budzet.budzetId))}
+                    className="info-card"
+                    style={{
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      borderColor: isSelected ? 'var(--primary)' : undefined,
+                      boxShadow: isSelected ? '0 0 0 1px var(--primary)' : undefined,
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
+                      <strong>{budzet.nazivBudzeta}</strong>
+                      <BudzetStatusBadge status={budzet.status} />
+                    </div>
+                    <div className="card-hint" style={{ marginTop: '0.6rem' }}>
+                      Plan: {formatMoney(budzet.planiraniIznos)} · Odobreno: {formatMoney(budzet.odobreniIznos)}
+                    </div>
+                    <div className="card-hint" style={{ marginTop: '0.35rem' }}>
+                      Stvarno: {formatMoney(budzet.ukupnoStvarnoStavke)} · Alert stavki: {alertSummary.activeAlertCount}
+                    </div>
+                    <div style={{ marginTop: '0.65rem' }}>
+                      <AlertLevelBadge level={alertSummary.highestAlert} />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <table className="events-table">
           <thead>

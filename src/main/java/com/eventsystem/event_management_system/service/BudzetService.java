@@ -49,19 +49,19 @@ public class BudzetService {
     private final EntityManager entityManager;
     private final BudzetAlertService budzetAlertService;
 
-    @PreAuthorize("hasAnyRole('FINANSIJSKI_KONTROLOR', 'MENADZER_DOGADJAJA')")
+    @PreAuthorize("hasAnyRole('FINANSIJSKI_KONTROLOR', 'MENADZER_DOGADJAJA', 'KOORDINATOR_RESURSA', 'KOORDINATOR_PROGRAMA')")
     @Transactional(readOnly = true)
     public List<BudzetDto> getAll() {
         return budzetRepository.findAllWithDetalji().stream().map(this::toDto).toList();
     }
 
-    @PreAuthorize("hasAnyRole('FINANSIJSKI_KONTROLOR', 'MENADZER_DOGADJAJA')")
+    @PreAuthorize("hasAnyRole('FINANSIJSKI_KONTROLOR', 'MENADZER_DOGADJAJA', 'KOORDINATOR_RESURSA', 'KOORDINATOR_PROGRAMA')")
     @Transactional(readOnly = true)
     public BudzetDto getById(Long id) {
         return toDto(findEntityWithDetalji(id));
     }
 
-    @PreAuthorize("hasAnyRole('FINANSIJSKI_KONTROLOR', 'MENADZER_DOGADJAJA')")
+    @PreAuthorize("hasAnyRole('FINANSIJSKI_KONTROLOR', 'MENADZER_DOGADJAJA', 'KOORDINATOR_RESURSA', 'KOORDINATOR_PROGRAMA')")
     @Transactional(readOnly = true)
     public List<BudzetDto> getByDogadjaj(Long dogadjajId) {
         return budzetRepository.findByDogadjajIdWithDetalji(dogadjajId).stream().map(this::toDto).toList();
@@ -279,6 +279,16 @@ public class BudzetService {
                 .toList();
     }
 
+    @PreAuthorize("hasAnyRole('FINANSIJSKI_KONTROLOR', 'MENADZER_DOGADJAJA')")
+    @Transactional(readOnly = true)
+    public List<BudzetAlertDto> getActiveAlerts() {
+        return budzetRepository.findAllWithDetalji().stream()
+                .flatMap(budzet -> budzet.getStavke().stream())
+                .map(this::toAlertDto)
+                .filter(alert -> alert.getAlertLevel() != AlertLevel.NONE)
+                .toList();
+    }
+
     private StavkaBudzeta findStavka(Long budzetId, Long kategorijaId) {
         return stavkaBudzetaRepository.findById(new StavkaBudzetaId(budzetId, kategorijaId))
                 .orElseThrow(() -> new NotFoundException("Stavka budžeta nije pronađena za izabranu kategoriju."));
@@ -402,7 +412,7 @@ public class BudzetService {
     }
 
     private BudzetAlertDto toAlertDto(StavkaBudzeta stavka) {
-        return budzetAlertService.toDto(
+        BudzetAlertDto alert = budzetAlertService.toDto(
                 stavka.getBudzet().getBudzetId(),
                 stavka.getKategorija().getKategorijaId(),
                 stavka.getKategorija().getNaziv(),
@@ -411,5 +421,9 @@ public class BudzetService {
                 stavka.getPragUpozorenja(),
                 stavka.getPragKriticnog()
         );
+        alert.setNazivBudzeta(stavka.getBudzet().getNazivBudzeta());
+        alert.setDogadjajId(stavka.getBudzet().getDogadjaj().getDogadjajId());
+        alert.setDogadjajNaziv(stavka.getBudzet().getDogadjaj().getNaziv());
+        return alert;
     }
 }

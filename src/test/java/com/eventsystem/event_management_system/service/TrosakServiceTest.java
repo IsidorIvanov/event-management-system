@@ -22,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -104,6 +105,29 @@ class TrosakServiceTest {
         assertThat(captor.getValue().getIznos()).isEqualByComparingTo(new BigDecimal("25.50"));
         assertThat(captor.getValue().getEvidentiraoId()).isEqualTo(88L);
         assertThat(saved.getTrosakId()).isEqualTo(10L);
+    }
+
+    @Test
+    void getAll_returnsFilteredCostsWithNetAmount() {
+        Trosak trosak = Trosak.builder()
+                .trosakId(20L)
+                .budzetId(1L)
+                .kategorijaId(2L)
+                .dogadjajId(7L)
+                .opis("Auto trošak")
+                .iznos(new BigDecimal("100.00"))
+                .refundiraniIznos(new BigDecimal("25.00"))
+                .datumTroska(LocalDate.now())
+                .tip(TipTroska.AUTO_ULAZNA)
+                .build();
+        when(trosakRepository.findAllFiltered(7L, 1L, 2L, TipTroska.AUTO_ULAZNA))
+                .thenReturn(List.of(trosak));
+
+        List<TrosakDto> result = trosakService.getAll(7L, 1L, 2L, TipTroska.AUTO_ULAZNA);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().getNetoIznos()).isEqualByComparingTo(new BigDecimal("75.00"));
+        verify(trosakRepository).findAllFiltered(7L, 1L, 2L, TipTroska.AUTO_ULAZNA);
     }
 
     private TrosakDto validDto() {

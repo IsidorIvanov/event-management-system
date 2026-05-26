@@ -30,6 +30,11 @@ public class BudzetController {
         return ResponseEntity.ok(budzetService.getAll());
     }
 
+    @GetMapping("/alerts/active")
+    public ResponseEntity<List<BudzetAlertDto>> getActiveAlerts() {
+        return ResponseEntity.ok(budzetService.getActiveAlerts());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<BudzetDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(budzetService.getById(id));

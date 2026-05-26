@@ -6,6 +6,8 @@ export const getBudzet = (id) => api.get(`/budzet/${id}`);
 
 export const getBudzetAlerts = (id) => api.get(`/budzet/${id}/alerts`);
 
+export const getActiveBudzetAlerts = () => api.get('/budzet/alerts/active');
+
 export const getBudzetiByDogadjaj = (dogadjajId) => api.get(`/budzet/dogadjaj/${dogadjajId}`);
 
 export const createBudzet = (data) => api.post('/budzet', data);
@@ -37,3 +39,8 @@ export const updateKategorija = (id, data) => api.put(`/budzet/kategorije/${id}`
 export const deleteKategorija = (id) => api.delete(`/budzet/kategorije/${id}`);
 
 export const createTrosak = (data) => api.post('/troskovi', data);
+
+export const getTroskovi = (params = {}) => api.get('/troskovi', { params });
+
+export const getTroskoviByStavka = (budzetId, kategorijaId) =>
+  api.get(`/troskovi/budzet/${budzetId}/kategorija/${kategorijaId}`);

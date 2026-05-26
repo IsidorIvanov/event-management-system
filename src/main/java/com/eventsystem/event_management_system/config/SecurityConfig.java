@@ -48,6 +48,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/public/**").permitAll()
 
                 // Finansijski podsistem — samo ZAPOSLENI sa ulogama FINANSIJSKI_KONTROLOR ili MENADZER_DOGADJAJA
+                .requestMatchers(HttpMethod.GET, "/api/budzet/**").hasAnyRole(
+                        "FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA",
+                        "KOORDINATOR_RESURSA", "KOORDINATOR_PROGRAMA")
                 .requestMatchers("/api/budzet/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
                 .requestMatchers("/api/fakture/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
                 .requestMatchers("/api/placanja/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
