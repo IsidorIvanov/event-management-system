@@ -7,6 +7,9 @@ import DodajStavkuModal from "../components/fakture/DodajStavkuModal.jsx";
 import KreirajPlacanjeModal from "../components/fakture/KreirajPlacanjeModal.jsx";
 import RefundacijaModal from "../components/fakture/RefundacijaModal.jsx";
 import * as fakturaApi from "../services/fakturaService";
+import * as budzetApi from "../services/budzetService";
+import { AlertLevelBadge } from "../components/budzet/BudzetStatusBadge.jsx";
+import { notifyAlerts } from "../utils/alertUtils";
 
 const TIP_DISPLAY = {
   ULAZNA: "Ulazna",
@@ -129,6 +132,7 @@ function FakturaDetailModal({
   onCancelFaktura,
   hasRole,
   userId,
+  stavkaAlerts,
 }) {
   if (!faktura) return null;
 
@@ -203,35 +207,49 @@ function FakturaDetailModal({
                         <th>UKUPNO</th>
                         <th>BUDŽET</th>
                         <th>KATEGORIJA</th>
+                        <th>ALERT</th>
                         {canAddStavka && <th>AKCIJE</th>}
                       </tr>
                     </thead>
                     <tbody>
-                      {faktura.stavke.map((stavka) => (
-                        <tr
-                          key={
-                            stavka.stavkaFaktureId ||
-                            `${stavka.redniBroj}-${stavka.naziv}`
-                          }
-                        >
-                          <td>{stavka.naziv}</td>
-                          <td>{stavka.kolicina}</td>
-                          <td>{formatMoney(stavka.jedinicnaCena)}</td>
-                          <td>{formatMoney(stavka.ukupnaCena)}</td>
-                          <td>{stavka.budzetId || "—"}</td>
-                          <td>{stavka.kategorijaId || "—"}</td>
-                          {canAddStavka && (
+                      {faktura.stavke.map((stavka) => {
+                        const alert = stavkaAlerts?.[`${stavka.budzetId}:${stavka.kategorijaId}`];
+                        return (
+                          <tr
+                            key={
+                              stavka.stavkaFaktureId ||
+                              `${stavka.redniBroj}-${stavka.naziv}`
+                            }
+                          >
+                            <td>{stavka.naziv}</td>
+                            <td>{stavka.kolicina}</td>
+                            <td>{formatMoney(stavka.jedinicnaCena)}</td>
+                            <td>{formatMoney(stavka.ukupnaCena)}</td>
+                            <td>{stavka.budzetId || "—"}</td>
+                            <td>{stavka.kategorijaId || "—"}</td>
                             <td>
-                              <button
-                                className="btn btn-xs btn-danger-outline"
-                                onClick={() => onDeleteStavka(stavka)}
-                              >
-                                Obriši
-                              </button>
+                              {stavka.trosakId ? (
+                                <>
+                                  <AlertLevelBadge level={alert?.alertLevel || "NONE"} />
+                                  {alert?.poruka && <div className="card-hint">{alert.poruka}</div>}
+                                </>
+                              ) : (
+                                "—"
+                              )}
                             </td>
-                          )}
-                        </tr>
-                      ))}
+                            {canAddStavka && (
+                              <td>
+                                <button
+                                  className="btn btn-xs btn-danger-outline"
+                                  onClick={() => onDeleteStavka(stavka)}
+                                >
+                                  Obriši
+                                </button>
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -522,6 +540,7 @@ export default function FakturePage() {
   const [placanjeFakturaId, setPlacanjeFakturaId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedDetail, setSelectedDetail] = useState(null);
+  const [stavkaAlerts, setStavkaAlerts] = useState({});
   const [detailLoading, setDetailLoading] = useState(false);
   const [dogadjaji, setDogadjaji] = useState([]);
   const [dogadjajiLoading, setDogadjajiLoading] = useState(false);
@@ -530,6 +549,54 @@ export default function FakturePage() {
     () => fakture.find((f) => f.fakturaId === selectedId) || null,
     [fakture, selectedId],
   );
+
+  const getBudgetIdsFromFaktura = (faktura) => [
+    ...new Set((faktura?.stavke || []).map((stavka) => stavka.budzetId).filter(Boolean)),
+  ];
+
+  const loadAlertsForFaktura = async (faktura) => {
+    const budzetIds = getBudgetIdsFromFaktura(faktura);
+    if (budzetIds.length === 0) {
+      setStavkaAlerts({});
+      return [];
+    }
+
+    const alertLists = await Promise.all(
+      budzetIds.map(async (budzetId) => {
+        try {
+          const res = await budzetApi.getBudzetAlerts(budzetId);
+          return res.data || [];
+        } catch {
+          return [];
+        }
+      }),
+    );
+    const alerts = alertLists.flat();
+    setStavkaAlerts(
+      alerts.reduce((map, alert) => {
+        map[`${alert.budzetId}:${alert.kategorijaId}`] = alert;
+        return map;
+      }, {}),
+    );
+    return alerts;
+  };
+
+  const notifyBudgetAlerts = async (budzetIds) => {
+    const uniqueIds = [...new Set((budzetIds || []).filter(Boolean))];
+    if (uniqueIds.length === 0) return;
+
+    const alertLists = await Promise.all(
+      uniqueIds.map(async (budzetId) => {
+        try {
+          const res = await budzetApi.getBudzetAlerts(budzetId);
+          return res.data || [];
+        } catch {
+          return [];
+        }
+      }),
+    );
+    notifyAlerts(alertLists.flat(), toast);
+  };
 
   const loadAll = async () => {
     setLoading(true);
@@ -550,6 +617,8 @@ export default function FakturePage() {
     try {
       const res = await fakturaApi.getFakturaById(id);
       setSelectedDetail(res.data);
+      await loadAlertsForFaktura(res.data);
+      return res.data;
     } catch (err) {
       toast(
         extractError(err, "Greška pri učitavanju detalja fakture."),
@@ -558,6 +627,7 @@ export default function FakturePage() {
     } finally {
       setDetailLoading(false);
     }
+    return null;
   };
 
   const refresh = async (keepDetail = true) => {
@@ -615,6 +685,7 @@ export default function FakturePage() {
 
   const handleAddStavka = async (payload) => {
     const fakturaId = stavkaFakturaId;
+    const shouldNotifyAlerts = selectedDetail?.tip === "ULAZNA";
 
     try {
       await fakturaApi.addStavka(fakturaId, payload);
@@ -627,6 +698,9 @@ export default function FakturePage() {
         setSelectedId(fakturaId);
         await loadDetail(fakturaId);
       }
+      if (shouldNotifyAlerts) {
+        await notifyBudgetAlerts([payload.budzetId]);
+      }
     } catch (err) {
       toast(extractError(err, "Greška pri dodavanju stavke."), "error");
     }
@@ -635,6 +709,8 @@ export default function FakturePage() {
   const handleDeleteStavka = async (stavka) => {
     const fakturaId = selectedDetail?.fakturaId;
     const stavkaId = stavka?.stavkaFaktureId;
+    const shouldNotifyAlerts = selectedDetail?.tip === "ULAZNA";
+    const budzetId = stavka?.budzetId;
     if (!fakturaId || !stavkaId) return;
     if (!window.confirm("Da li sigurno želiš da obrišeš ovu stavku?")) return;
 
@@ -644,6 +720,9 @@ export default function FakturePage() {
       await loadAll();
       setSelectedId(fakturaId);
       await loadDetail(fakturaId);
+      if (shouldNotifyAlerts) {
+        await notifyBudgetAlerts([budzetId]);
+      }
     } catch (err) {
       toast(extractError(err, "Greška pri brisanju stavke."), "error");
     }
@@ -726,10 +805,15 @@ export default function FakturePage() {
   };
 
   const handleExecuteRefund = async (refundacija) => {
+    const shouldNotifyAlerts = selectedDetail?.tip === "ULAZNA";
+    const affectedBudzetIds = getBudgetIdsFromFaktura(selectedDetail);
     try {
       await fakturaApi.executeRefundacija(refundacija.refundacijaId);
       toast("Refundacija je izvršena.", "success");
       await refresh();
+      if (shouldNotifyAlerts) {
+        await notifyBudgetAlerts(affectedBudzetIds);
+      }
     } catch (err) {
       toast(extractError(err, "Greška pri izvršenju refundacije."), "error");
     }
@@ -750,10 +834,15 @@ export default function FakturePage() {
   };
 
   const handleCancelFaktura = async () => {
+    const shouldNotifyAlerts = selectedDetail?.tip === "ULAZNA";
+    const affectedBudzetIds = getBudgetIdsFromFaktura(selectedDetail);
     try {
       await fakturaApi.cancelFaktura(selectedId);
       toast("Faktura je otkazana.", "success");
       await refresh();
+      if (shouldNotifyAlerts) {
+        await notifyBudgetAlerts(affectedBudzetIds);
+      }
     } catch (err) {
       toast(extractError(err, "Greška pri otkazivanju fakture."), "error");
     }
@@ -914,6 +1003,7 @@ export default function FakturePage() {
           onCancelFaktura={handleCancelFaktura}
           hasRole={hasRole}
           userId={getUserId()}
+          stavkaAlerts={stavkaAlerts}
           detailLoading={detailLoading}
         />
       )}

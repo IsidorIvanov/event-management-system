@@ -5,6 +5,9 @@ import ResursiPage from './ResursiPage';
 import PorudzbenicePage from './PorudzbenicePage';
 import BudzetPage from './BudzetPage';
 import FakturePage from './FakturePage';
+import TroskoviPage from './TroskoviPage';
+import PlacanjaPage from './PlacanjaPage';
+import UpozorenjaPage from './UpozorenjaPage';
 import api from '../services/api';
 import UpsertEventModal from '../components/UpsertEventModal.jsx';
 import UpsertLokacijaModal from '../components/UpsertLokacijaModal.jsx';
@@ -676,6 +679,8 @@ export default function DashboardPage() {
     hasRole("FINANSIJSKI_KONTROLOR") || hasRole("MENADZER_DOGADJAJA");
   const isResursi =
     hasRole("KOORDINATOR_RESURSA") || hasRole("MENADZER_DOGADJAJA");
+  const isTroskovi =
+    isFinansije || hasRole("KOORDINATOR_RESURSA") || hasRole("KOORDINATOR_PROGRAMA");
 
   return (
     <div className="dashboard-layout">
@@ -705,9 +710,12 @@ export default function DashboardPage() {
             <>
               <NavLink to="/dashboard/budzet" icon="💰" label="Budžeti" />
               <NavLink to="/dashboard/fakture" icon="📄" label="Fakture" />
-              <NavLink to="/dashboard/troskovi" icon="📊" label="Troškovi" />
               <NavLink to="/dashboard/placanja" icon="💳" label="Plaćanja" />
+              <NavLink to="/dashboard/upozorenja" icon="⚠️" label="Upozorenja" />
             </>
+          )}
+          {isTroskovi && (
+            <NavLink to="/dashboard/troskovi" icon="📊" label="Troškovi" />
           )}
           {isResursi && (
             <NavLink to="/dashboard/resursi" icon="🏢" label="Resursi" />
@@ -765,12 +773,9 @@ export default function DashboardPage() {
           <Route path="dogadjaj/:id" element={<EventDetailPage />} />
           <Route path="budzet" element={<BudzetPage />} />
           <Route path="fakture" element={<FakturePage />} />
-          <Route path="troskovi" element={
-            <FinansijePage title="Troškovi" description="pregled i evidentiranje troškova" />
-          } />
-          <Route path="placanja" element={
-            <FinansijePage title="Plaćanja" description="pregled i evidentiranje plaćanja" />
-          } />
+          <Route path="troskovi" element={<TroskoviPage />} />
+          <Route path="placanja" element={<PlacanjaPage />} />
+          <Route path="upozorenja" element={<UpozorenjaPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>

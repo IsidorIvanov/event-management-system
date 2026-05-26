@@ -1,6 +1,7 @@
 package com.eventsystem.event_management_system.service;
 
 import com.eventsystem.event_management_system.dto.BudzetDto;
+import com.eventsystem.event_management_system.dto.BudzetAlertDto;
 import com.eventsystem.event_management_system.dto.StavkaBudzetaDto;
 import com.eventsystem.event_management_system.exception.BadRequestException;
 import com.eventsystem.event_management_system.exception.NotFoundException;
@@ -15,6 +16,7 @@ import com.eventsystem.event_management_system.repository.DogadjajRepository;
 import com.eventsystem.event_management_system.repository.StavkaBudzetaRepository;
 import com.eventsystem.event_management_system.repository.TrosakRepository;
 import com.eventsystem.event_management_system.utils.enums.BudzetStatus;
+import com.eventsystem.event_management_system.utils.enums.AlertLevel;
 import com.eventsystem.event_management_system.utils.enums.StatusDogadjaja;
 import com.eventsystem.event_management_system.utils.enums.StatusKontrole;
 import jakarta.persistence.EntityManager;
@@ -45,20 +47,21 @@ public class BudzetService {
     private final CurrentUserService currentUserService;
     private final TrosakRepository trosakRepository;
     private final EntityManager entityManager;
+    private final BudzetAlertService budzetAlertService;
 
-    @PreAuthorize("hasAnyRole('FINANSIJSKI_KONTROLOR', 'MENADZER_DOGADJAJA')")
+    @PreAuthorize("hasAnyRole('FINANSIJSKI_KONTROLOR', 'MENADZER_DOGADJAJA', 'KOORDINATOR_RESURSA', 'KOORDINATOR_PROGRAMA')")
     @Transactional(readOnly = true)
     public List<BudzetDto> getAll() {
         return budzetRepository.findAllWithDetalji().stream().map(this::toDto).toList();
     }
 
-    @PreAuthorize("hasAnyRole('FINANSIJSKI_KONTROLOR', 'MENADZER_DOGADJAJA')")
+    @PreAuthorize("hasAnyRole('FINANSIJSKI_KONTROLOR', 'MENADZER_DOGADJAJA', 'KOORDINATOR_RESURSA', 'KOORDINATOR_PROGRAMA')")
     @Transactional(readOnly = true)
     public BudzetDto getById(Long id) {
         return toDto(findEntityWithDetalji(id));
     }
 
-    @PreAuthorize("hasAnyRole('FINANSIJSKI_KONTROLOR', 'MENADZER_DOGADJAJA')")
+    @PreAuthorize("hasAnyRole('FINANSIJSKI_KONTROLOR', 'MENADZER_DOGADJAJA', 'KOORDINATOR_RESURSA', 'KOORDINATOR_PROGRAMA')")
     @Transactional(readOnly = true)
     public List<BudzetDto> getByDogadjaj(Long dogadjajId) {
         return budzetRepository.findByDogadjajIdWithDetalji(dogadjajId).stream().map(this::toDto).toList();
@@ -171,6 +174,15 @@ public class BudzetService {
         stavka.setStatusKontrole(calculateStatusKontrole(noviPlan, safe(stavka.getStvarniIznos())));
 
         stavkaBudzetaRepository.save(stavka);
+        budzetAlertService.evaluateAndRemember(
+                budzetId,
+                kategorijaId,
+                stavka.getKategorija().getNaziv(),
+                stavka.getStvarniIznos(),
+                stavka.getPlaniraniIznos(),
+                stavka.getPragUpozorenja(),
+                stavka.getPragKriticnog()
+        );
         return getById(budzetId);
     }
 
@@ -246,7 +258,35 @@ public class BudzetService {
         stavka.setStvarniIznos(stvarniIznos);
         stavka.setStatusKontrole(calculateStatusKontrole(stavka.getPlaniraniIznos(), stvarniIznos));
         stavkaBudzetaRepository.save(stavka);
-        // TODO: alert notifikacije (8.1 korak 4) - implementirati kada bude dostupan NotificationService
+        budzetAlertService.evaluateAndRemember(
+                budzetId,
+                kategorijaId,
+                stavka.getKategorija().getNaziv(),
+                stvarniIznos,
+                stavka.getPlaniraniIznos(),
+                stavka.getPragUpozorenja(),
+                stavka.getPragKriticnog()
+        );
+    }
+
+    @PreAuthorize("hasAnyRole('FINANSIJSKI_KONTROLOR', 'MENADZER_DOGADJAJA')")
+    @Transactional(readOnly = true)
+    public List<BudzetAlertDto> getAlerts(Long budzetId) {
+        Budzet budzet = findEntityWithDetalji(budzetId);
+        return budzet.getStavke().stream()
+                .map(this::toAlertDto)
+                .filter(alert -> alert.getAlertLevel() != AlertLevel.NONE)
+                .toList();
+    }
+
+    @PreAuthorize("hasAnyRole('FINANSIJSKI_KONTROLOR', 'MENADZER_DOGADJAJA')")
+    @Transactional(readOnly = true)
+    public List<BudzetAlertDto> getActiveAlerts() {
+        return budzetRepository.findAllWithDetalji().stream()
+                .flatMap(budzet -> budzet.getStavke().stream())
+                .map(this::toAlertDto)
+                .filter(alert -> alert.getAlertLevel() != AlertLevel.NONE)
+                .toList();
     }
 
     private StavkaBudzeta findStavka(Long budzetId, Long kategorijaId) {
@@ -353,6 +393,7 @@ public class BudzetService {
     }
 
     private StavkaBudzetaDto toStavkaDto(StavkaBudzeta stavka) {
+        BudzetAlertDto alert = toAlertDto(stavka);
         return StavkaBudzetaDto.builder()
                 .budzetId(stavka.getBudzet().getBudzetId())
                 .kategorijaId(stavka.getKategorija().getKategorijaId())
@@ -363,7 +404,26 @@ public class BudzetService {
                 .pragUpozorenja(stavka.getPragUpozorenja())
                 .pragKriticnog(stavka.getPragKriticnog())
                 .statusKontrole(stavka.getStatusKontrole())
+                .alertLevel(alert.getAlertLevel())
+                .iskoriscenost(alert.getIskoriscenost())
+                .alertPoruka(alert.getPoruka())
                 .komentar(stavka.getKomentar())
                 .build();
+    }
+
+    private BudzetAlertDto toAlertDto(StavkaBudzeta stavka) {
+        BudzetAlertDto alert = budzetAlertService.toDto(
+                stavka.getBudzet().getBudzetId(),
+                stavka.getKategorija().getKategorijaId(),
+                stavka.getKategorija().getNaziv(),
+                safe(stavka.getStvarniIznos()),
+                safe(stavka.getPlaniraniIznos()),
+                stavka.getPragUpozorenja(),
+                stavka.getPragKriticnog()
+        );
+        alert.setNazivBudzeta(stavka.getBudzet().getNazivBudzeta());
+        alert.setDogadjajId(stavka.getBudzet().getDogadjaj().getDogadjajId());
+        alert.setDogadjajNaziv(stavka.getBudzet().getDogadjaj().getNaziv());
+        return alert;
     }
 }
