@@ -133,31 +133,6 @@ public class FakturaService {
 
         s = stavkaFaktureRepository.save(s);
 
-        // Flow 7.1: ako je ulazna faktura, kreiraj AUTO_ULAZNA trosak
-        if (f.getTip() == TipFakture.ULAZNA) {
-            Trosak t = Trosak.builder()
-                    .opis(s.getNaziv())
-                    .iznos(s.getUkupnaCena())
-                    .refundiraniIznos(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN))
-                    .tip(TipTroska.AUTO_ULAZNA)
-                    .fakturaId(f.getFakturaId())
-                    .stavkaFaktureId(s.getStavkaFaktureId())
-                    .budzetId(s.getBudzetId())
-                    .kategorijaId(s.getKategorijaId())
-                    .dogadjajId(f.getDogadjajId())
-                    .dobavljacId(f.getDobavljacId())
-                    .evidentiraoId(f.getKreiraoId())
-                    .datumTroska(f.getDatumIzdavanja())
-                    .kreiranAt(LocalDateTime.now())
-                    .build();
-            Trosak novi = trosakRepository.save(t);
-
-            // set reference back to stavka
-            s.setTrosakId(novi.getTrosakId());
-            stavkaFaktureRepository.save(s);
-            budzetService.recomputeStavku(s.getBudzetId(), s.getKategorijaId());
-        }
-
         recomputeUkupanIznos(fakturaId);
 
         return toStavkaDto(s);
@@ -210,6 +185,32 @@ public class FakturaService {
         recomputeUkupanIznos(fakturaId);
         f.setStatus(FakturaStatus.IZDATA);
         fakturaRepository.save(f);
+        if (f.getTip() == TipFakture.ULAZNA) {
+            // Poslovna odluka: AUTO_ULAZNA trošak nastaje tek pri izdavanju
+            // fakture (issue), ne pri dodavanju stavke na DRAFT fakturu.
+            // DRAFT faktura nema finansijski efekat na budžet.
+            for (StavkaFakture stavka : f.getStavke()) {
+                Trosak trosak = Trosak.builder()
+                        .budzetId(stavka.getBudzetId())
+                        .kategorijaId(stavka.getKategorijaId())
+                        .dogadjajId(f.getDogadjajId())
+                        .dobavljacId(f.getDobavljacId())
+                        .evidentiraoId(f.getKreiraoId())
+                        .opis(stavka.getNaziv())
+                        .iznos(stavka.getUkupnaCena().setScale(2, RoundingMode.HALF_EVEN))
+                        .refundiraniIznos(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN))
+                        .datumTroska(f.getDatumIzdavanja())
+                        .tip(TipTroska.AUTO_ULAZNA)
+                        .fakturaId(f.getFakturaId())
+                        .stavkaFaktureId(stavka.getStavkaFaktureId())
+                        .kreiranAt(LocalDateTime.now())
+                        .build();
+                Trosak saved = trosakRepository.save(trosak);
+                stavka.setTrosakId(saved.getTrosakId());
+                stavkaFaktureRepository.save(stavka);
+                budzetService.recomputeStavku(stavka.getBudzetId(), stavka.getKategorijaId());
+            }
+        }
         return toDto(f);
     }
 
@@ -401,7 +402,7 @@ public class FakturaService {
 
         Budzet budzet = stavka.getBudzet();
         if (budzet.getStatus() == BudzetStatus.CLOSED) {
-            throw new BadRequestException("Zatvoren budžet se ne može teretiti novom stavkom fakture.");
+            throw new BadRequestException("Ne može se dodati stavka na zatvoreni budžet.");
         }
         if (!budzet.getDogadjaj().getDogadjajId().equals(faktura.getDogadjajId())) {
             throw new BadRequestException("Budžet mora pripadati istom događaju kao faktura.");

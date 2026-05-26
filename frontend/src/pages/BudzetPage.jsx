@@ -8,6 +8,7 @@ import TrosakModal from '../components/budzet/TrosakModal';
 import BudzetKategorijeModal from '../components/budzet/BudzetKategorijeModal';
 import { AlertLevelBadge, BudzetStatusBadge, StatusKontroleBadge } from '../components/budzet/BudzetStatusBadge';
 import * as budzetApi from '../services/budzetService';
+import { notifyAlerts } from '../utils/alertUtils';
 
 const formatMoney = (value) => {
   if (value == null) return '—';
@@ -26,8 +27,6 @@ const extractError = (err) => {
   if (data?.error) return data.error;
   return err.message || 'Došlo je do greške.';
 };
-
-const ALERT_LEVELS = new Set(['WARNING', 'CRITICAL', 'EXCEEDED']);
 
 export default function BudzetPage() {
   const toast = useToast();
@@ -109,21 +108,10 @@ export default function BudzetPage() {
     }
   };
 
-  const notifyAlerts = (alerts) => {
-    (alerts || [])
-      .filter((alert) => ALERT_LEVELS.has(alert.alertLevel))
-      .forEach((alert) => {
-        toast(
-          alert.poruka || alert.alertPoruka || `Upozorenje za kategoriju ${alert.kategorijaNaziv}`,
-          alert.alertLevel === 'WARNING' ? 'info' : 'error'
-        );
-      });
-  };
-
   const notifyAlertsForBudzet = async (budzetId) => {
     try {
       const res = await budzetApi.getBudzetAlerts(budzetId);
-      notifyAlerts(res.data);
+      notifyAlerts(res.data, toast);
     } catch (err) {
       toast(extractError(err), 'error');
     }
@@ -162,7 +150,7 @@ export default function BudzetPage() {
     if (saved) {
       setStavkaModal(undefined);
       await loadBudzeti(selectedDogadjajId, selectedBudzet.budzetId);
-      notifyAlerts(saved.stavke);
+      notifyAlerts(saved.stavke, toast);
     }
   };
 
