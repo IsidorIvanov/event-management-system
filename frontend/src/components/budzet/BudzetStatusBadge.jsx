@@ -6,16 +6,16 @@ const STATUS_MAP = {
 };
 
 const KONTROLA_MAP = {
-  ISPOD_PLANA: { label: 'Ispod plana', cls: 'status-published' },
-  NA_PLANU: { label: 'Na planu', cls: 'status-ongoing' },
-  PREKORACENJE: { label: 'Prekoračenje', cls: 'status-draft' },
+  ISPOD_PLANA: { label: 'Ispod plana', cls: 'kontrola-ispod' },
+  NA_PLANU: { label: 'Na planu', cls: 'kontrola-na' },
+  PREKORACENJE: { label: 'Prekoračenje', cls: 'kontrola-preko' },
 };
 
 const ALERT_MAP = {
-  NONE: { label: 'Nema', cls: 'status-finished' },
-  WARNING: { label: 'Upozorenje', cls: 'status-published' },
-  CRITICAL: { label: 'Kritično', cls: 'status-ongoing' },
-  EXCEEDED: { label: 'Prekoračeno', cls: 'status-draft' },
+  NONE: { label: 'Nema', cls: 'alert-none' },
+  WARNING: { label: 'Upozorenje', cls: 'alert-warning' },
+  CRITICAL: { label: 'Kritično', cls: 'alert-critical' },
+  EXCEEDED: { label: 'Prekoračeno', cls: 'alert-exceeded' },
 };
 
 export function statusLabel(status) {

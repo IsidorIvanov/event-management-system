@@ -22,6 +22,8 @@ export default function TrosakModal({ budzet, stavka, onClose, onSubmit, loading
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!form.opis.trim()) return setError('Opis troška je obavezan.');
+    if (form.iznos === '' || form.iznos === null || form.iznos === undefined)
+      return setError('Iznos troška je obavezan.');
     if (Number(form.iznos) < 0) return setError('Iznos troška ne može biti negativan.');
     if (!form.datumTroska) return setError('Datum troška je obavezan.');
 

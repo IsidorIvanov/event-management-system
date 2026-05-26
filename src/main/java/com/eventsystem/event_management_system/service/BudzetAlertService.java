@@ -81,7 +81,7 @@ public class BudzetAlertService {
         if (planirani.compareTo(BigDecimal.ZERO) == 0) {
             return stvarni.compareTo(BigDecimal.ZERO) == 0
                     ? BigDecimal.ZERO.setScale(4, RoundingMode.HALF_EVEN)
-                    : ONE.setScale(4, RoundingMode.HALF_EVEN);
+                    : null;
         }
         return stvarni.divide(planirani, 4, RoundingMode.HALF_EVEN);
     }
@@ -131,12 +131,21 @@ public class BudzetAlertService {
 
     private String buildPoruka(String kategorijaNaziv, AlertLevel alertLevel, BigDecimal iskoriscenost) {
         String kategorija = kategorijaNaziv != null ? kategorijaNaziv : "Stavka budzeta";
+        if (alertLevel == AlertLevel.NONE) {
+            return null;
+        }
+        if (iskoriscenost == null) {
+            return switch (alertLevel) {
+                case EXCEEDED -> "%s je prekoracila planirani iznos (plan je 0, postoji trošak).".formatted(kategorija);
+                default -> "%s: neplanirani trošak.".formatted(kategorija);
+            };
+        }
         BigDecimal procenat = iskoriscenost.multiply(new BigDecimal("100")).setScale(2, RoundingMode.HALF_EVEN);
         return switch (alertLevel) {
-            case NONE -> null;
             case WARNING -> "%s je dostigla prag upozorenja (%s%%).".formatted(kategorija, procenat);
             case CRITICAL -> "%s je dostigla kriticni prag (%s%%).".formatted(kategorija, procenat);
             case EXCEEDED -> "%s je prekoracila planirani iznos (%s%%).".formatted(kategorija, procenat);
+            default -> null;
         };
     }
 

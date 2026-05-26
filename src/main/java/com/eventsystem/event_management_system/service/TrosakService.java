@@ -83,11 +83,11 @@ public class TrosakService {
         if (dto.getTip() == null) {
             throw new BadRequestException("Tip troška je obavezan.");
         }
-        if (dto.getTip() == TipTroska.AUTO_ULAZNA) {
-            throw new BadRequestException("AUTO_ULAZNA trošak se kreira isključivo kroz ulaznu fakturu.");
-        }
         if (dto.getTip() != TipTroska.RUCNI && dto.getTip() != TipTroska.GOTOVINSKI) {
-            throw new BadRequestException("Dozvoljeni tipovi troška su RUCNI i GOTOVINSKI.");
+            throw new BadRequestException(
+                    "Dozvoljeni tipovi troška su RUCNI i GOTOVINSKI. "
+                            + "AUTO_ULAZNA trošak se kreira isključivo kroz ulaznu fakturu."
+            );
         }
         if (dto.getOpis() == null || dto.getOpis().trim().isEmpty()) {
             throw new BadRequestException("Opis troška je obavezan.");
