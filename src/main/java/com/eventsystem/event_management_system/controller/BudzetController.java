@@ -1,6 +1,7 @@
 package com.eventsystem.event_management_system.controller;
 
 import com.eventsystem.event_management_system.dto.BudzetDto;
+import com.eventsystem.event_management_system.dto.BudzetAlertDto;
 import com.eventsystem.event_management_system.dto.StavkaBudzetaDto;
 import com.eventsystem.event_management_system.service.BudzetService;
 import jakarta.validation.Valid;
@@ -32,6 +33,11 @@ public class BudzetController {
     @GetMapping("/{id}")
     public ResponseEntity<BudzetDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(budzetService.getById(id));
+    }
+
+    @GetMapping("/{id}/alerts")
+    public ResponseEntity<List<BudzetAlertDto>> getAlerts(@PathVariable Long id) {
+        return ResponseEntity.ok(budzetService.getAlerts(id));
     }
 
     @GetMapping("/dogadjaj/{dogadjajId}")

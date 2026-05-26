@@ -1,6 +1,7 @@
 package com.eventsystem.event_management_system.dto;
 
 import com.eventsystem.event_management_system.utils.enums.StatusKontrole;
+import com.eventsystem.event_management_system.utils.enums.AlertLevel;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
@@ -46,6 +47,12 @@ public class StavkaBudzetaDto {
     private BigDecimal pragKriticnog;
 
     private StatusKontrole statusKontrole;
+
+    private AlertLevel alertLevel;
+
+    private BigDecimal iskoriscenost;
+
+    private String alertPoruka;
 
     @Size(max = 500, message = "Komentar može imati najviše 500 karaktera")
     private String komentar;

@@ -11,12 +11,23 @@ const KONTROLA_MAP = {
   PREKORACENJE: { label: 'Prekoračenje', cls: 'status-draft' },
 };
 
+const ALERT_MAP = {
+  NONE: { label: 'Nema', cls: 'status-finished' },
+  WARNING: { label: 'Upozorenje', cls: 'status-published' },
+  CRITICAL: { label: 'Kritično', cls: 'status-ongoing' },
+  EXCEEDED: { label: 'Prekoračeno', cls: 'status-draft' },
+};
+
 export function statusLabel(status) {
   return STATUS_MAP[status]?.label || status || '—';
 }
 
 export function kontrolaLabel(status) {
   return KONTROLA_MAP[status]?.label || status || '—';
+}
+
+export function alertLabel(level) {
+  return ALERT_MAP[level]?.label || level || '—';
 }
 
 export function BudzetStatusBadge({ status }) {
@@ -26,5 +37,10 @@ export function BudzetStatusBadge({ status }) {
 
 export function StatusKontroleBadge({ status }) {
   const meta = KONTROLA_MAP[status] || { label: status || '—', cls: 'status-draft' };
+  return <span className={`status-badge ${meta.cls}`}>{meta.label}</span>;
+}
+
+export function AlertLevelBadge({ level }) {
+  const meta = ALERT_MAP[level] || { label: level || '—', cls: 'status-finished' };
   return <span className={`status-badge ${meta.cls}`}>{meta.label}</span>;
 }

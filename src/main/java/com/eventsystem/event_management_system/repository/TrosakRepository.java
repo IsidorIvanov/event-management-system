@@ -11,6 +11,8 @@ import java.util.List;
 public interface TrosakRepository extends JpaRepository<Trosak, Long> {
     List<Trosak> findByFakturaIdAndTip(Long fakturaId, com.eventsystem.event_management_system.utils.enums.TipTroska tip);
 
+    List<Trosak> findByBudzetIdAndKategorijaIdOrderByKreiranAtDesc(Long budzetId, Long kategorijaId);
+
     @Query("""
             SELECT COALESCE(SUM(t.iznos - COALESCE(t.refundiraniIznos, 0)), 0)
             FROM Trosak t

@@ -4,8 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
 import BudzetFormModal from '../components/budzet/BudzetFormModal';
 import StavkaBudzetaModal from '../components/budzet/StavkaBudzetaModal';
+import TrosakModal from '../components/budzet/TrosakModal';
 import BudzetKategorijeModal from '../components/budzet/BudzetKategorijeModal';
-import { BudzetStatusBadge, StatusKontroleBadge } from '../components/budzet/BudzetStatusBadge';
+import { AlertLevelBadge, BudzetStatusBadge, StatusKontroleBadge } from '../components/budzet/BudzetStatusBadge';
 import * as budzetApi from '../services/budzetService';
 
 const formatMoney = (value) => {
@@ -26,11 +27,15 @@ const extractError = (err) => {
   return err.message || 'Došlo je do greške.';
 };
 
+const ALERT_LEVELS = new Set(['WARNING', 'CRITICAL', 'EXCEEDED']);
+
 export default function BudzetPage() {
   const toast = useToast();
   const { hasRole } = useAuth();
   const isFinKontrolor = hasRole('FINANSIJSKI_KONTROLOR');
   const isMenadzer = hasRole('MENADZER_DOGADJAJA');
+  const isKoordinatorResursa = hasRole('KOORDINATOR_RESURSA');
+  const isKoordinatorPrograma = hasRole('KOORDINATOR_PROGRAMA');
 
   const [dogadjaji, setDogadjaji] = useState([]);
   const [selectedDogadjajId, setSelectedDogadjajId] = useState('');
@@ -41,6 +46,7 @@ export default function BudzetPage() {
   const [busy, setBusy] = useState(false);
   const [budzetModal, setBudzetModal] = useState(undefined);
   const [stavkaModal, setStavkaModal] = useState(undefined);
+  const [trosakModal, setTrosakModal] = useState(undefined);
   const [showKategorije, setShowKategorije] = useState(false);
 
   const selectedBudzet = useMemo(
@@ -103,6 +109,26 @@ export default function BudzetPage() {
     }
   };
 
+  const notifyAlerts = (alerts) => {
+    (alerts || [])
+      .filter((alert) => ALERT_LEVELS.has(alert.alertLevel))
+      .forEach((alert) => {
+        toast(
+          alert.poruka || alert.alertPoruka || `Upozorenje za kategoriju ${alert.kategorijaNaziv}`,
+          alert.alertLevel === 'WARNING' ? 'info' : 'error'
+        );
+      });
+  };
+
+  const notifyAlertsForBudzet = async (budzetId) => {
+    try {
+      const res = await budzetApi.getBudzetAlerts(budzetId);
+      notifyAlerts(res.data);
+    } catch (err) {
+      toast(extractError(err), 'error');
+    }
+  };
+
   const handleSaveBudzet = async (payload) => {
     const saved = await withBusy(async () => {
       const res = budzetModal
@@ -136,6 +162,24 @@ export default function BudzetPage() {
     if (saved) {
       setStavkaModal(undefined);
       await loadBudzeti(selectedDogadjajId, selectedBudzet.budzetId);
+      notifyAlerts(saved.stavke);
+    }
+  };
+
+  const handleSaveTrosak = async (payload) => {
+    if (!selectedBudzet) return;
+    const saved = await withBusy(
+      async () => {
+        const res = await budzetApi.createTrosak(payload);
+        return res.data;
+      },
+      'Trošak je uspešno evidentiran.'
+    );
+
+    if (saved) {
+      setTrosakModal(undefined);
+      await loadBudzeti(selectedDogadjajId, selectedBudzet.budzetId);
+      await notifyAlertsForBudzet(selectedBudzet.budzetId);
     }
   };
 
@@ -180,6 +224,7 @@ export default function BudzetPage() {
   const mozeApprove = isMenadzer && selectedBudzet?.status === 'DRAFT';
   const mozeActivate = isFinKontrolor && selectedBudzet?.status === 'APPROVED';
   const mozeClose = isFinKontrolor && selectedBudzet?.status === 'ACTIVE';
+  const mozeUnosTroska = selectedBudzet?.status === 'ACTIVE' && (isFinKontrolor || isKoordinatorResursa || isKoordinatorPrograma);
 
   return (
     <div className="program-page">
@@ -201,6 +246,16 @@ export default function BudzetPage() {
           postojeceStavke={selectedBudzet.stavke || []}
           onClose={() => setStavkaModal(undefined)}
           onSubmit={handleSaveStavka}
+          loading={busy}
+        />
+      )}
+
+      {trosakModal !== undefined && selectedBudzet && (
+        <TrosakModal
+          budzet={selectedBudzet}
+          stavka={trosakModal}
+          onClose={() => setTrosakModal(undefined)}
+          onSubmit={handleSaveTrosak}
           loading={busy}
         />
       )}
@@ -352,13 +407,14 @@ export default function BudzetPage() {
                   <th>Stvarno</th>
                   <th>Iskorišćenost</th>
                   <th>Pragovi</th>
+                  <th>Alert</th>
                   <th>Status kontrole</th>
                   <th>Akcije</th>
                 </tr>
               </thead>
               <tbody>
                 {selectedBudzet.stavke?.length ? selectedBudzet.stavke.map((s) => {
-                  const ratio = Number(s.planiraniIznos) > 0 ? Number(s.stvarniIznos) / Number(s.planiraniIznos) : 0;
+                  const fallbackRatio = Number(s.planiraniIznos) > 0 ? Number(s.stvarniIznos) / Number(s.planiraniIznos) : 0;
                   return (
                     <tr key={`${s.budzetId}-${s.kategorijaId}`}>
                       <td>
@@ -367,11 +423,20 @@ export default function BudzetPage() {
                       </td>
                       <td>{formatMoney(s.planiraniIznos)}</td>
                       <td>{formatMoney(s.stvarniIznos)}</td>
-                      <td>{formatPercent(ratio)}</td>
+                      <td>{formatPercent(s.iskoriscenost ?? fallbackRatio)}</td>
                       <td>{formatPercent(s.pragUpozorenja)} / {formatPercent(s.pragKriticnog)}</td>
+                      <td>
+                        <AlertLevelBadge level={s.alertLevel || 'NONE'} />
+                        {s.alertPoruka && <div className="card-hint">{s.alertPoruka}</div>}
+                      </td>
                       <td><StatusKontroleBadge status={s.statusKontrole} /></td>
                       <td>
                         <div className="action-buttons">
+                          {mozeUnosTroska && (
+                            <button className="btn btn-primary btn-xs" onClick={() => setTrosakModal(s)} disabled={busy}>
+                              Trošak
+                            </button>
+                          )}
                           {mozeEditStavku && (
                             <button className="btn btn-outline btn-xs" onClick={() => setStavkaModal(s)}>Uredi</button>
                           )}
@@ -383,7 +448,7 @@ export default function BudzetPage() {
                     </tr>
                   );
                 }) : (
-                  <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Budžet još nema stavke.</td></tr>
+                  <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Budžet još nema stavke.</td></tr>
                 )}
               </tbody>
             </table>
