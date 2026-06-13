@@ -2611,6 +2611,771 @@ textarea.form-input {
 .karte-kvota { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
 .karte-kvota-hint { font-size: 0.75rem; color: var(--text-muted); }
 
+/* ===================== Registration Modal Ticket Options ===================== */
 
+.reg-ticket-option {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.85rem 1rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
 
+.reg-ticket-option:hover {
+  border-color: var(--accent);
+}
 
+.reg-ticket-option.selected {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.reg-ticket-radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.reg-ticket-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.reg-ticket-dot.active {
+  background: var(--accent);
+}
+
+.reg-ticket-option.selected .reg-ticket-radio {
+  border-color: var(--accent);
+}
+
+.reg-ticket-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.reg-ticket-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.15rem;
+}
+
+.reg-ticket-meta {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.reg-ticket-price {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ===================== Ucesnik Event Detail Page ===================== */
+
+.ev-detail-page {
+  padding-bottom: 3rem;
+}
+
+.ev-detail-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.ev-back-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--font);
+  font-size: 0.85rem;
+  padding: 0.35rem 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.ev-back-btn:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.ev-register-btn {
+  font-size: 0.9rem;
+  padding: 0.55rem 1.2rem;
+}
+
+.ev-detail-hero {
+  margin-bottom: 1.25rem;
+}
+
+.ev-detail-title {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.35rem;
+  color: var(--text-primary);
+}
+
+.ev-detail-meta {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+/* Tabs */
+.ev-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.75rem;
+}
+
+.ev-tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.6rem 1.1rem;
+  font-size: 0.9rem;
+  font-family: var(--font);
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.ev-tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.ev-tab-btn.active {
+  color: var(--text-primary);
+  font-weight: 700;
+  border-bottom-color: var(--text-primary);
+}
+
+/* Not-registered banner */
+.ev-not-registered-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--bg-card),
+    var(--bg-card) 8px,
+    var(--bg-secondary) 8px,
+    var(--bg-secondary) 16px
+  );
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.ev-not-registered-text strong {
+  display: block;
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.ev-not-registered-text p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Two-column info layout */
+.ev-info-layout {
+  display: grid;
+  grid-template-columns: 1fr 560px;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .ev-info-layout { grid-template-columns: 1fr; }
+}
+
+.ev-info-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Cover image card */
+.ev-cover-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.ev-cover-placeholder {
+  width: 100%;
+  height: 200px;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--bg-input),
+    var(--bg-input) 8px,
+    var(--bg-secondary) 8px,
+    var(--bg-secondary) 16px
+  );
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.ev-about {
+  padding: 1.1rem 1.25rem 1.25rem;
+}
+
+.ev-about-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.6rem;
+  font-style: italic;
+}
+
+.ev-about-desc {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  line-height: 1.65;
+  font-style: italic;
+}
+
+/* Organizer card */
+.ev-organizer-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.25rem 1.25rem;
+}
+
+.ev-organizer-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 0.85rem;
+}
+
+.ev-organizer-body {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.ev-organizer-logo {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+
+.ev-organizer-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ev-organizer-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.ev-verified-badge {
+  display: inline-block;
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+}
+
+.ev-organizer-meta {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 0.3rem;
+}
+
+.ev-organizer-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+
+.ev-organizer-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ev-org-btn {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+  font-family: var(--font);
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.ev-org-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  border-style: solid;
+}
+
+/* Details sidebar card */
+.ev-info-right {
+  display: flex;
+  flex-direction: column;
+}
+
+.ev-details-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.25rem 1.25rem;
+  flex: 1;
+}
+
+.ev-details-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.85rem;
+}
+
+.ev-details-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ev-details-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.ev-details-row:last-child {
+  border-bottom: none;
+}
+
+.ev-details-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.ev-details-value {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+/* Tab placeholder */
+.ev-tab-placeholder {
+  background: var(--bg-card);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+/* ===================== Discover Events Page ===================== */
+
+.discover-page {
+  padding-bottom: 3rem;
+}
+
+.discover-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.discover-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.discover-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 0.35rem 0.9rem;
+}
+
+.discover-search-icon {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+.discover-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  font-family: var(--font);
+  width: 120px;
+}
+
+.discover-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.discover-filter-select {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-family: var(--font);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+}
+
+.discover-filter-select:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+/* 3-column grid */
+.discover-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+@media (max-width: 1100px) {
+  .discover-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 700px) {
+  .discover-grid { grid-template-columns: 1fr; }
+}
+
+.discover-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color 0.15s, transform 0.15s;
+  display: flex;
+  flex-direction: column;
+}
+
+.discover-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.discover-card-banner {
+  width: 100%;
+  height: 140px;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--bg-input),
+    var(--bg-input) 6px,
+    var(--bg-secondary) 6px,
+    var(--bg-secondary) 12px
+  );
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.discover-card-body {
+  padding: 1rem 1.1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.discover-card-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.3rem;
+  line-height: 1.3;
+}
+
+.discover-card-meta {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.6rem;
+}
+
+.discover-card-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.discover-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.discover-btn-details {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.82rem;
+  font-family: var(--font);
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.discover-btn-details:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.discover-btn-register {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.82rem;
+  font-family: var(--font);
+  font-weight: 600;
+  border: 1px solid var(--text-primary);
+  border-radius: var(--radius-sm);
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.discover-btn-register:hover {
+  opacity: 0.85;
+}
+
+/* ===================== Participant (Ucesnik) Dashboard ===================== */
+
+.sidebar-nav-group-label {
+  padding: 1.25rem 1.5rem 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ucesnik-page {
+  padding-bottom: 3rem;
+}
+
+.ucesnik-header {
+  margin-bottom: 1.5rem;
+}
+
+.ucesnik-welcome {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.25rem;
+}
+
+.ucesnik-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Heads-up notification bar */
+.ucesnik-headsup {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.ucesnik-headsup-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.ucesnik-headsup-text {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  min-width: 200px;
+}
+
+.ucesnik-headsup-view {
+  margin-left: auto;
+}
+
+/* Section */
+.ucesnik-section {
+  margin-bottom: 2.5rem;
+}
+
+.ucesnik-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+  color: var(--text-primary);
+}
+
+/* Event cards grid */
+.ucesnik-events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.ucesnik-event-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.ucesnik-event-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.ucesnik-event-banner {
+  position: relative;
+  width: 100%;
+  height: 120px;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--bg-input),
+    var(--bg-input) 6px,
+    var(--bg-secondary) 6px,
+    var(--bg-secondary) 12px
+  );
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ucesnik-event-banner-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+.ucesnik-event-info {
+  padding: 1.25rem 1.4rem 1.4rem;
+}
+
+.ucesnik-event-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.3rem;
+  line-height: 1.3;
+}
+
+.ucesnik-event-meta {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.6rem;
+}
+
+.ucesnik-event-ticket {
+  display: inline-block;
+  font-size: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 0.2rem 0.65rem;
+  color: var(--text-secondary);
+  background: var(--bg-input);
+}
+
+/* Empty states */
+.ucesnik-empty {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 1rem 0;
+}
+
+.ucesnik-empty-box {
+  background: var(--bg-card);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 2.5rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}

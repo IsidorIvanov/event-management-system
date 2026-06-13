@@ -8,6 +8,9 @@ import FakturePage from './FakturePage';
 import TroskoviPage from './TroskoviPage';
 import PlacanjaPage from './PlacanjaPage';
 import UpozorenjaPage from './UpozorenjaPage';
+import UcesnikPage from './UcesnikPage';
+import OtkrijteDogadjajePageUcesnik from './OtkrijteDogadjajePageUcesnik';
+import UcesnikDogadjajDetaljPage from './UcesnikDogadjajDetaljPage';
 import api from '../services/api';
 import UpsertEventModal from '../components/UpsertEventModal.jsx';
 import UpsertLokacijaModal from '../components/UpsertLokacijaModal.jsx';
@@ -665,11 +668,147 @@ function NavLink({ to, icon, label }) {
   );
 }
 
+function PlaceholderPage({ title, subtitle, icon }) {
+  return (
+    <div className="ucesnik-page">
+      <div className="ucesnik-header">
+        <h1 className="ucesnik-welcome">{icon} {title}</h1>
+        <p className="ucesnik-subtitle">{subtitle}</p>
+      </div>
+      <div className="ucesnik-empty-box">
+        <p>Ovaj modul je u pripremi.</p>
+        <p style={{ fontSize: "0.85rem", marginTop: "0.5rem", color: "var(--text-muted)" }}>
+          Uskoro ćete moći da koristite ovu funkcionalnost.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function UcesnikDashboardLayout() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  if (!user) return null;
+
+  const initials =
+    `${user.ime?.[0] || ""}${user.prezime?.[0] || ""}`.toUpperCase();
+
+  const attendLinks = [
+    { to: "/dashboard", icon: "📋", label: "Moji događaji", exact: true },
+    { to: "/dashboard/otkrijte", icon: "🔍", label: "Otkrijte događaje" },
+    { to: "/dashboard/raspored", icon: "📅", label: "Moj raspored" },
+    { to: "/dashboard/preporuke", icon: "⭐", label: "Preporuke" },
+    { to: "/dashboard/poruke", icon: "💬", label: "Poruke" },
+    { to: "/dashboard/obavesta", icon: "🔔", label: "Obaveštenja" },
+  ];
+
+  return (
+    <div className="dashboard-layout">
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <h2>📋 EventSys</h2>
+          <div className="role-badge">Učesnik</div>
+        </div>
+
+        <nav className="sidebar-nav">
+          <div className="sidebar-nav-group-label">ATTEND</div>
+          {attendLinks.map(({ to, icon, label, exact }) => {
+            const active = exact ? pathname === to : pathname.startsWith(to);
+            return (
+              <Link key={to} to={to} className={active ? "active" : ""}>
+                <span>{icon}</span> <span>{label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="user-info">
+            <div className="user-avatar">{initials}</div>
+            <div className="user-meta">
+              <div className="user-name">
+                {user.ime} {user.prezime}
+              </div>
+              <div className="user-email">{user.email}</div>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              logout();
+              navigate("/login");
+            }}
+            className="btn btn-outline"
+            style={{ width: "100%", marginTop: "1rem", fontSize: "0.85rem" }}
+          >
+            Odjavi se
+          </button>
+        </div>
+      </aside>
+
+      <main className="main-content">
+        <Routes>
+          <Route index element={<UcesnikPage />} />
+          <Route path="otkrijte" element={<OtkrijteDogadjajePageUcesnik />} />
+          <Route path="dogadjaj/:id" element={<UcesnikDogadjajDetaljPage />} />
+          <Route
+            path="raspored"
+            element={
+              <PlaceholderPage
+                title="Moj raspored"
+                subtitle="vaše sesije i termini"
+                icon="📅"
+              />
+            }
+          />
+          <Route
+            path="preporuke"
+            element={
+              <PlaceholderPage
+                title="Preporuke"
+                subtitle="sesije i događaji prilagođeni vama"
+                icon="⭐"
+              />
+            }
+          />
+          <Route
+            path="poruke"
+            element={
+              <PlaceholderPage
+                title="Poruke"
+                subtitle="komunikacija sa učesnicima"
+                icon="💬"
+              />
+            }
+          />
+          <Route
+            path="obavesta"
+            element={
+              <PlaceholderPage
+                title="Obaveštenja"
+                subtitle="najnovije vesti i promene"
+                icon="🔔"
+              />
+            }
+          />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </main>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { user, logout, hasRole } = useAuth();
   const navigate = useNavigate();
 
   if (!user) return null;
+
+  // Participants get their own dedicated layout
+  if (hasRole("UCESNIK")) {
+    return <UcesnikDashboardLayout />;
+  }
 
   const initials =
     `${user.ime?.[0] || ""}${user.prezime?.[0] || ""}`.toUpperCase();
@@ -725,13 +864,6 @@ export default function DashboardPage() {
               to="/dashboard/moji-dogadjaji"
               icon="📋"
               label="Moji događaji"
-            />
-          )}
-          {hasRole("UCESNIK") && (
-            <NavLink
-              to="/dashboard/registracije"
-              icon="🎫"
-              label="Moje registracije"
             />
           )}
         </nav>
