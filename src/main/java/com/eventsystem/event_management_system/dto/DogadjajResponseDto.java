@@ -27,4 +27,6 @@ public class DogadjajResponseDto {
     private String lokacijaGrad;
 
     private String lokacijaDrzava;
+
+    private String lokacijaAdresa;
 }

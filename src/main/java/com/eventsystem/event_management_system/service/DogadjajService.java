@@ -89,7 +89,8 @@ public class DogadjajService {
                 d.getStatus(),
                 l != null ? l.getNaziv() : "",
                 l != null ? l.getGrad() : "",
-                l != null ? l.getDrzava() : ""
+                l != null ? l.getDrzava() : "",
+                l != null ? l.getAdresa() : ""
         );
     }
 }

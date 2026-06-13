@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 const formatDate = (s) =>
@@ -11,6 +12,7 @@ const formatDate = (s) =>
     : '—';
 
 export default function OtkrijteDogadjajePageUcesnik() {
+  const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -98,8 +100,18 @@ export default function OtkrijteDogadjajePageUcesnik() {
                   <p className="discover-card-desc">{event.opis}</p>
                 )}
                 <div className="discover-card-actions">
-                  <button className="discover-btn-details">Details</button>
-                  <button className="discover-btn-register">Register</button>
+                  <button
+                    className="discover-btn-details"
+                    onClick={() => navigate(`/dashboard/dogadjaj/${event.dogadjajId}`)}
+                  >
+                    Details
+                  </button>
+                  <button
+                    className="discover-btn-register"
+                    onClick={() => navigate(`/dashboard/dogadjaj/${event.dogadjajId}`)}
+                  >
+                    Register
+                  </button>
                 </div>
               </div>
             </div>

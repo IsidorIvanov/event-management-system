@@ -10,6 +10,7 @@ import PlacanjaPage from './PlacanjaPage';
 import UpozorenjaPage from './UpozorenjaPage';
 import UcesnikPage from './UcesnikPage';
 import OtkrijteDogadjajePageUcesnik from './OtkrijteDogadjajePageUcesnik';
+import UcesnikDogadjajDetaljPage from './UcesnikDogadjajDetaljPage';
 import api from '../services/api';
 import UpsertEventModal from '../components/UpsertEventModal.jsx';
 import UpsertLokacijaModal from '../components/UpsertLokacijaModal.jsx';
@@ -750,6 +751,7 @@ function UcesnikDashboardLayout() {
         <Routes>
           <Route index element={<UcesnikPage />} />
           <Route path="otkrijte" element={<OtkrijteDogadjajePageUcesnik />} />
+          <Route path="dogadjaj/:id" element={<UcesnikDogadjajDetaljPage />} />
           <Route
             path="raspored"
             element={
