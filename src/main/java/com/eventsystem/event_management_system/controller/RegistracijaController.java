@@ -27,6 +27,11 @@ public class RegistracijaController {
         return ResponseEntity.ok(registracijaService.getMyRegistrations());
     }
 
+    @GetMapping("/dogadjaj/{dogadjajId}")
+    public ResponseEntity<List<RegistracijaResponseDto>> getRegistracijeByDogadjaj(@PathVariable Long dogadjajId) {
+        return ResponseEntity.ok(registracijaService.getRegistracijeByDogadjaj(dogadjajId));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<RegistracijaResponseDto> cancelRegistration(@PathVariable Long id) {
         return ResponseEntity.ok(registracijaService.cancelRegistration(id));

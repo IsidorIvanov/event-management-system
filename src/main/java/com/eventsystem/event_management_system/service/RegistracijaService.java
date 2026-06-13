@@ -64,6 +64,14 @@ public class RegistracijaService {
                 .collect(Collectors.toList());
     }
 
+    public List<RegistracijaResponseDto> getRegistracijeByDogadjaj(Long dogadjajId) {
+        return registracijaRepository
+                .findByDogadjajIdWithDetails(dogadjajId)
+                .stream()
+                .map(this::toDtoWithUcesnik)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public RegistracijaResponseDto cancelRegistration(Long registracijaId) {
         Korisnik korisnik = currentUserService.getCurrentKorisnik();
@@ -96,6 +104,18 @@ public class RegistracijaService {
                 .brojKarte(r.getBrojKarte())
                 .statusKarte(r.getStatusKarte())
                 .build();
+    }
+
+    private RegistracijaResponseDto toDtoWithUcesnik(Registracija r) {
+        RegistracijaResponseDto dto = toDto(r);
+        Ucesnik u = r.getUcesnik();
+        dto.setUcesnikId(u.getKorisnikId());
+        dto.setUcesnikIme(u.getIme());
+        dto.setUcesnikPrezime(u.getPrezime());
+        dto.setUcesnikEmail(u.getEmail());
+        dto.setUcesnikKompanija(u.getKompanija());
+        dto.setUcesnikPozicija(u.getPozicija());
+        return dto;
     }
 }
 

@@ -21,5 +21,13 @@ public class RegistracijaResponseDto {
     private StatusRegistracije status;
     private String brojKarte;
     private StatusKarte statusKarte;
+
+    // Participant info (populated for admin/coordinator endpoints)
+    private Long ucesnikId;
+    private String ucesnikIme;
+    private String ucesnikPrezime;
+    private String ucesnikEmail;
+    private String ucesnikKompanija;
+    private String ucesnikPozicija;
 }
 
