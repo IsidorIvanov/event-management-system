@@ -1,7 +1,9 @@
 package com.eventsystem.event_management_system.service;
 
 import com.eventsystem.event_management_system.dto.BudzetAlertDto;
+import com.eventsystem.event_management_system.dto.BudzetDto;
 import com.eventsystem.event_management_system.dto.StavkaBudzetaDto;
+import com.eventsystem.event_management_system.exception.BadRequestException;
 import com.eventsystem.event_management_system.model.Budzet;
 import com.eventsystem.event_management_system.model.BudzetKategorija;
 import com.eventsystem.event_management_system.model.Dogadjaj;
@@ -30,8 +32,11 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -66,6 +71,126 @@ class BudzetServiceTest {
     private BudzetService budzetService;
 
     @Test
+    void create_rejectsSecondNonClosedBudgetForSameEvent() {
+        Dogadjaj dogadjaj = Dogadjaj.builder()
+                .dogadjajId(10L)
+                .naziv("Konferencija")
+                .status(StatusDogadjaja.OBJAVLJEN)
+                .build();
+
+        when(dogadjajRepository.findById(10L)).thenReturn(Optional.of(dogadjaj));
+        when(budzetRepository.existsByDogadjajDogadjajIdAndStatusIn(eq(10L), any()))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> budzetService.create(BudzetDto.builder()
+                .dogadjajId(10L)
+                .nazivBudzeta("Drugi budžet")
+                .planiraniIznos(new BigDecimal("1000.00"))
+                .build()))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("otvoren budžet");
+    }
+
+    @Test
+    void addStavka_rejectsWhenItemsExceedApprovedAmount() {
+        Long budzetId = 1L;
+        Long kategorijaId = 2L;
+        Budzet budzet = Budzet.builder()
+                .budzetId(budzetId)
+                .nazivBudzeta("Budžet")
+                .odobreniIznos(new BigDecimal("100.00"))
+                .status(BudzetStatus.DRAFT)
+                .build();
+
+        when(budzetRepository.findByIdWithDetalji(budzetId)).thenReturn(Optional.of(budzet));
+        when(kategorijaService.findEntity(kategorijaId))
+                .thenReturn(BudzetKategorija.builder().kategorijaId(kategorijaId).naziv("Catering").build());
+        when(stavkaBudzetaRepository.existsById(new StavkaBudzetaId(budzetId, kategorijaId))).thenReturn(false);
+        when(stavkaBudzetaRepository.sumPlaniraniByBudzetId(budzetId)).thenReturn(new BigDecimal("80.00"));
+
+        assertThatThrownBy(() -> budzetService.addStavka(
+                budzetId,
+                StavkaBudzetaDto.builder()
+                        .kategorijaId(kategorijaId)
+                        .planiraniIznos(new BigDecimal("30.00"))
+                        .build()
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("odobreni iznos");
+    }
+
+    @Test
+    void updateStavka_rejectsWhenNewItemSumExceedsApprovedAmount() {
+        Long budzetId = 1L;
+        Long kategorijaId = 2L;
+        StavkaBudzetaId id = new StavkaBudzetaId(budzetId, kategorijaId);
+        Budzet budzet = Budzet.builder()
+                .budzetId(budzetId)
+                .nazivBudzeta("Budžet")
+                .odobreniIznos(new BigDecimal("100.00"))
+                .status(BudzetStatus.DRAFT)
+                .build();
+        StavkaBudzeta stavka = StavkaBudzeta.builder()
+                .id(id)
+                .budzet(budzet)
+                .kategorija(BudzetKategorija.builder().kategorijaId(kategorijaId).naziv("Catering").build())
+                .planiraniIznos(new BigDecimal("50.00"))
+                .stvarniIznos(BigDecimal.ZERO)
+                .pragUpozorenja(new BigDecimal("0.8000"))
+                .pragKriticnog(new BigDecimal("0.9500"))
+                .statusKontrole(StatusKontrole.ISPOD_PLANA)
+                .build();
+
+        when(budzetRepository.findByIdWithDetalji(budzetId)).thenReturn(Optional.of(budzet));
+        when(stavkaBudzetaRepository.findById(id)).thenReturn(Optional.of(stavka));
+        when(stavkaBudzetaRepository.sumPlaniraniByBudzetId(budzetId)).thenReturn(new BigDecimal("90.00"));
+
+        assertThatThrownBy(() -> budzetService.updateStavka(
+                budzetId,
+                kategorijaId,
+                StavkaBudzetaDto.builder()
+                        .kategorijaId(kategorijaId)
+                        .planiraniIznos(new BigDecimal("70.00"))
+                        .build()
+        ))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("odobreni iznos");
+    }
+
+    @Test
+    void approve_rejectsBudgetWithoutItems() {
+        Budzet budzet = Budzet.builder()
+                .budzetId(1L)
+                .status(BudzetStatus.DRAFT)
+                .build();
+
+        when(budzetRepository.findByIdWithDetalji(1L)).thenReturn(Optional.of(budzet));
+        when(stavkaBudzetaRepository.countByBudzetBudzetId(1L)).thenReturn(0L);
+
+        assertThatThrownBy(() -> budzetService.approve(1L))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("najmanje jednu stavku");
+    }
+
+    @Test
+    void close_rejectsWhenEventIsNotFinished() {
+        Budzet budzet = Budzet.builder()
+                .budzetId(1L)
+                .status(BudzetStatus.ACTIVE)
+                .dogadjaj(Dogadjaj.builder()
+                        .dogadjajId(10L)
+                        .status(StatusDogadjaja.AKTIVAN)
+                        .build())
+                .build();
+
+        when(budzetRepository.findByIdWithDetalji(1L)).thenReturn(Optional.of(budzet));
+
+        assertThatThrownBy(() -> budzetService.close(1L))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("ZAVRSEN");
+    }
+
+    @Test
     void recomputeStavku_updatesActualAmountAndControlStatusFromCosts() {
         StavkaBudzetaId id = new StavkaBudzetaId(1L, 2L);
         StavkaBudzeta stavka = StavkaBudzeta.builder()
@@ -87,6 +212,7 @@ class BudzetServiceTest {
         verify(stavkaBudzetaRepository).save(captor.capture());
         assertThat(captor.getValue().getStvarniIznos()).isEqualByComparingTo(new BigDecimal("125.00"));
         assertThat(captor.getValue().getStatusKontrole()).isEqualTo(StatusKontrole.PREKORACENJE);
+        assertThat(captor.getValue().getLastAlertLevel()).isEqualTo(AlertLevel.EXCEEDED);
     }
 
     @Test
@@ -195,7 +321,8 @@ class BudzetServiceTest {
                 eq(new BigDecimal("850.00")),
                 eq(new BigDecimal("1000.00")),
                 eq(new BigDecimal("0.7000")),
-                eq(new BigDecimal("0.8000"))
+                eq(new BigDecimal("0.8000")),
+                isNull()
         );
     }
 

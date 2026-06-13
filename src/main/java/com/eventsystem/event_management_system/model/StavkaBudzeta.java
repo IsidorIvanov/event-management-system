@@ -1,6 +1,7 @@
 package com.eventsystem.event_management_system.model;
 
 import com.eventsystem.event_management_system.model.compositePK.StavkaBudzetaId;
+import com.eventsystem.event_management_system.utils.enums.AlertLevel;
 import com.eventsystem.event_management_system.utils.enums.StatusKontrole;
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
@@ -62,6 +63,10 @@ public class StavkaBudzeta {
     @Column(name = "status_kontrole", nullable = false, length = 16)
     private StatusKontrole statusKontrole;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "last_alert_level", nullable = false, length = 16)
+    private AlertLevel lastAlertLevel;
+
     @Column(length = 500)
     private String komentar;
 
@@ -79,6 +84,9 @@ public class StavkaBudzeta {
         }
         if (statusKontrole == null) {
             statusKontrole = StatusKontrole.NA_PLANU;
+        }
+        if (lastAlertLevel == null) {
+            lastAlertLevel = AlertLevel.NONE;
         }
     }
 }

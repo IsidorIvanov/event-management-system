@@ -441,8 +441,16 @@ export default function BudzetPage() {
               <div className="value accent">{formatMoney(selectedBudzet.planiraniIznos)}</div>
             </div>
             <div className="info-card">
+              <div className="label">Odobreno</div>
+              <div className="value">{formatMoney(selectedBudzet.odobreniIznos)}</div>
+            </div>
+            <div className="info-card">
               <div className="label">Planirano po stavkama</div>
               <div className="value success">{formatMoney(selectedBudzet.ukupnoPlaniranoStavke)}</div>
+            </div>
+            <div className="info-card">
+              <div className="label">Preostalo za planiranje</div>
+              <div className="value">{formatMoney(selectedBudzet.preostaloZaPlaniranje)}</div>
             </div>
             <div className="info-card">
               <div className="label">Stvarni trošak</div>

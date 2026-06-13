@@ -5,6 +5,7 @@ import com.eventsystem.event_management_system.exception.BadRequestException;
 import com.eventsystem.event_management_system.exception.NotFoundException;
 import com.eventsystem.event_management_system.model.Faktura;
 import com.eventsystem.event_management_system.model.Placanje;
+import com.eventsystem.event_management_system.model.Ugovor;
 import com.eventsystem.event_management_system.repository.PlacanjeRepository;
 import com.eventsystem.event_management_system.repository.UgovorRepository;
 import com.eventsystem.event_management_system.utils.enums.FakturaStatus;
@@ -120,13 +121,19 @@ public class PlacanjeService {
             if (faktura.getDobavljacId() == null) {
                 throw new BadRequestException("Ulazna faktura mora imati dobavljača pre plaćanja.");
             }
-            boolean hasActiveContract = ugovorRepository.existsActiveForDobavljac(
-                    faktura.getDobavljacId(),
-                    StatusUgovora.AKTIVAN,
-                    LocalDate.now()
-            );
-            if (!hasActiveContract) {
-                throw new BadRequestException("Plaćanje ulazne fakture je moguće samo uz aktivan ugovor dobavljača.");
+            if (faktura.getUgovorId() == null) {
+                throw new BadRequestException("Ulazna faktura mora imati ugovor pre plaćanja.");
+            }
+            Ugovor ugovor = ugovorRepository.findById(faktura.getUgovorId())
+                    .orElseThrow(() -> new BadRequestException("Ugovor fakture nije pronađen."));
+            if (ugovor.getDobavljac() == null
+                    || !faktura.getDobavljacId().equals(ugovor.getDobavljac().getDobavljacId())) {
+                throw new BadRequestException("Ugovor fakture ne pripada dobavljaču ulazne fakture.");
+            }
+            LocalDate datumProvere = dto.getDatumPlacanja() != null ? dto.getDatumPlacanja() : LocalDate.now();
+            if (ugovor.getStatus() != StatusUgovora.AKTIVAN
+                    || (ugovor.getVaziDo() != null && ugovor.getVaziDo().isBefore(datumProvere))) {
+                throw new BadRequestException("Plaćanje ulazne fakture je moguće samo uz konkretan aktivan ugovor fakture.");
             }
         }
     }

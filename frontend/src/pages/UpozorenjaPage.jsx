@@ -130,8 +130,8 @@ export default function UpozorenjaPage() {
 
       <div className="info-card" style={{ padding: '1.25rem', marginBottom: '1rem' }}>
         <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
-          Ova stranica prikazuje trenutno stanje upozorenja. Ne čuva istoriju notifikacija, pa alert nestaje
-          iz liste kada potrošnja padne ispod praga.
+          Ova stranica prikazuje trenutno aktivna upozorenja. Poslednji alert nivo se pamti na budžetskoj stavci
+          da rise-only notifikacije prežive restart aplikacije; istoriju alertova ne vodimo jer nije u obimu.
         </p>
       </div>
 
@@ -205,7 +205,7 @@ export default function UpozorenjaPage() {
       <div className="events-table-card">
         <div className="events-table-header">
           <h2>Aktivna upozorenja</h2>
-          <div className="card-hint">read-only pregled, bez upisa u alert memoriju</div>
+          <div className="card-hint">read-only pregled trenutnog stanja, bez istorije notifikacija</div>
         </div>
         <table className="events-table">
           <thead>

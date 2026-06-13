@@ -34,6 +34,23 @@ class BudzetAlertServiceTest {
                 new BigDecimal("0.8000"),
                 new BigDecimal("0.9500")
         )).isEqualTo(AlertLevel.CRITICAL);
+
+        assertThat(service.evaluateOnly(
+                new BigDecimal("100.00"),
+                new BigDecimal("100.00"),
+                new BigDecimal("0.8000"),
+                new BigDecimal("0.9500")
+        )).isEqualTo(AlertLevel.CRITICAL);
+
+        assertThat(service.toDto(
+                1L,
+                2L,
+                "Catering",
+                new BigDecimal("100.00"),
+                new BigDecimal("100.00"),
+                new BigDecimal("0.8000"),
+                new BigDecimal("0.9500")
+        ).getPoruka()).contains("potpuno iskoristila");
     }
 
     @Test
@@ -47,7 +64,7 @@ class BudzetAlertServiceTest {
     }
 
     @Test
-    void evaluateAndRemember_emitsOnlyWhenLevelIncreasesAndRemembersDrops() {
+    void evaluateAndRemember_emitsOnlyWhenLevelIncreasesAgainstPersistedLevel() {
         BudzetAlertDto firstExceeded = service.evaluateAndRemember(
                 1L,
                 2L,
@@ -55,7 +72,8 @@ class BudzetAlertServiceTest {
                 new BigDecimal("125.00"),
                 new BigDecimal("100.00"),
                 new BigDecimal("0.8000"),
-                new BigDecimal("0.9500")
+                new BigDecimal("0.9500"),
+                AlertLevel.NONE
         );
         assertThat(firstExceeded.isNotificationEmitted()).isTrue();
 
@@ -66,7 +84,8 @@ class BudzetAlertServiceTest {
                 new BigDecimal("130.00"),
                 new BigDecimal("100.00"),
                 new BigDecimal("0.8000"),
-                new BigDecimal("0.9500")
+                new BigDecimal("0.9500"),
+                firstExceeded.getAlertLevel()
         );
         assertThat(sameExceeded.isNotificationEmitted()).isFalse();
 
@@ -77,7 +96,8 @@ class BudzetAlertServiceTest {
                 new BigDecimal("70.00"),
                 new BigDecimal("100.00"),
                 new BigDecimal("0.8000"),
-                new BigDecimal("0.9500")
+                new BigDecimal("0.9500"),
+                sameExceeded.getAlertLevel()
         );
         assertThat(droppedToNone.getAlertLevel()).isEqualTo(AlertLevel.NONE);
         assertThat(droppedToNone.isNotificationEmitted()).isFalse();
@@ -89,9 +109,27 @@ class BudzetAlertServiceTest {
                 new BigDecimal("85.00"),
                 new BigDecimal("100.00"),
                 new BigDecimal("0.8000"),
-                new BigDecimal("0.9500")
+                new BigDecimal("0.9500"),
+                droppedToNone.getAlertLevel()
         );
         assertThat(warningAfterDrop.getAlertLevel()).isEqualTo(AlertLevel.WARNING);
         assertThat(warningAfterDrop.isNotificationEmitted()).isTrue();
+    }
+
+    @Test
+    void evaluateAndRemember_doesNotDuplicateSameAlertAfterRestartWhenLevelIsPersisted() {
+        BudzetAlertDto afterRestart = new BudzetAlertService().evaluateAndRemember(
+                1L,
+                2L,
+                "Catering",
+                new BigDecimal("130.00"),
+                new BigDecimal("100.00"),
+                new BigDecimal("0.8000"),
+                new BigDecimal("0.9500"),
+                AlertLevel.EXCEEDED
+        );
+
+        assertThat(afterRestart.getAlertLevel()).isEqualTo(AlertLevel.EXCEEDED);
+        assertThat(afterRestart.isNotificationEmitted()).isFalse();
     }
 }

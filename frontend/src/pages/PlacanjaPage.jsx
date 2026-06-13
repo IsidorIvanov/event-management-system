@@ -51,6 +51,11 @@ const flattenPlacanja = (fakture) =>
     })),
   );
 
+const sumIzvrseneRefundacije = (placanje) =>
+  (placanje.refundacije || [])
+    .filter((refundacija) => refundacija.status === 'IZVRSENA')
+    .reduce((sum, refundacija) => sum + Number(refundacija.iznos || 0), 0);
+
 export default function PlacanjaPage() {
   const toast = useToast();
   const navigate = useNavigate();
@@ -100,12 +105,21 @@ export default function PlacanjaPage() {
   );
 
   const stats = useMemo(
-    () => ({
-      ukupno: filteredPlacanja.length,
-      pending: filteredPlacanja.filter((placanje) => placanje.status === 'PENDING').length,
-      completed: filteredPlacanja.filter((placanje) => placanje.status === 'COMPLETED').length,
-      iznos: filteredPlacanja.reduce((sum, placanje) => sum + Number(placanje.iznos || 0), 0),
-    }),
+    () => {
+      const bruto = filteredPlacanja.reduce((sum, placanje) => sum + Number(placanje.iznos || 0), 0);
+      const refundirano = filteredPlacanja.reduce(
+        (sum, placanje) => sum + sumIzvrseneRefundacije(placanje),
+        0,
+      );
+      return {
+        ukupno: filteredPlacanja.length,
+        pending: filteredPlacanja.filter((placanje) => placanje.status === 'PENDING').length,
+        completed: filteredPlacanja.filter((placanje) => placanje.status === 'COMPLETED').length,
+        bruto,
+        refundirano,
+        neto: bruto - refundirano,
+      };
+    },
     [filteredPlacanja],
   );
 
@@ -157,8 +171,16 @@ export default function PlacanjaPage() {
           <div className="value success">{stats.completed}</div>
         </div>
         <div className="info-card">
-          <div className="label">Iznos u prikazu</div>
-          <div className="value">{formatMoney(stats.iznos)}</div>
+          <div className="label">Bruto plaćeno</div>
+          <div className="value">{formatMoney(stats.bruto)}</div>
+        </div>
+        <div className="info-card">
+          <div className="label">Izvršeno refundirano</div>
+          <div className="value warning">{formatMoney(stats.refundirano)}</div>
+        </div>
+        <div className="info-card">
+          <div className="label">Neto efekat</div>
+          <div className="value success">{formatMoney(stats.neto)}</div>
         </div>
       </div>
 
@@ -218,7 +240,9 @@ export default function PlacanjaPage() {
               <th>FAKTURA</th>
               <th>TIP</th>
               <th>STATUS</th>
-              <th>IZNOS</th>
+              <th>BRUTO</th>
+              <th>REFUNDIRANO</th>
+              <th>NETO</th>
               <th>METOD</th>
               <th>REFERENCA</th>
               <th>DATUM</th>
@@ -228,59 +252,65 @@ export default function PlacanjaPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '2rem' }}>
+                <td colSpan={10} style={{ textAlign: 'center', padding: '2rem' }}>
                   Učitavanje...
                 </td>
               </tr>
             ) : filteredPlacanja.length === 0 ? (
               <tr>
-                <td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+                <td colSpan={10} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
                   Nema plaćanja za izabrane filtere.
                 </td>
               </tr>
             ) : (
-              filteredPlacanja.map((placanje) => (
-                <tr key={placanje.placanjeId}>
-                  <td>
-                    <strong>{placanje.faktura?.brojFakture || `#${placanje.fakturaId}`}</strong>
-                    <div className="card-hint">
-                      Plaćeno {formatMoney(placanje.faktura?.placeniIznos)} / {formatMoney(placanje.faktura?.ukupnaIznos)}
-                    </div>
-                  </td>
-                  <td>{TIP_LABEL[placanje.faktura?.tip] || placanje.faktura?.tip || '—'}</td>
-                  <td>
-                    <span className={`status-badge ${STATUS_CLASS[placanje.status] || 'status-draft'}`}>
-                      {STATUS_LABEL[placanje.status] || placanje.status}
-                    </span>
-                  </td>
-                  <td>{formatMoney(placanje.iznos)}</td>
-                  <td>{placanje.metod || placanje.metodPlacanja || '—'}</td>
-                  <td>{placanje.referentniBroj || '—'}</td>
-                  <td>{formatDate(placanje.datumPlacanja || placanje.kreiranoAt)}</td>
-                  <td>
-                    {canManage && placanje.status === 'PENDING' ? (
-                      <div className="action-buttons">
-                        <button
-                          className="btn btn-outline btn-xs"
-                          disabled={busyId === placanje.placanjeId}
-                          onClick={() => handleAction(placanje, 'confirm')}
-                        >
-                          Potvrdi
-                        </button>
-                        <button
-                          className="btn btn-xs btn-danger-outline"
-                          disabled={busyId === placanje.placanjeId}
-                          onClick={() => handleAction(placanje, 'fail')}
-                        >
-                          Odbij
-                        </button>
+              filteredPlacanja.map((placanje) => {
+                const refundirano = sumIzvrseneRefundacije(placanje);
+                const neto = Number(placanje.iznos || 0) - refundirano;
+                return (
+                  <tr key={placanje.placanjeId}>
+                    <td>
+                      <strong>{placanje.faktura?.brojFakture || `#${placanje.fakturaId}`}</strong>
+                      <div className="card-hint">
+                        Neto fakture {formatMoney(placanje.faktura?.placeniIznos)} / {formatMoney(placanje.faktura?.ukupnaIznos)}
                       </div>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                </tr>
-              ))
+                    </td>
+                    <td>{TIP_LABEL[placanje.faktura?.tip] || placanje.faktura?.tip || '—'}</td>
+                    <td>
+                      <span className={`status-badge ${STATUS_CLASS[placanje.status] || 'status-draft'}`}>
+                        {STATUS_LABEL[placanje.status] || placanje.status}
+                      </span>
+                    </td>
+                    <td>{formatMoney(placanje.iznos)}</td>
+                    <td>{formatMoney(refundirano)}</td>
+                    <td>{formatMoney(neto)}</td>
+                    <td>{placanje.metod || placanje.metodPlacanja || '—'}</td>
+                    <td>{placanje.referentniBroj || '—'}</td>
+                    <td>{formatDate(placanje.datumPlacanja || placanje.kreiranoAt)}</td>
+                    <td>
+                      {canManage && placanje.status === 'PENDING' ? (
+                        <div className="action-buttons">
+                          <button
+                            className="btn btn-outline btn-xs"
+                            disabled={busyId === placanje.placanjeId}
+                            onClick={() => handleAction(placanje, 'confirm')}
+                          >
+                            Potvrdi
+                          </button>
+                          <button
+                            className="btn btn-xs btn-danger-outline"
+                            disabled={busyId === placanje.placanjeId}
+                            onClick={() => handleAction(placanje, 'fail')}
+                          >
+                            Odbij
+                          </button>
+                        </div>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

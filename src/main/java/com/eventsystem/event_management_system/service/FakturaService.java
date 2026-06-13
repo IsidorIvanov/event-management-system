@@ -132,6 +132,7 @@ public class FakturaService {
                 .build();
 
         s = stavkaFaktureRepository.save(s);
+        f.getStavke().add(s);
 
         recomputeUkupanIznos(fakturaId);
 
@@ -189,7 +190,7 @@ public class FakturaService {
             // Poslovna odluka: AUTO_ULAZNA trošak nastaje tek pri izdavanju
             // fakture (issue), ne pri dodavanju stavke na DRAFT fakturu.
             // DRAFT faktura nema finansijski efekat na budžet.
-            for (StavkaFakture stavka : f.getStavke()) {
+            for (StavkaFakture stavka : stavkaFaktureRepository.findByFakturaFakturaId(fakturaId)) {
                 Trosak trosak = Trosak.builder()
                         .budzetId(stavka.getBudzetId())
                         .kategorijaId(stavka.getKategorijaId())
