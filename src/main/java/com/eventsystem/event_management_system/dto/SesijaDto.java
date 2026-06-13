@@ -51,4 +51,7 @@ public class SesijaDto {
     private Set<GovornikDto> govornici;
 
     private Long sesijaId;
+
+    /** Broj potvrđenih registracija koje važe za ovu sesiju */
+    private Integer popunjenost;
 }

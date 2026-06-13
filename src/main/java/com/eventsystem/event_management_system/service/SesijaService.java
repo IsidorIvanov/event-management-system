@@ -4,17 +4,23 @@ import com.eventsystem.event_management_system.dto.SesijaDetaljDto;
 import com.eventsystem.event_management_system.dto.SesijaDto;
 import com.eventsystem.event_management_system.model.Dogadjaj;
 import com.eventsystem.event_management_system.model.Govornik;
+import com.eventsystem.event_management_system.model.Registracija;
 import com.eventsystem.event_management_system.model.Sala;
 import com.eventsystem.event_management_system.model.Sesija;
+import com.eventsystem.event_management_system.model.TipKarte;
 import com.eventsystem.event_management_system.repository.DogadjajRepository;
 import com.eventsystem.event_management_system.repository.GovornikRepository;
+import com.eventsystem.event_management_system.repository.RegistracijaRepository;
 import com.eventsystem.event_management_system.repository.SalaRepository;
 import com.eventsystem.event_management_system.repository.SesijaRepository;
 import com.eventsystem.event_management_system.utils.SesijaDtoMapper;
+import com.eventsystem.event_management_system.utils.enums.StatusRegistracije;
+import com.eventsystem.event_management_system.utils.enums.VrstaKarte;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,15 +38,48 @@ public class SesijaService {
 
     private final GovornikRepository govornikRepository;
 
+    private final RegistracijaRepository registracijaRepository;
+
     @Transactional(readOnly = true)
     public List<SesijaDto> getSesijeByDogadjaj(Long dogadjajId) {
         if (!dogadjajRepository.existsById(dogadjajId)) {
             throw new RuntimeException("Dogadjaj not found with id: " + dogadjajId);
         }
-        return sesijaRepository.findAllByDogadjaj_DogadjajId(dogadjajId)
+
+        List<Sesija> sesije = sesijaRepository.findAllByDogadjaj_DogadjajId(dogadjajId);
+
+        // Fetch only confirmed registrations for this event (for occupancy calculation)
+        List<Registracija> potvrdjene = registracijaRepository
+                .findByDogadjajIdWithDetails(dogadjajId)
                 .stream()
-                .map(SesijaDtoMapper::toDto)
-                .collect(Collectors.toList());
+                .filter(r -> r.getStatus() == StatusRegistracije.POTVRDJENA)
+                .toList();
+
+        return sesije.stream().map(s -> {
+            SesijaDto dto = SesijaDtoMapper.toDto(s);
+
+            long popunjenost = potvrdjene.stream().filter(r -> {
+                TipKarte tk = r.getTipKarte();
+                VrstaKarte vrsta = tk.getVrsta();
+                String nazivTipa = tk.getId().getNazivTipa();
+
+                return switch (vrsta) {
+                    case VISEDNEVNA, BESPLATNA -> true;
+                    case JEDNODNEVNA -> {
+                        try {
+                            LocalDate datumKarte = LocalDate.parse(nazivTipa);
+                            yield s.getDatum().equals(datumKarte);
+                        } catch (Exception e) {
+                            yield false;
+                        }
+                    }
+                    case POJEDINACNA_SESIJA -> s.getNaziv().equalsIgnoreCase(nazivTipa);
+                };
+            }).count();
+
+            dto.setPopunjenost((int) popunjenost);
+            return dto;
+        }).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
