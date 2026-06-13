@@ -68,7 +68,7 @@ public class SecurityConfig {
                         "MENADZER_DOGADJAJA", "KOORDINATOR_RESURSA", "KOORDINATOR_PROGRAMA")
                 .requestMatchers(HttpMethod.GET, "/api/dogadjaj/**").hasAnyRole(
                         "KOORDINATOR_PROGRAMA", "MENADZER_DOGADJAJA",
-                        "FINANSIJSKI_KONTROLOR", "KOORDINATOR_RESURSA")
+                        "FINANSIJSKI_KONTROLOR", "KOORDINATOR_RESURSA", "UCESNIK")
                 .requestMatchers("/api/dogadjaj/**").hasAnyRole("KOORDINATOR_PROGRAMA", "MENADZER_DOGADJAJA")
                 .requestMatchers(HttpMethod.GET, "/api/sesija/**").hasAnyRole(
                         "KOORDINATOR_PROGRAMA", "MENADZER_DOGADJAJA", "KOORDINATOR_RESURSA")
