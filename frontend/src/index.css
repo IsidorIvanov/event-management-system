@@ -2611,6 +2611,81 @@ textarea.form-input {
 .karte-kvota { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
 .karte-kvota-hint { font-size: 0.75rem; color: var(--text-muted); }
 
+/* ===================== Registration Modal Ticket Options ===================== */
+
+.reg-ticket-option {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.85rem 1rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.reg-ticket-option:hover {
+  border-color: var(--accent);
+}
+
+.reg-ticket-option.selected {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.reg-ticket-radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.reg-ticket-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.reg-ticket-dot.active {
+  background: var(--accent);
+}
+
+.reg-ticket-option.selected .reg-ticket-radio {
+  border-color: var(--accent);
+}
+
+.reg-ticket-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.reg-ticket-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.15rem;
+}
+
+.reg-ticket-meta {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.reg-ticket-price {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* ===================== Ucesnik Event Detail Page ===================== */
 
 .ev-detail-page {
@@ -2729,7 +2804,7 @@ textarea.form-input {
 /* Two-column info layout */
 .ev-info-layout {
   display: grid;
-  grid-template-columns: 1fr 760px;
+  grid-template-columns: 1fr 560px;
   gap: 1.25rem;
   align-items: stretch;
 }
@@ -3218,8 +3293,8 @@ textarea.form-input {
 /* Event cards grid */
 .ucesnik-events-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
 }
 
 .ucesnik-event-card {
@@ -3237,6 +3312,7 @@ textarea.form-input {
 }
 
 .ucesnik-event-banner {
+  position: relative;
   width: 100%;
   height: 120px;
   background: repeating-linear-gradient(
@@ -3260,7 +3336,7 @@ textarea.form-input {
 }
 
 .ucesnik-event-info {
-  padding: 0.9rem 1rem 1rem;
+  padding: 1.25rem 1.4rem 1.4rem;
 }
 
 .ucesnik-event-name {

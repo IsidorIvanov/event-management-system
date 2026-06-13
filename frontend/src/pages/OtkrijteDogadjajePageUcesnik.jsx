@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import * as registracijaApi from '../services/registracijaService';
 
 const formatDate = (s) =>
   s
@@ -14,18 +15,28 @@ const formatDate = (s) =>
 export default function OtkrijteDogadjajePageUcesnik() {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
+  const [registeredIds, setRegisteredIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [cityFilter, setCityFilter] = useState('any');
 
   useEffect(() => {
-    api
-      .get('/dogadjaj')
-      .then((res) => {
-        const published = res.data
+    Promise.all([
+      api.get('/dogadjaj'),
+      registracijaApi.getMyRegistrations(),
+    ])
+      .then(([eventsRes, regRes]) => {
+        const published = eventsRes.data
           .filter((e) => e.status === 'OBJAVLJEN' || e.status === 'AKTIVAN')
           .sort((a, b) => new Date(a.datumPocetka) - new Date(b.datumPocetka));
         setEvents(published);
+
+        const ids = new Set(
+          regRes.data
+            .filter((r) => r.status !== 'OTKAZANA')
+            .map((r) => r.dogadjajId)
+        );
+        setRegisteredIds(ids);
       })
       .catch(() => setEvents([]))
       .finally(() => setLoading(false));
@@ -37,6 +48,7 @@ export default function OtkrijteDogadjajePageUcesnik() {
   }, [events]);
 
   const filtered = events.filter((e) => {
+    if (registeredIds.has(e.dogadjajId)) return false;
     const matchSearch = [e.naziv, e.lokacijaGrad, e.lokacijaDrzava, e.opis]
       .filter(Boolean)
       .some((s) => s.toLowerCase().includes(search.toLowerCase()));

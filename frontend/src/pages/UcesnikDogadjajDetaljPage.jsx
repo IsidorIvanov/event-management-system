@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import * as sesijaApi from '../services/sesijaService';
 import * as govornikApi from '../services/govornikService';
+import * as registracijaApi from '../services/registracijaService';
+import RegistracijaModal from '../components/RegistracijaModal';
 
 const formatDate = (s) =>
   s
@@ -251,11 +253,21 @@ export default function UcesnikDogadjajDetaljPage() {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Info');
+  const [showRegModal, setShowRegModal] = useState(false);
+  const [registered, setRegistered] = useState(false);
 
   useEffect(() => {
-    api
-      .get(`/dogadjaj/${id}`)
-      .then((res) => setEvent(res.data))
+    Promise.all([
+      api.get(`/dogadjaj/${id}`),
+      registracijaApi.getMyRegistrations(),
+    ])
+      .then(([eventRes, regRes]) => {
+        setEvent(eventRes.data);
+        const alreadyRegistered = regRes.data.some(
+          (r) => r.dogadjajId === Number(id) && r.status !== 'OTKAZANA'
+        );
+        setRegistered(alreadyRegistered);
+      })
       .catch(() => setEvent(null))
       .finally(() => setLoading(false));
   }, [id]);
@@ -277,14 +289,31 @@ export default function UcesnikDogadjajDetaljPage() {
 
   return (
     <div className="ev-detail-page">
+      {showRegModal && (
+        <RegistracijaModal
+          event={event}
+          onClose={() => setShowRegModal(false)}
+          onSuccess={() => {
+            setShowRegModal(false);
+            setRegistered(true);
+          }}
+        />
+      )}
+
       {/* Top bar */}
       <div className="ev-detail-topbar">
         <button className="ev-back-btn" onClick={() => navigate(-1)}>
           ← Back
         </button>
-        <button className="discover-btn-register ev-register-btn">
-          Register for this event
-        </button>
+        {registered ? (
+          <span style={{ fontSize: '0.9rem', color: 'var(--success)', fontWeight: 600 }}>
+            ✓ Uspešno registrovani!
+          </span>
+        ) : (
+          <button className="discover-btn-register ev-register-btn" onClick={() => setShowRegModal(true)}>
+            Register for this event
+          </button>
+        )}
       </div>
 
       {/* Title + meta */}
@@ -314,15 +343,27 @@ export default function UcesnikDogadjajDetaljPage() {
       {/* Tab content */}
       {activeTab === 'Info' && (
         <div className="ev-info-tab">
-          <div className="ev-not-registered-banner">
-            <div className="ev-not-registered-text">
-              <strong>You're not registered yet</strong>
-              <p>
-                Pick a ticket to join {event.naziv}. Tickets unlock the agenda,
-                attendee list, and your QR pass.
-              </p>
+          {!registered ? (
+            <div className="ev-not-registered-banner">
+              <div className="ev-not-registered-text">
+                <strong>You're not registered yet</strong>
+                <p>
+                  Pick a ticket to join {event.naziv}. Tickets unlock the agenda,
+                  attendee list, and your QR pass.
+                </p>
+              </div>
+              <button className="discover-btn-register" onClick={() => setShowRegModal(true)}>
+                Register now
+              </button>
             </div>
-          </div>
+          ) : (
+            <div className="ev-not-registered-banner" style={{ background: 'var(--success-subtle)', borderColor: 'var(--success)' }}>
+              <div className="ev-not-registered-text">
+                <strong style={{ color: 'var(--success)' }}>✓ You are registered!</strong>
+                <p>Your ticket has been confirmed. Check your registrations for details.</p>
+              </div>
+            </div>
+          )}
 
           <div className="ev-info-layout">
             <div className="ev-info-left">
