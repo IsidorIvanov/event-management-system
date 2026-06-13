@@ -3,6 +3,7 @@ package com.eventsystem.event_management_system.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Check;
 
 import java.math.BigDecimal;
 
@@ -11,6 +12,7 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 @Table(name = "stavka_fakture")
+@Check(constraints = "kolicina > 0 and jedinicna_cena >= 0 and ukupna_cena >= 0")
 @NoArgsConstructor
 @AllArgsConstructor
 public class StavkaFakture {
@@ -29,23 +31,42 @@ public class StavkaFakture {
 
     private String naziv;
 
-    @Column(precision = 10, scale = 3)
+    @Column(nullable = false, precision = 10, scale = 3)
     private BigDecimal kolicina;
 
-    @Column(precision = 14, scale = 2)
+    @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal jedinicnaCena;
 
-    @Column(precision = 14, scale = 2)
+    @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal ukupnaCena;
 
     @Column(columnDefinition = "TEXT")
     private String napomena;
     
-    @Column(name = "budzet_id")
+    @Column(name = "budzet_id", nullable = false)
     private Long budzetId;
 
-    @Column(name = "kategorija_id")
+    @Column(name = "kategorija_id", nullable = false)
     private Long kategorijaId;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumns({
+            @JoinColumn(
+                    name = "budzet_id",
+                    referencedColumnName = "budzet_id",
+                    insertable = false,
+                    updatable = false,
+                    nullable = false
+            ),
+            @JoinColumn(
+                    name = "kategorija_id",
+                    referencedColumnName = "kategorija_id",
+                    insertable = false,
+                    updatable = false,
+                    nullable = false
+            )
+    })
+    private StavkaBudzeta stavkaBudzeta;
 
     @Column(name = "trosak_id")
     private Long trosakId;

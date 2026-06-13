@@ -7,22 +7,12 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
 public class BudzetAlertService {
 
     private static final BigDecimal ONE = BigDecimal.ONE;
-
-    /**
-     * Pamti poslednji alert nivo po (budzetId, kategorijaId) tokom
-     * trajanja aplikacije. Resetuje se pri restartu - prihvatljivo
-     * za studentski projekat. U produkciji zameniti Redis TTL kes
-     * ili kolonom last_alert_level na stavke_budzeta.
-     */
-    private final Map<String, AlertLevel> lastAlertLevelMap = new ConcurrentHashMap<>();
 
     public AlertLevel evaluateOnly(
             BigDecimal stvarniIznos,
@@ -43,7 +33,7 @@ public class BudzetAlertService {
         if (ratio.compareTo(safe(pragKriticnog)) < 0) {
             return AlertLevel.WARNING;
         }
-        if (ratio.compareTo(ONE) < 0) {
+        if (ratio.compareTo(ONE) <= 0) {
             return AlertLevel.CRITICAL;
         }
         return AlertLevel.EXCEEDED;
@@ -56,11 +46,11 @@ public class BudzetAlertService {
             BigDecimal stvarniIznos,
             BigDecimal planiraniIznos,
             BigDecimal pragUpozorenja,
-            BigDecimal pragKriticnog
+            BigDecimal pragKriticnog,
+            AlertLevel lastAlertLevel
     ) {
         AlertLevel newLevel = evaluateOnly(stvarniIznos, planiraniIznos, pragUpozorenja, pragKriticnog);
-        String key = key(budzetId, kategorijaId);
-        AlertLevel lastLevel = lastAlertLevelMap.getOrDefault(key, AlertLevel.NONE);
+        AlertLevel lastLevel = lastAlertLevel != null ? lastAlertLevel : AlertLevel.NONE;
         BigDecimal iskoriscenost = calculateIskoriscenost(stvarniIznos, planiraniIznos);
         boolean emitted = false;
 
@@ -69,7 +59,6 @@ public class BudzetAlertService {
                 emitAlert(budzetId, kategorijaId, newLevel, iskoriscenost);
                 emitted = true;
             }
-            lastAlertLevelMap.put(key, newLevel);
         }
 
         return toDto(budzetId, kategorijaId, kategorijaNaziv, newLevel, iskoriscenost, emitted);
@@ -143,7 +132,9 @@ public class BudzetAlertService {
         BigDecimal procenat = iskoriscenost.multiply(new BigDecimal("100")).setScale(2, RoundingMode.HALF_EVEN);
         return switch (alertLevel) {
             case WARNING -> "%s je dostigla prag upozorenja (%s%%).".formatted(kategorija, procenat);
-            case CRITICAL -> "%s je dostigla kriticni prag (%s%%).".formatted(kategorija, procenat);
+            case CRITICAL -> iskoriscenost.compareTo(ONE) == 0
+                    ? "%s je potpuno iskoristila planirani iznos (%s%%).".formatted(kategorija, procenat)
+                    : "%s je dostigla kriticni prag (%s%%).".formatted(kategorija, procenat);
             case EXCEEDED -> "%s je prekoracila planirani iznos (%s%%).".formatted(kategorija, procenat);
             default -> null;
         };
@@ -157,7 +148,4 @@ public class BudzetAlertService {
         return value != null ? value : BigDecimal.ZERO;
     }
 
-    private String key(Long budzetId, Long kategorijaId) {
-        return budzetId + ":" + kategorijaId;
-    }
 }

@@ -29,6 +29,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
 
 @Service
@@ -39,6 +40,11 @@ public class BudzetService {
     private static final BigDecimal DEFAULT_PRAG_KRITICNOG = new BigDecimal("0.9500");
     private static final BigDecimal TOL_SK = new BigDecimal("0.02");
     private static final BigDecimal ONE = BigDecimal.ONE;
+    private static final EnumSet<BudzetStatus> NON_CLOSED_STATUSES = EnumSet.of(
+            BudzetStatus.DRAFT,
+            BudzetStatus.APPROVED,
+            BudzetStatus.ACTIVE
+    );
 
     private final BudzetRepository budzetRepository;
     private final StavkaBudzetaRepository stavkaBudzetaRepository;
@@ -73,6 +79,9 @@ public class BudzetService {
         BigDecimal planiraniIznos = requireNonNegative(dto.getPlaniraniIznos(), "Planirani iznos");
         Dogadjaj dogadjaj = dogadjajRepository.findById(dto.getDogadjajId())
                 .orElseThrow(() -> new NotFoundException("Događaj nije pronađen sa id: " + dto.getDogadjajId()));
+        if (budzetRepository.existsByDogadjajDogadjajIdAndStatusIn(dogadjaj.getDogadjajId(), NON_CLOSED_STATUSES)) {
+            throw new BadRequestException("Događaj već ima otvoren budžet. Novi budžet je moguć tek nakon zatvaranja postojećeg.");
+        }
         Zaposleni kreirao = currentUserService.getCurrentZaposleni();
 
         Budzet budzet = Budzet.builder()
@@ -140,6 +149,7 @@ public class BudzetService {
                 .stvarniIznos(BigDecimal.ZERO)
                 .pragUpozorenja(resolvePrag(dto.getPragUpozorenja(), DEFAULT_PRAG_UPOZORENJA, "Prag upozorenja"))
                 .pragKriticnog(resolvePrag(dto.getPragKriticnog(), DEFAULT_PRAG_KRITICNOG, "Kritični prag"))
+                .lastAlertLevel(AlertLevel.NONE)
                 .komentar(dto.getKomentar())
                 .build();
         validatePragovi(stavka.getPragUpozorenja(), stavka.getPragKriticnog());
@@ -173,16 +183,18 @@ public class BudzetService {
         stavka.setKomentar(dto.getKomentar());
         stavka.setStatusKontrole(calculateStatusKontrole(noviPlan, safe(stavka.getStvarniIznos())));
 
-        stavkaBudzetaRepository.save(stavka);
-        budzetAlertService.evaluateAndRemember(
+        BudzetAlertDto alert = budzetAlertService.evaluateAndRemember(
                 budzetId,
                 kategorijaId,
                 stavka.getKategorija().getNaziv(),
                 stavka.getStvarniIznos(),
                 stavka.getPlaniraniIznos(),
                 stavka.getPragUpozorenja(),
-                stavka.getPragKriticnog()
+                stavka.getPragKriticnog(),
+                stavka.getLastAlertLevel()
         );
+        stavka.setLastAlertLevel(alert.getAlertLevel());
+        stavkaBudzetaRepository.save(stavka);
         return getById(budzetId);
     }
 
@@ -257,16 +269,18 @@ public class BudzetService {
                 .setScale(2, RoundingMode.HALF_EVEN);
         stavka.setStvarniIznos(stvarniIznos);
         stavka.setStatusKontrole(calculateStatusKontrole(stavka.getPlaniraniIznos(), stvarniIznos));
-        stavkaBudzetaRepository.save(stavka);
-        budzetAlertService.evaluateAndRemember(
+        BudzetAlertDto alert = budzetAlertService.evaluateAndRemember(
                 budzetId,
                 kategorijaId,
                 stavka.getKategorija().getNaziv(),
                 stvarniIznos,
                 stavka.getPlaniraniIznos(),
                 stavka.getPragUpozorenja(),
-                stavka.getPragKriticnog()
+                stavka.getPragKriticnog(),
+                stavka.getLastAlertLevel()
         );
+        stavka.setLastAlertLevel(alert.getAlertLevel());
+        stavkaBudzetaRepository.save(stavka);
     }
 
     @PreAuthorize("hasAnyRole('FINANSIJSKI_KONTROLOR', 'MENADZER_DOGADJAJA')")

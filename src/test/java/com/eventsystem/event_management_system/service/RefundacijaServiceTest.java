@@ -7,6 +7,7 @@ import com.eventsystem.event_management_system.model.Placanje;
 import com.eventsystem.event_management_system.model.Refundacija;
 import com.eventsystem.event_management_system.model.StavkaFakture;
 import com.eventsystem.event_management_system.model.Trosak;
+import com.eventsystem.event_management_system.model.Zaposleni;
 import com.eventsystem.event_management_system.repository.PlacanjeRepository;
 import com.eventsystem.event_management_system.repository.RefundacijaRepository;
 import com.eventsystem.event_management_system.repository.TrosakRepository;
@@ -56,6 +57,57 @@ class RefundacijaServiceTest {
 
     @InjectMocks
     private RefundacijaService refundacijaService;
+
+    @Test
+    void request_rejectsRefundForNonCompletedPayment() {
+        Placanje placanje = Placanje.builder()
+                .placanjeId(5L)
+                .status(PlacanjeStatus.PENDING)
+                .iznos(new BigDecimal("100.00"))
+                .build();
+        RefundacijaDto dto = RefundacijaDto.builder()
+                .iznos(new BigDecimal("10.00"))
+                .razlog("Još nije plaćeno")
+                .build();
+
+        when(placanjeRepository.findById(5L)).thenReturn(Optional.of(placanje));
+
+        assertThatThrownBy(() -> refundacijaService.request(5L, dto))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("završena plaćanja");
+    }
+
+    @Test
+    void approve_rejectsWhenApproverIsSameAsRequester() {
+        Refundacija refundacija = Refundacija.builder()
+                .refundacijaId(9L)
+                .status(RefundacijaStatus.TRAZENA)
+                .kreiraoId(7L)
+                .build();
+        Zaposleni zaposleni = new Zaposleni();
+        zaposleni.setKorisnikId(7L);
+
+        when(refundacijaRepository.findById(9L)).thenReturn(Optional.of(refundacija));
+        when(currentUserService.getCurrentZaposleni()).thenReturn(zaposleni);
+
+        assertThatThrownBy(() -> refundacijaService.approve(9L))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Odobravalac");
+    }
+
+    @Test
+    void execute_rejectsRefundThatIsNotApproved() {
+        Refundacija refundacija = Refundacija.builder()
+                .refundacijaId(9L)
+                .status(RefundacijaStatus.TRAZENA)
+                .build();
+
+        when(refundacijaRepository.findById(9L)).thenReturn(Optional.of(refundacija));
+
+        assertThatThrownBy(() -> refundacijaService.execute(9L))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("odobrena");
+    }
 
     @Test
     void request_rejectsRefundAboveRemainingAmount() {

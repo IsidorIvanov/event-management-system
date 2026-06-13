@@ -1,6 +1,8 @@
 package com.eventsystem.event_management_system.service;
 
+import com.eventsystem.event_management_system.dto.FakturaDto;
 import com.eventsystem.event_management_system.dto.StavkaFaktureDto;
+import com.eventsystem.event_management_system.exception.BadRequestException;
 import com.eventsystem.event_management_system.model.Budzet;
 import com.eventsystem.event_management_system.model.BudzetKategorija;
 import com.eventsystem.event_management_system.model.Dogadjaj;
@@ -27,10 +29,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.never;
@@ -66,6 +70,44 @@ class FakturaServiceTest {
 
     @InjectMocks
     private FakturaService fakturaService;
+
+    @Test
+    void createIncoming_rejectsClientOnIncomingInvoice() {
+        FakturaDto dto = FakturaDto.builder()
+                .brojFakture("UL-1")
+                .tip(TipFakture.ULAZNA)
+                .dogadjajId(100L)
+                .dobavljacId(5L)
+                .klijentId(6L)
+                .datumIzdavanja(LocalDate.now())
+                .rokPlacanja(LocalDate.now().plusDays(7))
+                .build();
+
+        when(fakturaRepository.findByBrojFakture("UL-1")).thenReturn(null);
+
+        assertThatThrownBy(() -> fakturaService.createIncoming(dto))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("ne sme imati klijenta");
+    }
+
+    @Test
+    void createOutgoing_rejectsSupplierOnOutgoingInvoice() {
+        FakturaDto dto = FakturaDto.builder()
+                .brojFakture("IZ-1")
+                .tip(TipFakture.IZLAZNA)
+                .dogadjajId(100L)
+                .klijentId(6L)
+                .dobavljacId(5L)
+                .datumIzdavanja(LocalDate.now())
+                .rokPlacanja(LocalDate.now().plusDays(7))
+                .build();
+
+        when(fakturaRepository.findByBrojFakture("IZ-1")).thenReturn(null);
+
+        assertThatThrownBy(() -> fakturaService.createOutgoing(dto))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("ne sme imati dobavljača");
+    }
 
     @Test
     void addStavka_ulaznaFakturaNeCreatesTrosak() {
@@ -154,6 +196,7 @@ class FakturaServiceTest {
         when(fakturaRepository.findById(1L)).thenReturn(Optional.of(faktura));
         when(stavkaFaktureRepository.countByFakturaId(1L)).thenReturn(2L);
         when(stavkaFaktureRepository.sumUkupnaCenaByFakturaId(1L)).thenReturn(new BigDecimal("400.00"));
+        when(stavkaFaktureRepository.findByFakturaFakturaId(1L)).thenReturn(List.of(prva, druga));
         when(trosakRepository.save(any(Trosak.class))).thenAnswer(invocation -> {
             Trosak saved = invocation.getArgument(0);
             saved.setTrosakId(saved.getKategorijaId().equals(20L) ? 77L : 78L);
@@ -176,6 +219,17 @@ class FakturaServiceTest {
         verify(stavkaFaktureRepository).save(druga);
         verify(budzetService).recomputeStavku(10L, 20L);
         verify(budzetService).recomputeStavku(10L, 30L);
+    }
+
+    @Test
+    void issue_rejectsInvoiceWithoutItems() {
+        Faktura faktura = faktura(TipFakture.ULAZNA);
+        when(fakturaRepository.findById(1L)).thenReturn(Optional.of(faktura));
+        when(stavkaFaktureRepository.countByFakturaId(1L)).thenReturn(0L);
+
+        assertThatThrownBy(() -> fakturaService.issue(1L))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("bar jednu stavku");
     }
 
     @Test
