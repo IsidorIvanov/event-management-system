@@ -307,6 +307,13 @@ function SesijeTab({ event }) {
 
   // stats
   const total = sesije.length;
+  const avgFillRate = (() => {
+    if (sesije.length === 0) return null;
+    const totalPct = sesije.reduce((sum, s) => {
+      return sum + (s.kapacitet > 0 ? (s.popunjenost ?? 0) / s.kapacitet : 0);
+    }, 0);
+    return Math.round((totalPct / sesije.length) * 100);
+  })();
 
   // Day label helper: "Day 1 · May 22" style
   const dayLabel = (datum) => {
@@ -335,7 +342,7 @@ function SesijeTab({ event }) {
         </div>
         <div className="sesija-stat-card">
           <div className="sesija-stat-label">Avg fill rate</div>
-          <div className="sesija-stat-value">—</div>
+          <div className="sesija-stat-value">{avgFillRate !== null ? `${avgFillRate}%` : '—'}</div>
         </div>
       </div>
 
@@ -419,7 +426,8 @@ function SesijeTab({ event }) {
 }
 
 function SesijaRow({ sesija, dayLabel, onEdit, onDelete }) {
-  const { pct, color } = fillBar(0, sesija.kapacitet);
+  const registered = sesija.popunjenost ?? 0;
+  const { pct, color } = fillBar(registered, sesija.kapacitet);
   const speakers = sesija.govornici;
   const speakerText = speakers && speakers.length > 0
     ? speakers.map((g) => `${g.ime} ${g.prezime}`).join(', ')
@@ -443,7 +451,7 @@ function SesijaRow({ sesija, dayLabel, onEdit, onDelete }) {
         <div className="sesija-meta-row">
           <span className="sesija-speaker">Speaker: {speakerText}</span>
           <span className="sesija-capacity">capacity: {sesija.kapacitet}</span>
-          <span className="sesija-registered">registered: — / {sesija.kapacitet}</span>
+          <span className="sesija-registered">registered: {registered} / {sesija.kapacitet}</span>
           <div className="sesija-fill-bar">
             <div className="sesija-fill-bar-inner" style={{ width: `${pct}%`, background: color }} />
           </div>
