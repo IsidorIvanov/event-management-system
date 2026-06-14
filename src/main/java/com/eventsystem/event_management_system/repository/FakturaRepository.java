@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -14,4 +15,16 @@ public interface FakturaRepository extends JpaRepository<Faktura, Long> {
 
     @Query("select f from Faktura f where f.rokPlacanja < :d and f.status in :statuses")
     List<Faktura> findOverdue(@Param("d") LocalDate date, @Param("statuses") List<FakturaStatus> statuses);
+
+    @Query("""
+            SELECT COALESCE(SUM(f.placeniIznos), 0)
+            FROM Faktura f
+            WHERE f.dogadjajId = :dogadjajId
+              AND f.tip = com.eventsystem.event_management_system.utils.enums.TipFakture.IZLAZNA
+              AND f.status IN (
+                  com.eventsystem.event_management_system.utils.enums.FakturaStatus.DELIMICNO_PLACENA,
+                  com.eventsystem.event_management_system.utils.enums.FakturaStatus.PLACENA
+              )
+            """)
+    BigDecimal sumNetoIzlazniPrihodByDogadjaj(@Param("dogadjajId") Long dogadjajId);
 }

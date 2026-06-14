@@ -39,4 +39,11 @@ public interface TrosakRepository extends JpaRepository<Trosak, Long> {
             @Param("budzetId") Long budzetId,
             @Param("kategorijaId") Long kategorijaId
     );
+
+    @Query("""
+            SELECT COALESCE(SUM(t.iznos - COALESCE(t.refundiraniIznos, 0)), 0)
+            FROM Trosak t
+            WHERE t.dogadjajId = :dogadjajId
+            """)
+    BigDecimal sumNetoByDogadjaj(@Param("dogadjajId") Long dogadjajId);
 }
