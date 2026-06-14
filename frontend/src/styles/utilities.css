@@ -1,0 +1,40 @@
+/* ===================== Messages ===================== */
+
+.error-msg {
+  background: var(--danger-subtle);
+  color: var(--danger);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.success-msg {
+  background: var(--success-subtle);
+  color: var(--success);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ===================== Links ===================== */
+
+.auth-link {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.auth-link a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.auth-link a:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
