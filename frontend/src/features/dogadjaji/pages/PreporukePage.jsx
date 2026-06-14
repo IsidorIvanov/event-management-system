@@ -45,6 +45,8 @@ export default function PreporukePage() {
   const [collapsed, setCollapsed] = useState(new Set());
   // Sessions per event, lazily loaded: { [dogadjajId]: { loading, sesije } }
   const [sessions, setSessions] = useState({});
+  // Contacts per event, lazily loaded: { [dogadjajId]: { loading, organizatori, ucesnici } }
+  const [kontakti, setKontakti] = useState({});
   // Set of sesijaId-s already in the participant's schedule
   const [rasporedIds, setRasporedIds] = useState(new Set());
   const [togglingId, setTogglingId] = useState(null);
@@ -58,8 +60,11 @@ export default function PreporukePage() {
       .then(([prepRes, idsRes]) => {
         setPreporuke(prepRes.data);
         setRasporedIds(new Set(idsRes.data));
-        // Events render expanded by default → preload their sessions.
-        prepRes.data.forEach((p) => loadSessions(p.dogadjajId));
+        // Events render expanded by default → preload their sessions + contacts.
+        prepRes.data.forEach((p) => {
+          loadSessions(p.dogadjajId);
+          loadKontakti(p.dogadjajId);
+        });
       })
       .catch(() => setPreporuke([]))
       .finally(() => setLoading(false));
@@ -76,6 +81,16 @@ export default function PreporukePage() {
       .catch(() => setSessions((prev) => ({ ...prev, [dogadjajId]: { loading: false, sesije: [] } })));
   };
 
+  const loadKontakti = (dogadjajId) => {
+    setKontakti((prev) => {
+      if (prev[dogadjajId]) return prev; // already loaded / loading
+      return { ...prev, [dogadjajId]: { loading: true, organizatori: [], ucesnici: [] } };
+    });
+    preporukaApi.getKontaktiZaDogadjaj(dogadjajId)
+      .then((res) => setKontakti((prev) => ({ ...prev, [dogadjajId]: { loading: false, ...res.data } })))
+      .catch(() => setKontakti((prev) => ({ ...prev, [dogadjajId]: { loading: false, organizatori: [], ucesnici: [] } })));
+  };
+
   const toggleCollapse = (dogadjajId) => {
     setCollapsed((prev) => {
       const next = new Set(prev);
@@ -86,9 +101,10 @@ export default function PreporukePage() {
       }
       return next;
     });
-    // When expanding (it was collapsed), make sure sessions are loaded
-    if (collapsed.has(dogadjajId) && !sessions[dogadjajId]) {
-      loadSessions(dogadjajId);
+    // When expanding (it was collapsed), make sure sessions + contacts are loaded
+    if (collapsed.has(dogadjajId)) {
+      if (!sessions[dogadjajId]) loadSessions(dogadjajId);
+      if (!kontakti[dogadjajId]) loadKontakti(dogadjajId);
     }
   };
 
@@ -183,6 +199,68 @@ export default function PreporukePage() {
     });
   };
 
+  const openPoruke = (k) => {
+    navigate('/dashboard/poruke', { state: { kontakt: k } });
+  };
+
+  const renderKontaktCard = (k) => {
+    const initials = `${k.ime?.[0] || ''}${k.prezime?.[0] || ''}`.toUpperCase();
+    const sub = k.uloga
+      ? k.uloga.replace(/_/g, ' ').toLowerCase()
+      : [k.pozicija, k.kompanija].filter(Boolean).join(' · ');
+    return (
+      <div key={k.korisnikId} className="preporuka-kontakt-card">
+        <div className="preporuka-kontakt-avatar">{initials || '?'}</div>
+        <div className="preporuka-kontakt-body">
+          <div className="preporuka-kontakt-name">{k.ime} {k.prezime}</div>
+          {sub && <div className="preporuka-kontakt-sub">{sub}</div>}
+          <div className="preporuka-kontakt-links">
+            {k.email && <a href={`mailto:${k.email}`} className="preporuka-kontakt-link">✉ {k.email}</a>}
+            {k.telefon && <a href={`tel:${k.telefon}`} className="preporuka-kontakt-link">☎ {k.telefon}</a>}
+          </div>
+          <button
+            className="preporuka-kontakt-msg-btn"
+            onClick={() => openPoruke(k)}
+          >
+            💬 Pošalji poruku
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderKontakti = (dogadjajId) => {
+    const entry = kontakti[dogadjajId];
+    if (!entry || entry.loading) {
+      return <p className="empty-hint">Učitavanje kontakata...</p>;
+    }
+    const orgs = entry.organizatori || [];
+    const ucs = entry.ucesnici || [];
+    if (orgs.length === 0 && ucs.length === 0) {
+      return <p className="empty-hint">Nema dostupnih kontakata za ovaj događaj.</p>;
+    }
+    return (
+      <>
+        <div className="preporuka-kontakt-grupa">
+          <div className="preporuka-kontakt-grupa-label">Organizatori ({orgs.length})</div>
+          {orgs.length > 0 ? (
+            <div className="preporuka-kontakt-list">{orgs.map(renderKontaktCard)}</div>
+          ) : (
+            <p className="empty-hint">Nema organizatora.</p>
+          )}
+        </div>
+        <div className="preporuka-kontakt-grupa">
+          <div className="preporuka-kontakt-grupa-label">Učesnici ({ucs.length})</div>
+          {ucs.length > 0 ? (
+            <div className="preporuka-kontakt-list">{ucs.map(renderKontaktCard)}</div>
+          ) : (
+            <p className="empty-hint">Još nema registrovanih učesnika.</p>
+          )}
+        </div>
+      </>
+    );
+  };
+
   return (
     <div className="ucesnik-page">
       <div className="ucesnik-header">
@@ -224,7 +302,10 @@ export default function PreporukePage() {
                   className="raspored-expand-btn"
                   onClick={() => {
                     setCollapsed(new Set());
-                    preporuke.forEach((p) => { if (!sessions[p.dogadjajId]) loadSessions(p.dogadjajId); });
+                    preporuke.forEach((p) => {
+                      if (!sessions[p.dogadjajId]) loadSessions(p.dogadjajId);
+                      if (!kontakti[p.dogadjajId]) loadKontakti(p.dogadjajId);
+                    });
                   }}
                 >
                   ↕ Expand all
@@ -340,6 +421,12 @@ export default function PreporukePage() {
                     <div className="preporuka-sesije">
                       <div className="preporuka-sesije-title">Sesije događaja</div>
                       {renderSesije(p.dogadjajId)}
+                    </div>
+
+                    {/* Contacts — organizers & participants of the event */}
+                    <div className="preporuka-kontakti">
+                      <div className="preporuka-sesije-title">Kontakti</div>
+                      {renderKontakti(p.dogadjajId)}
                     </div>
                   </div>
                 )}

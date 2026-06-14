@@ -1,5 +1,6 @@
 package com.eventsystem.event_management_system.controller;
 
+import com.eventsystem.event_management_system.dto.DogadjajKontaktiDto;
 import com.eventsystem.event_management_system.dto.PreporukaDto;
 import com.eventsystem.event_management_system.service.PreporukaService;
 import lombok.RequiredArgsConstructor;
@@ -21,5 +22,13 @@ public class PreporukaController {
     @GetMapping("/moje")
     public ResponseEntity<List<PreporukaDto>> getMojePreporuke() {
         return ResponseEntity.ok(preporukaService.generisiMojePreporuke());
+    }
+
+    /**
+     * Kontakti (organizatori i učesnici) za preporučeni događaj.
+     */
+    @GetMapping("/{dogadjajId}/kontakti")
+    public ResponseEntity<DogadjajKontaktiDto> getKontakti(@PathVariable Long dogadjajId) {
+        return ResponseEntity.ok(preporukaService.getKontaktiZaDogadjaj(dogadjajId));
     }
 }

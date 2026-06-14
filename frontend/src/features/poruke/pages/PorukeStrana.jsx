@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Client } from '@stomp/stompjs';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import * as porukeService from '@/features/poruke/services/porukeService';
@@ -20,6 +21,7 @@ function initials(ime, prezime) {
 
 export default function PorukeStrana() {
   const { user } = useAuth();
+  const location = useLocation();
   const [kontakti, setKontakti] = useState([]);
   const [aktivniKontakt, setAktivniKontakt] = useState(null);
   const [poruke, setPoruke] = useState([]);
@@ -41,13 +43,33 @@ export default function PorukeStrana() {
   useEffect(() => { userRef.current = user; }, [user]);
   useEffect(() => { porukeRef.current = poruke; }, [poruke]);
 
-  // load contacts
+  // load contacts (and preselect a contact passed via navigation, e.g. from Preporuke)
   useEffect(() => {
+    const pre = location.state?.kontakt;
     porukeService.getKontakti()
-      .then(r => setKontakti(r.data))
+      .then(r => {
+        let list = r.data;
+        if (pre?.korisnikId && !list.some(k => k.korisnikId === pre.korisnikId)) {
+          list = [{
+            korisnikId: pre.korisnikId,
+            ime: pre.ime,
+            prezime: pre.prezime,
+            uloga: pre.uloga ?? null,
+            tipKorisnika: pre.tipKorisnika ?? null,
+            poslednjaPorukaPreview: null,
+            vremePoslednjePoruke: null,
+            neprocitanihPoruka: 0,
+          }, ...list];
+        }
+        setKontakti(list);
+        if (pre?.korisnikId) {
+          const found = list.find(k => k.korisnikId === pre.korisnikId);
+          if (found) setAktivniKontakt(found);
+        }
+      })
       .catch(console.error)
       .finally(() => setLoadingKontakti(false));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // websocket — instant delivery when WS works
   useEffect(() => {

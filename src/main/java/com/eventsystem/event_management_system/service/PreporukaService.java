@@ -1,11 +1,16 @@
 package com.eventsystem.event_management_system.service;
 
+import com.eventsystem.event_management_system.dto.DogadjajKontaktiDto;
+import com.eventsystem.event_management_system.dto.KontaktKorisnikaDto;
 import com.eventsystem.event_management_system.dto.PreporukaDto;
 import com.eventsystem.event_management_system.model.*;
 import com.eventsystem.event_management_system.repository.DogadjajRepository;
 import com.eventsystem.event_management_system.repository.PreporukaRepository;
 import com.eventsystem.event_management_system.repository.RegistracijaRepository;
+import com.eventsystem.event_management_system.repository.ZaposleniRepository;
 import com.eventsystem.event_management_system.utils.enums.StatusDogadjaja;
+import com.eventsystem.event_management_system.utils.enums.StatusRegistracije;
+import com.eventsystem.event_management_system.utils.enums.UlogaZaposlenog;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +28,7 @@ public class PreporukaService {
     private final PreporukaRepository preporukaRepository;
     private final DogadjajRepository dogadjajRepository;
     private final RegistracijaRepository registracijaRepository;
+    private final ZaposleniRepository zaposleniRepository;
     private final CurrentUserService currentUserService;
 
     /**
@@ -117,6 +123,56 @@ public class PreporukaService {
                 .map(this::toDto)
                 .sorted(Comparator.comparing(PreporukaDto::getSkorPoklapanja).reversed())
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Kontakti vezani za događaj: organizatori (zaposleni sa ulogom
+     * KOORDINATOR_PROGRAMA) i registrovani učesnici (bez otkazanih registracija).
+     */
+    @Transactional(readOnly = true)
+    public DogadjajKontaktiDto getKontaktiZaDogadjaj(Long dogadjajId) {
+        List<KontaktKorisnikaDto> organizatori = zaposleniRepository
+                .findByUloga(UlogaZaposlenog.KOORDINATOR_PROGRAMA)
+                .stream()
+                .map(z -> KontaktKorisnikaDto.builder()
+                        .korisnikId(z.getKorisnikId())
+                        .ime(z.getIme())
+                        .prezime(z.getPrezime())
+                        .email(z.getEmail())
+                        .telefon(z.getTelefon())
+                        .uloga(z.getUloga() != null ? z.getUloga().name() : null)
+                        .pozicija(z.getPozicija())
+                        .build())
+                .sorted(Comparator.comparing(KontaktKorisnikaDto::getPrezime,
+                        Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                .collect(Collectors.toList());
+
+        // Distinktni učesnici sa aktivnom (neotkazanom) registracijom.
+        Map<Long, KontaktKorisnikaDto> ucesniciMap = new LinkedHashMap<>();
+        for (Registracija r : registracijaRepository.findByDogadjajIdWithDetails(dogadjajId)) {
+            if (r.getStatus() == StatusRegistracije.OTKAZANA) {
+                continue;
+            }
+            Ucesnik u = r.getUcesnik();
+            ucesniciMap.computeIfAbsent(u.getKorisnikId(), k -> KontaktKorisnikaDto.builder()
+                    .korisnikId(u.getKorisnikId())
+                    .ime(u.getIme())
+                    .prezime(u.getPrezime())
+                    .email(u.getEmail())
+                    .telefon(u.getTelefon())
+                    .kompanija(u.getKompanija())
+                    .pozicija(u.getPozicija())
+                    .build());
+        }
+        List<KontaktKorisnikaDto> ucesnici = ucesniciMap.values().stream()
+                .sorted(Comparator.comparing(KontaktKorisnikaDto::getPrezime,
+                        Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                .collect(Collectors.toList());
+
+        return DogadjajKontaktiDto.builder()
+                .organizatori(organizatori)
+                .ucesnici(ucesnici)
+                .build();
     }
 
     private String napraviRazlog(List<String> poklapanja, int ukupnoTagova) {
