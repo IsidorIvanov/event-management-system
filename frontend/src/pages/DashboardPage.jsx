@@ -12,6 +12,7 @@ import UcesnikPage from './UcesnikPage';
 import OtkrijteDogadjajePageUcesnik from './OtkrijteDogadjajePageUcesnik';
 import UcesnikDogadjajDetaljPage from './UcesnikDogadjajDetaljPage';
 import MojRasporedPage from './MojRasporedPage';
+import PorukeStrana from './PorukeStrana';
 import api from '../services/api';
 import UpsertEventModal from '../components/UpsertEventModal.jsx';
 import UpsertLokacijaModal from '../components/UpsertLokacijaModal.jsx';
@@ -766,13 +767,7 @@ function UcesnikDashboardLayout() {
           />
           <Route
             path="poruke"
-            element={
-              <PlaceholderPage
-                title="Poruke"
-                subtitle="komunikacija sa učesnicima"
-                icon="💬"
-              />
-            }
+            element={<PorukeStrana />}
           />
           <Route
             path="obavesta"
@@ -851,6 +846,9 @@ export default function DashboardPage() {
           {isResursi && (
             <NavLink to="/dashboard/resursi" icon="🏢" label="Resursi" />
           )}
+          {hasRole("KOORDINATOR_PROGRAMA") && (
+            <NavLink to="/dashboard/poruke" icon="💬" label="Poruke" />
+          )}
           {hasRole("KLIJENT") && (
             <NavLink
               to="/dashboard/moji-dogadjaji"
@@ -900,6 +898,7 @@ export default function DashboardPage() {
           <Route path="troskovi" element={<TroskoviPage />} />
           <Route path="placanja" element={<PlacanjaPage />} />
           <Route path="upozorenja" element={<UpozorenjaPage />} />
+          <Route path="poruke" element={<PorukeStrana />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>

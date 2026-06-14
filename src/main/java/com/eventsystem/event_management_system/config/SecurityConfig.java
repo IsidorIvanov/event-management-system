@@ -46,6 +46,9 @@ public class SecurityConfig {
                 // Javni endpointi
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
+                // WebSocket endpoint
+                .requestMatchers("/ws/**").permitAll()
+                .requestMatchers("/ws-native/**").permitAll()
 
                 // Finansijski podsistem — samo ZAPOSLENI sa ulogama FINANSIJSKI_KONTROLOR ili MENADZER_DOGADJAJA
                 .requestMatchers(HttpMethod.GET, "/api/budzet/**").hasAnyRole(
@@ -82,6 +85,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/registracija/**").hasAnyRole("UCESNIK")
 
                 .requestMatchers("/api/raspored/**").hasAnyRole("UCESNIK")
+
+                // Poruke — Ucesnik i Koordinator programa
+                .requestMatchers("/api/poruke/**").hasAnyRole("UCESNIK", "KOORDINATOR_PROGRAMA")
 
                 .requestMatchers(HttpMethod.GET, "/api/sala/**").hasAnyRole(
                         "KOORDINATOR_RESURSA", "MENADZER_DOGADJAJA", "KOORDINATOR_PROGRAMA")
