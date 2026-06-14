@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import Modal from "@/shared/components/Modal";
 import api from "@/shared/services/api";
 
 const EMPTY = {
@@ -102,12 +103,7 @@ export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-card modal-card-wide"
-        style={{ maxWidth: 620 }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal boxClassName="modal-card modal-card-wide" style={{ maxWidth: 620 }} onClose={onClose}>
         <h3>Dodaj stavku</h3>
 
         {error && (
@@ -237,7 +233,6 @@ export default function DodajStavkuModal({ onClose, onSubmit, dogadjajId }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

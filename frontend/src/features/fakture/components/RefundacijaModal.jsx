@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { formatMoney } from "@/shared/utils/format";
+import Modal from "@/shared/components/Modal";
 
 const EMPTY = {
   iznos: "",
@@ -6,13 +8,6 @@ const EMPTY = {
 };
 
 const RESERVED_REFUND_STATUSES = new Set(["TRAZENA", "ODOBRENA", "IZVRSENA"]);
-
-const formatMoney = (value) =>
-  new Intl.NumberFormat("sr-Latn-RS", {
-    style: "currency",
-    currency: "RSD",
-    maximumFractionDigits: 2,
-  }).format(Number(value || 0));
 
 const refundabilno = (placanje) => {
   const rezervisano = (placanje?.refundacije || [])
@@ -47,12 +42,11 @@ export default function RefundacijaModal({ placanje, onClose, onSubmit }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-card modal-card-wide"
-        style={{ maxWidth: 560 }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal
+      boxClassName="modal-card modal-card-wide"
+      style={{ maxWidth: 560 }}
+      onClose={onClose}
+    >
         <h3>Zahtev za refundaciju</h3>
         <p className="page-subtitle" style={{ marginTop: "0.35rem" }}>
           Plaćeni iznos: {formatMoney(placanje?.iznos)}
@@ -105,7 +99,6 @@ export default function RefundacijaModal({ placanje, onClose, onSubmit }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

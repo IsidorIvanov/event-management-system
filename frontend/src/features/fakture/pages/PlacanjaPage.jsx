@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useToast } from '@/shared/components/ToastNotification';
 import * as fakturaApi from '@/features/fakture/services/fakturaService';
+import { formatMoney, formatDate as fmtDate } from '@/shared/utils/format';
 
 const STATUS_LABEL = {
   PENDING: 'Na čekanju',
@@ -21,21 +22,8 @@ const TIP_LABEL = {
   IZLAZNA: 'Izlazna',
 };
 
-const formatMoney = (value) =>
-  new Intl.NumberFormat('sr-Latn-RS', {
-    style: 'currency',
-    currency: 'RSD',
-    maximumFractionDigits: 2,
-  }).format(Number(value || 0));
-
 const formatDate = (value) =>
-  value
-    ? new Date(value).toLocaleDateString('sr-Latn', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      })
-    : '—';
+  fmtDate(value, { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 const extractError = (error, fallback) =>
   error?.response?.data?.message ||

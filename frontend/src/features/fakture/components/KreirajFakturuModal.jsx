@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import Modal from "@/shared/components/Modal";
 import api from "@/shared/services/api";
 
 const EMPTY = {
@@ -248,12 +249,7 @@ export default function KreirajFakturuModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-card modal-card-wide"
-        style={{ maxWidth: 680 }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal boxClassName="modal-card modal-card-wide" style={{ maxWidth: 680 }} onClose={onClose}>
         <h3>Nova faktura</h3>
 
         {error && (
@@ -446,7 +442,6 @@ export default function KreirajFakturuModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

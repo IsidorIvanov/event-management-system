@@ -4,6 +4,7 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import { useToast } from '@/shared/components/ToastNotification';
 import TrosakModal from '@/features/budzet/components/TrosakModal';
 import * as budzetApi from '@/features/budzet/services/budzetService';
+import { formatMoney, formatDate as fmtDate } from '@/shared/utils/format';
 
 const TIP_LABEL = {
   RUCNI: 'Ručni',
@@ -17,21 +18,8 @@ const TIP_CLASS = {
   AUTO_ULAZNA: 'status-finished',
 };
 
-const formatMoney = (value) =>
-  new Intl.NumberFormat('sr-Latn-RS', {
-    style: 'currency',
-    currency: 'RSD',
-    maximumFractionDigits: 2,
-  }).format(Number(value || 0));
-
 const formatDate = (value) =>
-  value
-    ? new Date(value).toLocaleDateString('sr-Latn', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      })
-    : '—';
+  fmtDate(value, { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 const extractError = (error, fallback) =>
   error?.response?.data?.message ||

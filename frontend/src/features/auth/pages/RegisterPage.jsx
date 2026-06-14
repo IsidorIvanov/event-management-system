@@ -1,18 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { ULOGA_DISPLAY as ULOGA_LABELS } from '@/shared/constants/korisnik';
 
 const TIP_LABELS = {
   ZAPOSLENI: 'Zaposleni',
   KLIJENT: 'Klijent (firma)',
   UCESNIK: 'Učesnik',
-};
-
-const ULOGA_LABELS = {
-  MENADZER_DOGADJAJA: 'Menadžer događaja',
-  KOORDINATOR_RESURSA: 'Koordinator resursa',
-  KOORDINATOR_PROGRAMA: 'Koordinator programa',
-  FINANSIJSKI_KONTROLOR: 'Finansijski kontrolor',
 };
 
 const getRegisterErrorMessage = (err) => {

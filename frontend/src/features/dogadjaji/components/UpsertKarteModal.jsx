@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Modal from '@/shared/components/Modal';
 import * as sesijaApi from '@/features/dogadjaji/services/sesijaService';
 
 const VRSTA_OPTIONS = ['VISEDNEVNA', 'JEDNODNEVNA', 'POJEDINACNA_SESIJA', 'BESPLATNA'];
@@ -130,12 +131,7 @@ export default function UpsertKarteModal({ dogadjajId, event, tipKarte, onClose,
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-box modal-large"
-        style={{ textAlign: 'left', maxWidth: 520 }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal boxClassName="modal-box modal-large" style={{ textAlign: 'left', maxWidth: 520 }} onClose={onClose}>
         {/* Header */}
         <div className="modal-header">
           <h3 className="modal-title">{isEdit ? 'Izmeni tip karte' : 'Dodaj tip karte'}</h3>
@@ -267,7 +263,6 @@ export default function UpsertKarteModal({ dogadjajId, event, tipKarte, onClose,
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

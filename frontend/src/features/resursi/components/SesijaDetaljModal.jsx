@@ -1,3 +1,5 @@
+import Modal from '@/shared/components/Modal';
+
 const TIP_LABELS = {
   KEYNOTE: 'Keynote',
   WORKSHOP: 'Radionica',
@@ -38,8 +40,7 @@ function DetailRow({ label, value }) {
 
 export default function SesijaDetaljModal({ detalj, loading, error, onClose }) {
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card modal-card-wide" onClick={(e) => e.stopPropagation()}>
+    <Modal boxClassName="modal-card modal-card-wide" onClose={onClose}>
         <div className="detalj-header">
           <h3>Detalji sesije</h3>
           <button type="button" className="btn-close" onClick={onClose} aria-label="Zatvori">
@@ -107,7 +108,6 @@ export default function SesijaDetaljModal({ detalj, loading, error, onClose }) {
             Zatvori
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

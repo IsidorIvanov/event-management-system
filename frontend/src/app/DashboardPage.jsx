@@ -18,33 +18,11 @@ import UpsertEventModal from '@/features/dogadjaji/components/UpsertEventModal';
 import UpsertLokacijaModal from '@/features/dogadjaji/components/UpsertLokacijaModal';
 import EventDetailPage from '@/features/dogadjaji/components/EventDetailPage';
 import { useToast } from '@/shared/components/ToastNotification';
-
-const ULOGA_DISPLAY = {
-  MENADZER_DOGADJAJA: "Menadžer događaja",
-  KOORDINATOR_RESURSA: "Koordinator resursa",
-  KOORDINATOR_PROGRAMA: "Koordinator programa",
-  FINANSIJSKI_KONTROLOR: "Finansijski kontrolor",
-};
-
-const TIP_DISPLAY = {
-  ZAPOSLENI: "Zaposleni",
-  KLIJENT: "Klijent",
-  UCESNIK: "Učesnik",
-};
-
-const STATUS_DISPLAY = {
-  OBJAVLJEN: "Objavljen",
-  AKTIVAN: "Aktivan",
-  DRAFT: "Nacrt",
-  ZAVRSEN: "Završen",
-};
-
-const STATUS_CLASS = {
-  OBJAVLJEN: "status-badge status-published",
-  AKTIVAN: "status-badge status-ongoing",
-  DRAFT: "status-badge status-draft",
-  ZAVRSEN: "status-badge status-finished",
-};
+import { formatDate } from '@/shared/utils/format';
+import { ULOGA_DISPLAY, TIP_DISPLAY } from '@/shared/constants/korisnik';
+import { STATUS_DISPLAY, STATUS_CLASS, STATUS_OPTIONS } from '@/features/dogadjaji/constants';
+import ConfirmDialog from '@/shared/components/ConfirmDialog';
+import TableStateRow from '@/shared/components/TableStateRow';
 
 function DashboardHome() {
   const { user, hasRole } = useAuth();
@@ -98,44 +76,6 @@ function DashboardHome() {
         </div>
       )}
     </>
-  );
-}
-
-const STATUS_OPTIONS = ["SVE", "OBJAVLJEN", "AKTIVAN", "DRAFT", "ZAVRSEN"];
-
-const formatDate = (s) =>
-  s
-    ? new Date(s).toLocaleDateString("sr-Latn", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
-    : "—";
-
-function ConfirmModal({ event, onConfirm, onCancel }) {
-  if (!event) return null;
-  return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-icon">🗑️</div>
-        <h3 className="modal-title">Obriši događaj</h3>
-        <p className="modal-body">
-          Da li ste sigurni da želite da obrišete događaj{" "}
-          <strong>„{event.naziv}"</strong>?<br />
-          <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-            Ova akcija se ne može poništiti.
-          </span>
-        </p>
-        <div className="modal-actions">
-          <button className="btn btn-outline" onClick={onCancel}>
-            Otkaži
-          </button>
-          <button className="btn btn-danger" onClick={onConfirm}>
-            Obriši
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -214,11 +154,19 @@ function ProgramSection({ user }) {
 
   return (
     <div className="program-page">
-      <ConfirmModal
-        event={deleteTarget}
-        onConfirm={confirmDelete}
-        onCancel={() => setDeleteTarget(null)}
-      />
+      {deleteTarget && (
+        <ConfirmDialog
+          title="Obriši događaj"
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteTarget(null)}
+        >
+          Da li ste sigurni da želite da obrišete događaj{" "}
+          <strong>„{deleteTarget.naziv}"</strong>?<br />
+          <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+            Ova akcija se ne može poništiti.
+          </span>
+        </ConfirmDialog>
+      )}
       {showCreate && (
         <UpsertEventModal
           onClose={() => setShowCreate(false)}
@@ -318,45 +266,13 @@ function ProgramSection({ user }) {
             </tr>
           </thead>
           <tbody>
-            {loading ? (
-              <tr>
-                <td
-                  colSpan={5}
-                  style={{
-                    textAlign: "center",
-                    color: "var(--text-muted)",
-                    padding: "2rem",
-                  }}
-                >
-                  Učitavanje...
-                </td>
-              </tr>
-            ) : error ? (
-              <tr>
-                <td
-                  colSpan={5}
-                  style={{
-                    textAlign: "center",
-                    color: "var(--danger)",
-                    padding: "2rem",
-                  }}
-                >
-                  {error}
-                </td>
-              </tr>
-            ) : filtered.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={5}
-                  style={{
-                    textAlign: "center",
-                    color: "var(--text-muted)",
-                    padding: "2rem",
-                  }}
-                >
-                  Nema rezultata.
-                </td>
-              </tr>
+            {loading || error || filtered.length === 0 ? (
+              <TableStateRow
+                colSpan={5}
+                loading={loading}
+                error={error}
+                isEmpty={filtered.length === 0}
+              />
             ) : (
               filtered.map((event) => (
                 <tr key={event.dogadjajId}>
@@ -466,30 +382,17 @@ function LokacijaSection() {
     <div className="program-page">
       {/* Delete confirm */}
       {deleteTarget && (
-        <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-icon">🗑️</div>
-            <h3 className="modal-title">Obriši lokaciju</h3>
-            <p className="modal-body">
-              Da li ste sigurni da želite da obrišete lokaciju{" "}
-              <strong>„{deleteTarget.naziv}"</strong>?<br />
-              <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-                Ova akcija se ne može poništiti.
-              </span>
-            </p>
-            <div className="modal-actions">
-              <button
-                className="btn btn-outline"
-                onClick={() => setDeleteTarget(null)}
-              >
-                Otkaži
-              </button>
-              <button className="btn btn-danger" onClick={confirmDelete}>
-                Obriši
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="Obriši lokaciju"
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteTarget(null)}
+        >
+          Da li ste sigurni da želite da obrišete lokaciju{" "}
+          <strong>„{deleteTarget.naziv}"</strong>?<br />
+          <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+            Ova akcija se ne može poništiti.
+          </span>
+        </ConfirmDialog>
       )}
 
       {/* Upsert modal */}
@@ -562,45 +465,13 @@ function LokacijaSection() {
             </tr>
           </thead>
           <tbody>
-            {loading ? (
-              <tr>
-                <td
-                  colSpan={5}
-                  style={{
-                    textAlign: "center",
-                    color: "var(--text-muted)",
-                    padding: "2rem",
-                  }}
-                >
-                  Učitavanje...
-                </td>
-              </tr>
-            ) : error ? (
-              <tr>
-                <td
-                  colSpan={5}
-                  style={{
-                    textAlign: "center",
-                    color: "var(--danger)",
-                    padding: "2rem",
-                  }}
-                >
-                  {error}
-                </td>
-              </tr>
-            ) : filtered.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={5}
-                  style={{
-                    textAlign: "center",
-                    color: "var(--text-muted)",
-                    padding: "2rem",
-                  }}
-                >
-                  Nema rezultata.
-                </td>
-              </tr>
+            {loading || error || filtered.length === 0 ? (
+              <TableStateRow
+                colSpan={5}
+                loading={loading}
+                error={error}
+                isEmpty={filtered.length === 0}
+              />
             ) : (
               filtered.map((l) => (
                 <tr key={l.lokacijaId}>

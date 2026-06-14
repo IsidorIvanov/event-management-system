@@ -8,18 +8,18 @@ import RegistracijaModal from '@/features/dogadjaji/components/RegistracijaModal
 
 const formatDate = (s) =>
   s
-    ? new Date(s).toLocaleDateString('en-US', {
-        month: 'short',
+    ? new Date(s).toLocaleDateString('sr-Latn', {
         day: '2-digit',
+        month: 'short',
         year: 'numeric',
       })
     : '—';
 
-const TABS = ['Info', 'Agenda', 'Speakers', 'Participants'];
+const TABS = ['Informacije', 'Agenda', 'Govornici', 'Učesnici'];
 
 const TIP_LABEL = {
   KEYNOTE: 'Keynote',
-  WORKSHOP: 'Workshop',
+  WORKSHOP: 'Radionica',
   PANEL: 'Panel',
   NETWORKING: 'Networking',
 };
@@ -107,44 +107,44 @@ function AgendaTab({ event, isRegistered, userRegistration }) {
     const d     = new Date(datum + 'T00:00:00');
     const start = new Date(event.datumPocetka + 'T00:00:00');
     const dayNum = Math.round((d - start) / 86400000) + 1;
-    return `Day ${dayNum} · ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    return `Dan ${dayNum} · ${d.toLocaleDateString('sr-Latn', { month: 'short', day: 'numeric' })}`;
   };
 
   return (
     <div className="sesije-tab">
-      {/* Filters */}
+      {/* Filteri */}
       <div className="sesije-toolbar">
         <div className="sesije-filters">
           <div className="sesija-filter-input">
             <span>🔍</span>
             <input
-              placeholder="search..."
+              placeholder="pretraži..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="sesija-search"
             />
           </div>
           <select className="sesija-filter-select" value={filterDay} onChange={(e) => setFilterDay(e.target.value)}>
-            <option value="all">day: all</option>
+            <option value="all">dan: svi</option>
             {days.map((d) => <option key={d} value={d}>{dayLabel(d)}</option>)}
           </select>
           <select className="sesija-filter-select" value={filterTrack} onChange={(e) => setFilterTrack(e.target.value)}>
-            <option value="all">track: all</option>
+            <option value="all">tip: svi</option>
             {tracks.map((t) => <option key={t} value={t}>{TIP_LABEL[t] || t}</option>)}
           </select>
           <select className="sesija-filter-select" value={filterRoom} onChange={(e) => setFilterRoom(e.target.value)}>
-            <option value="all">room: all</option>
+            <option value="all">sala: sve</option>
             {rooms.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>
       </div>
 
-      {/* Session list */}
+      {/* Lista sesija */}
       {loading ? (
-        <p className="empty-hint">Loading sessions...</p>
+        <p className="empty-hint">Učitavanje sesija...</p>
       ) : filtered.length === 0 ? (
         <div className="sesije-empty">
-          <p>No sessions found for this event.</p>
+          <p>Nema pronađenih sesija za ovaj događaj.</p>
         </div>
       ) : (
         sortedDays.map((datum) => (
@@ -152,7 +152,7 @@ function AgendaTab({ event, isRegistered, userRegistration }) {
             <div className="sesije-day-header">
               <span className="sesije-day-title">{dayLabel(datum)}</span>
               <span className="sesije-day-count">
-                {grouped[datum].length} session{grouped[datum].length !== 1 ? 's' : ''}
+                {grouped[datum].length} {grouped[datum].length === 1 ? 'sesija' : 'sesija'}
               </span>
             </div>
             {grouped[datum].map((s) => {
@@ -190,14 +190,14 @@ function AgendaTab({ event, isRegistered, userRegistration }) {
                     </div>
                     {s.opis && <div className="sesija-opis">{s.opis}</div>}
                     <div className="sesija-meta-row">
-                      <span>capacity: {s.kapacitet}</span>
+                      <span>kapacitet: {s.kapacitet}</span>
                       <div className="sesija-fill-bar">
                         <div className="sesija-fill-bar-inner" style={{ width: `${pct}%`, background: color }} />
                       </div>
                       <span>{pct}%</span>
                     </div>
                     <div className="sesija-meta-row">
-                      {speakerText && <span>Speaker: {speakerText}</span>}
+                      {speakerText && <span>Govornik: {speakerText}</span>}
                     </div>
                   </div>
                 </div>
@@ -246,11 +246,11 @@ function SpeakersTab({ event }) {
     );
   });
 
-  if (loading) return <p className="empty-hint">Loading speakers...</p>;
+  if (loading) return <p className="empty-hint">Učitavanje govornika...</p>;
 
   return (
     <div className="govornici-tab">
-      {/* Search */}
+      {/* Pretraga */}
       <div style={{ marginBottom: '1rem' }}>
         <input
           className="search-input"
@@ -263,7 +263,7 @@ function SpeakersTab({ event }) {
 
       {filtered.length === 0 ? (
         <div className="sesije-empty">
-          <p>No speakers found for this event.</p>
+          <p>Nema pronađenih govornika za ovaj događaj.</p>
         </div>
       ) : (
         <div className="govornici-grid">
@@ -286,7 +286,7 @@ function SpeakersTab({ event }) {
                   </div>
                   {assignedSesije.length > 0 && (
                     <div className="govornik-card-sessions">
-                      sessions:{' '}
+                      sesije:{' '}
                       {sessionNames.length > 50
                         ? sessionNames.slice(0, 50) + '...'
                         : sessionNames}
@@ -307,7 +307,7 @@ export default function UcesnikDogadjajDetaljPage() {
   const navigate = useNavigate();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('Info');
+  const [activeTab, setActiveTab] = useState('Informacije');
   const [showRegModal, setShowRegModal] = useState(false);
   const [registered, setRegistered] = useState(false);
   const [userRegistration, setUserRegistration] = useState(null);
@@ -367,10 +367,10 @@ export default function UcesnikDogadjajDetaljPage() {
         />
       )}
 
-      {/* Top bar */}
+      {/* Gornja traka */}
       <div className="ev-detail-topbar">
         <button className="ev-back-btn" onClick={() => navigate(-1)}>
-          ← Back
+          ← Nazad
         </button>
         {registered ? (
           <span style={{ fontSize: '0.9rem', color: 'var(--success)', fontWeight: 600 }}>
@@ -378,23 +378,23 @@ export default function UcesnikDogadjajDetaljPage() {
           </span>
         ) : (
           <button className="discover-btn-register ev-register-btn" onClick={() => setShowRegModal(true)}>
-            Register for this event
+            Registruj se za ovaj događaj
           </button>
         )}
       </div>
 
-      {/* Title + meta */}
+      {/* Naslov + meta */}
       <div className="ev-detail-hero">
         <h1 className="ev-detail-title">{event.naziv}</h1>
         <p className="ev-detail-meta">
           {formatDate(event.datumPocetka)}
           {event.lokacijaGrad ? ` · ${event.lokacijaGrad}` : ''}
           {event.lokacijaDrzava ? `, ${event.lokacijaDrzava}` : ''}
-          {' · In-person'}
+          {' · Uživo'}
         </p>
       </div>
 
-      {/* Tabs */}
+      {/* Tabovi */}
       <div className="ev-tabs">
         {TABS.map((tab) => (
           <button
@@ -407,27 +407,27 @@ export default function UcesnikDogadjajDetaljPage() {
         ))}
       </div>
 
-      {/* Tab content */}
-      {activeTab === 'Info' && (
+      {/* Sadržaj taba */}
+      {activeTab === 'Informacije' && (
         <div className="ev-info-tab">
           {!registered ? (
             <div className="ev-not-registered-banner">
               <div className="ev-not-registered-text">
-                <strong>You're not registered yet</strong>
+                <strong>Još niste registrovani</strong>
                 <p>
-                  Pick a ticket to join {event.naziv}. Tickets unlock the agenda,
-                  attendee list, and your QR pass.
+                  Izaberite kartu da se pridružite događaju {event.naziv}. Karte otključavaju
+                  agendu, listu učesnika i vašu QR propusnicu.
                 </p>
               </div>
               <button className="discover-btn-register" onClick={() => setShowRegModal(true)}>
-                Register now
+                Registruj se
               </button>
             </div>
           ) : (
             <div className="ev-not-registered-banner" style={{ background: 'var(--success-subtle)', borderColor: 'var(--success)' }}>
               <div className="ev-not-registered-text">
-                <strong style={{ color: 'var(--success)' }}>✓ You are registered!</strong>
-                <p>Your ticket has been confirmed. Check your registrations for details.</p>
+                <strong style={{ color: 'var(--success)' }}>✓ Registrovani ste!</strong>
+                <p>Vaša karta je potvrđena. Pogledajte svoje registracije za detalje.</p>
               </div>
             </div>
           )}
@@ -436,7 +436,7 @@ export default function UcesnikDogadjajDetaljPage() {
             <div className="ev-info-left">
               <div className="ev-cover-card">
                 <div className="ev-about">
-                  <h3 className="ev-about-title">About this event</h3>
+                  <h3 className="ev-about-title">O ovom događaju</h3>
                   <p className="ev-about-desc">
                     {event.opis || 'Nema opisa za ovaj događaj.'}
                   </p>
@@ -444,24 +444,24 @@ export default function UcesnikDogadjajDetaljPage() {
               </div>
 
               <div className="ev-organizer-card">
-                <div className="ev-organizer-label">ORGANIZED BY</div>
+                <div className="ev-organizer-label">ORGANIZATOR</div>
                 <div className="ev-organizer-body">
                   <div className="ev-organizer-logo" />
                   <div className="ev-organizer-info">
                     <div className="ev-organizer-name">
                       {event.lokacijaNaziv || 'Organizator'}
-                      <span className="ev-verified-badge">Verified</span>
+                      <span className="ev-verified-badge">Verifikovan</span>
                     </div>
                     <div className="ev-organizer-meta">
-                      Based in {event.lokacijaGrad || '—'}
+                      Sedište: {event.lokacijaGrad || '—'}
                     </div>
                     <div className="ev-organizer-desc">
-                      Official event organizer for this venue.
+                      Zvanični organizator događaja za ovaj prostor.
                     </div>
                     <div className="ev-organizer-actions">
-                      <button className="ev-org-btn">+ Follow</button>
-                      <button className="ev-org-btn">View other events</button>
-                      <button className="ev-org-btn">Contact organizer</button>
+                      <button className="ev-org-btn">+ Prati</button>
+                      <button className="ev-org-btn">Pogledaj druge događaje</button>
+                      <button className="ev-org-btn">Kontaktiraj organizatora</button>
                     </div>
                   </div>
                 </div>
@@ -470,26 +470,26 @@ export default function UcesnikDogadjajDetaljPage() {
 
             <div className="ev-info-right">
               <div className="ev-details-card">
-                <h3 className="ev-details-title">Details</h3>
+                <h3 className="ev-details-title">Detalji</h3>
                 <div className="ev-details-rows">
                   <div className="ev-details-row">
-                    <span className="ev-details-label">date</span>
+                    <span className="ev-details-label">datum</span>
                     <span className="ev-details-value">{formatDate(event.datumPocetka)}</span>
                   </div>
                   <div className="ev-details-row">
                     <span className="ev-details-label">format</span>
-                    <span className="ev-details-value">In-person</span>
+                    <span className="ev-details-value">Uživo</span>
                   </div>
                   <div className="ev-details-row">
-                    <span className="ev-details-label">country</span>
+                    <span className="ev-details-label">država</span>
                     <span className="ev-details-value">{event.lokacijaDrzava || '—'}</span>
                   </div>
                   <div className="ev-details-row">
-                    <span className="ev-details-label">city</span>
+                    <span className="ev-details-label">grad</span>
                     <span className="ev-details-value">{event.lokacijaGrad || '—'}</span>
                   </div>
                   <div className="ev-details-row">
-                    <span className="ev-details-label">address</span>
+                    <span className="ev-details-label">adresa</span>
                     <span className="ev-details-value">
                       {event.lokacijaNaziv && event.lokacijaAdresa
                         ? `${event.lokacijaNaziv} · ${event.lokacijaAdresa}`
@@ -498,7 +498,7 @@ export default function UcesnikDogadjajDetaljPage() {
                   </div>
                   {event.maksKapacitet && (
                     <div className="ev-details-row">
-                      <span className="ev-details-label">capacity</span>
+                      <span className="ev-details-label">kapacitet</span>
                       <span className="ev-details-value">{event.maksKapacitet}</span>
                     </div>
                   )}
@@ -511,14 +511,13 @@ export default function UcesnikDogadjajDetaljPage() {
 
       {activeTab === 'Agenda' && <AgendaTab event={event} isRegistered={registered} userRegistration={userRegistration} />}
 
-      {activeTab === 'Speakers' && <SpeakersTab event={event} />}
+      {activeTab === 'Govornici' && <SpeakersTab event={event} />}
 
-      {activeTab === 'Participants' && (
+      {activeTab === 'Učesnici' && (
         <div className="ev-tab-placeholder">
-          <p>Participants list is not yet available.</p>
+          <p>Lista učesnika još nije dostupna.</p>
         </div>
       )}
     </div>
   );
 }
-

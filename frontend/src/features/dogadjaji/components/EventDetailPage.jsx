@@ -10,18 +10,11 @@ import SesijaModal from '@/features/dogadjaji/components/SesijaModal';
 import UpsertGovornikModal from '@/features/dogadjaji/components/UpsertGovornikModal';
 import UpsertKarteModal from '@/features/dogadjaji/components/UpsertKarteModal';
 import { useToast } from '@/shared/components/ToastNotification';
+import { formatDate as fmtDate } from '@/shared/utils/format';
+import { STATUS_DISPLAY, STATUS_CLASS } from '@/features/dogadjaji/constants';
+import ConfirmDialog from '@/shared/components/ConfirmDialog';
 
-const STATUS_DISPLAY = { OBJAVLJEN: 'Objavljen', AKTIVAN: 'Aktivan', DRAFT: 'Nacrt', ZAVRSEN: 'Završen' };
-const STATUS_CLASS   = {
-  OBJAVLJEN: 'status-badge status-published',
-  AKTIVAN:   'status-badge status-ongoing',
-  DRAFT:     'status-badge status-draft',
-  ZAVRSEN:   'status-badge status-finished',
-};
-
-const formatDate = (s) => s
-  ? new Date(s).toLocaleDateString('sr-Latn', { day: '2-digit', month: 'long', year: 'numeric' })
-  : '—';
+const formatDate = (s) => fmtDate(s, { day: '2-digit', month: 'long', year: 'numeric' });
 
 const TABS = ['Pregled', 'Sesije & Agenda', 'Govornici', 'Karte', 'Prisustvo', 'Izveštaj'];
 
@@ -201,26 +194,16 @@ function OverviewTab({ event }) {
 function ConfirmModal({ naziv, onConfirm, onCancel }) {
   if (!naziv) return null;
   return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal-box" onClick={e => e.stopPropagation()}>
-        <div className="modal-icon">🗑️</div>
-        <h3 className="modal-title">Obriši sesiju</h3>
-        <p className="modal-body">
-          Da li ste sigurni da želite da obrišete sesiju <strong>„{naziv}"</strong>?<br />
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Ova akcija se ne može poništiti.</span>
-        </p>
-        <div className="modal-actions">
-          <button className="btn btn-outline" onClick={onCancel}>Otkaži</button>
-          <button className="btn btn-danger" onClick={onConfirm}>Obriši</button>
-        </div>
-      </div>
-    </div>
+    <ConfirmDialog title="Obriši sesiju" onConfirm={onConfirm} onCancel={onCancel}>
+      Da li ste sigurni da želite da obrišete sesiju <strong>„{naziv}"</strong>?<br />
+      <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Ova akcija se ne može poništiti.</span>
+    </ConfirmDialog>
   );
 }
 
 const TIP_LABEL = {
   KEYNOTE: 'Keynote',
-  WORKSHOP: 'Workshop',
+  WORKSHOP: 'Radionica',
   PANEL: 'Panel',
   NETWORKING: 'Networking',
 };
@@ -320,8 +303,8 @@ function SesijeTab({ event }) {
     const d = new Date(datum + 'T00:00:00');
     const start = new Date(event.datumPocetka + 'T00:00:00');
     const dayNum = Math.round((d - start) / 86400000) + 1;
-    const monthDay = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return `Day ${dayNum} · ${monthDay}`;
+    const monthDay = d.toLocaleDateString('sr-Latn', { month: 'short', day: 'numeric' });
+    return `Dan ${dayNum} · ${monthDay}`;
   };
 
   return (
@@ -329,19 +312,19 @@ function SesijeTab({ event }) {
       {/* Stats cards */}
       <div className="sesije-stats">
         <div className="sesija-stat-card">
-          <div className="sesija-stat-label">Sessions</div>
+          <div className="sesija-stat-label">Sesije</div>
           <div className="sesija-stat-value">{total}</div>
         </div>
         <div className="sesija-stat-card">
-          <div className="sesija-stat-label">Keynotes</div>
+          <div className="sesija-stat-label">Keynote</div>
           <div className="sesija-stat-value">{sesije.filter(s => s.tip === 'KEYNOTE').length}</div>
         </div>
         <div className="sesija-stat-card">
-          <div className="sesija-stat-label">Workshops</div>
+          <div className="sesija-stat-label">Radionice</div>
           <div className="sesija-stat-value">{sesije.filter(s => s.tip === 'WORKSHOP').length}</div>
         </div>
         <div className="sesija-stat-card">
-          <div className="sesija-stat-label">Avg fill rate</div>
+          <div className="sesija-stat-label">Pros. popunjenost</div>
           <div className="sesija-stat-value">{avgFillRate !== null ? `${avgFillRate}%` : '—'}</div>
         </div>
       </div>
@@ -352,27 +335,27 @@ function SesijeTab({ event }) {
           <div className="sesija-filter-input">
             <span className="filter-icon">🔍</span>
             <input
-              placeholder="search..."
+              placeholder="pretraži..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="sesija-search"
             />
           </div>
           <select className="sesija-filter-select" value={filterDay} onChange={(e) => setFilterDay(e.target.value)}>
-            <option value="all">day: all</option>
+            <option value="all">dan: svi</option>
             {days.map((d) => <option key={d} value={d}>{dayLabel(d)}</option>)}
           </select>
           <select className="sesija-filter-select" value={filterTrack} onChange={(e) => setFilterTrack(e.target.value)}>
-            <option value="all">track: all</option>
+            <option value="all">tip: svi</option>
             {tracks.map((t) => <option key={t} value={t}>{TIP_LABEL[t] || t}</option>)}
           </select>
           <select className="sesija-filter-select" value={filterRoom} onChange={(e) => setFilterRoom(e.target.value)}>
-            <option value="all">room: all</option>
+            <option value="all">sala: sve</option>
             {rooms.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>
         <button className="btn btn-primary sesija-add-btn" onClick={() => setModal('add')} style={{ width: 'auto' }}>
-          + Add Session
+          + Nova sesija
         </button>
       </div>
 
@@ -383,7 +366,7 @@ function SesijeTab({ event }) {
         <div className="sesije-empty">
           <p>Nema sesija za ovaj događaj.</p>
           <button className="btn btn-primary" onClick={() => setModal('add')} style={{ width: 'auto', marginTop: '0.5rem' }}>
-            + Add Session
+            + Nova sesija
           </button>
         </div>
       ) : (
@@ -391,7 +374,7 @@ function SesijeTab({ event }) {
           <div key={datum} className="sesije-day-group">
             <div className="sesije-day-header">
               <span className="sesije-day-title">{dayLabel(datum)}</span>
-              <span className="sesije-day-count">{grouped[datum].length} session{grouped[datum].length !== 1 ? 's' : ''}</span>
+              <span className="sesije-day-count">{grouped[datum].length} sesija</span>
             </div>
             {grouped[datum].map((s) => (
               <SesijaRow
@@ -431,7 +414,7 @@ function SesijaRow({ sesija, dayLabel, onEdit, onDelete }) {
   const speakers = sesija.govornici;
   const speakerText = speakers && speakers.length > 0
     ? speakers.map((g) => `${g.ime} ${g.prezime}`).join(', ')
-    : `${sesija.kapacitet} attendees`;
+    : `${sesija.kapacitet} učesnika`;
 
   return (
     <div className="sesija-row">
@@ -449,9 +432,9 @@ function SesijaRow({ sesija, dayLabel, onEdit, onDelete }) {
         </div>
         {sesija.opis && <div className="sesija-opis">{sesija.opis}</div>}
         <div className="sesija-meta-row">
-          <span className="sesija-speaker">Speaker: {speakerText}</span>
-          <span className="sesija-capacity">capacity: {sesija.kapacitet}</span>
-          <span className="sesija-registered">registered: {registered} / {sesija.kapacitet}</span>
+          <span className="sesija-speaker">Govornik: {speakerText}</span>
+          <span className="sesija-capacity">kapacitet: {sesija.kapacitet}</span>
+          <span className="sesija-registered">prijavljeno: {registered} / {sesija.kapacitet}</span>
           <div className="sesija-fill-bar">
             <div className="sesija-fill-bar-inner" style={{ width: `${pct}%`, background: color }} />
           </div>
@@ -459,8 +442,8 @@ function SesijaRow({ sesija, dayLabel, onEdit, onDelete }) {
         </div>
       </div>
       <div className="sesija-row-actions">
-        <button className="btn btn-outline btn-sm" onClick={onEdit}>Edit</button>
-        <button className="btn btn-outline btn-sm btn-danger-outline" onClick={onDelete}>Delete</button>
+        <button className="btn btn-outline btn-sm" onClick={onEdit}>Uredi</button>
+        <button className="btn btn-outline btn-sm btn-danger-outline" onClick={onDelete}>Obriši</button>
       </div>
     </div>
   );
@@ -554,23 +537,17 @@ function GovorniciTab({ event }) {
     <div className="govornici-tab">
       {/* Delete confirm */}
       {deleteTarget && (
-        <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-icon">🗑️</div>
-            <h3 className="modal-title">Obriši govornika</h3>
-            <p className="modal-body">
-              Da li ste sigurni da želite da obrišete govornika <strong>„{deleteTarget.ime} {deleteTarget.prezime}"</strong>?
-              <br />
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                Ova akcija se ne može poništiti.
-              </span>
-            </p>
-            <div className="modal-actions">
-              <button className="btn btn-outline" onClick={() => setDeleteTarget(null)}>Otkaži</button>
-              <button className="btn btn-danger" onClick={handleDelete}>Obriši</button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="Obriši govornika"
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
+        >
+          Da li ste sigurni da želite da obrišete govornika <strong>„{deleteTarget.ime} {deleteTarget.prezime}"</strong>?
+          <br />
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            Ova akcija se ne može poništiti.
+          </span>
+        </ConfirmDialog>
       )}
 
       {/* Modal */}
@@ -592,7 +569,7 @@ function GovorniciTab({ event }) {
           onChange={(e) => setSearch(e.target.value)}
         />
         <button className="btn btn-primary" style={{ width: 'auto' }} onClick={() => setModal('add')}>
-          + Add Speaker
+          + Novi govornik
         </button>
       </div>
 
@@ -603,7 +580,7 @@ function GovorniciTab({ event }) {
         <div className="sesije-empty">
           <p>Nema govornika za ovaj događaj.</p>
           <button className="btn btn-primary" style={{ width: 'auto', marginTop: '0.5rem' }} onClick={() => setModal('add')}>
-            + Add Speaker
+            + Novi govornik
           </button>
         </div>
       ) : (
@@ -624,13 +601,13 @@ function GovorniciTab({ event }) {
                   </div>
                   {assignedSesije.length > 0 && (
                     <div className="govornik-card-sessions">
-                      sessions: {assignedSesije.map((s) => s.naziv).join(', ').slice(0, 40)}
+                      sesije: {assignedSesije.map((s) => s.naziv).join(', ').slice(0, 40)}
                       {assignedSesije.map((s) => s.naziv).join(', ').length > 40 ? '...' : ''}
                     </div>
                   )}
                   <div className="govornik-card-actions">
-                    <button className="btn btn-outline btn-xs" onClick={() => setModal(g)}>Edit</button>
-                    <button className="btn btn-xs btn-danger-outline" onClick={() => setDeleteTarget(g)}>Remove</button>
+                    <button className="btn btn-outline btn-xs" onClick={() => setModal(g)}>Uredi</button>
+                    <button className="btn btn-xs btn-danger-outline" onClick={() => setDeleteTarget(g)}>Ukloni</button>
                   </div>
                 </div>
               </div>
@@ -728,23 +705,17 @@ function KarteTab({ event }) {
     <div className="govornici-tab">
       {/* Delete confirm */}
       {deleteTarget && (
-        <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-icon">🗑️</div>
-            <h3 className="modal-title">Obriši tip karte</h3>
-            <p className="modal-body">
-              Da li ste sigurni da želite da obrišete kartu{' '}
-              <strong>„{VRSTA_KARTE_LABEL[deleteTarget.vrsta] || deleteTarget.vrsta}"</strong>?<br />
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                Ova akcija se ne može poništiti.
-              </span>
-            </p>
-            <div className="modal-actions">
-              <button className="btn btn-outline" onClick={() => setDeleteTarget(null)}>Otkaži</button>
-              <button className="btn btn-danger" onClick={handleDelete}>Obriši</button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="Obriši tip karte"
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
+        >
+          Da li ste sigurni da želite da obrišete kartu{' '}
+          <strong>„{VRSTA_KARTE_LABEL[deleteTarget.vrsta] || deleteTarget.vrsta}"</strong>?<br />
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            Ova akcija se ne može poništiti.
+          </span>
+        </ConfirmDialog>
       )}
 
       {modal !== null && (

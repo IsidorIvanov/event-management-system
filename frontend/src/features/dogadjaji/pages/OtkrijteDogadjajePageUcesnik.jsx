@@ -2,15 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '@/shared/services/api';
 import * as registracijaApi from '@/features/dogadjaji/services/registracijaService';
-
-const formatDate = (s) =>
-  s
-    ? new Date(s).toLocaleDateString('sr-Latn', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      })
-    : '—';
+import { formatDate } from '@/shared/utils/format';
 
 export default function OtkrijteDogadjajePageUcesnik() {
   const navigate = useNavigate();
@@ -69,7 +61,7 @@ export default function OtkrijteDogadjajePageUcesnik() {
             <span className="discover-search-icon">🔍</span>
             <input
               className="discover-search-input"
-              placeholder="search"
+              placeholder="pretraži"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -79,7 +71,7 @@ export default function OtkrijteDogadjajePageUcesnik() {
             value={cityFilter}
             onChange={(e) => setCityFilter(e.target.value)}
           >
-            <option value="any">city: any</option>
+            <option value="any">grad: svi</option>
             {cities.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -106,7 +98,7 @@ export default function OtkrijteDogadjajePageUcesnik() {
                   {formatDate(event.datumPocetka)}
                   {event.lokacijaGrad ? ` · ${event.lokacijaGrad}` : ''}
                   {event.lokacijaDrzava ? `, ${event.lokacijaDrzava}` : ''}
-                  {' · In-person'}
+                  {' · Uživo'}
                 </div>
                 {event.opis && (
                   <p className="discover-card-desc">{event.opis}</p>
@@ -116,13 +108,13 @@ export default function OtkrijteDogadjajePageUcesnik() {
                     className="discover-btn-details"
                     onClick={() => navigate(`/dashboard/dogadjaj/${event.dogadjajId}`)}
                   >
-                    Details
+                    Detalji
                   </button>
                   <button
                     className="discover-btn-register"
                     onClick={() => navigate(`/dashboard/dogadjaj/${event.dogadjajId}`)}
                   >
-                    Register
+                    Registruj se
                   </button>
                 </div>
               </div>

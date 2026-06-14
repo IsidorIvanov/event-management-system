@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import Modal from '@/shared/components/Modal';
 
 const initialForm = (stavka) => ({
   kategorijaId: stavka?.kategorijaId || '',
@@ -44,8 +45,7 @@ export default function StavkaBudzetaModal({ stavka, kategorije, postojeceStavke
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <form className="modal-box" onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
+    <Modal as="form" boxClassName="modal-box" onSubmit={handleSubmit} onClose={onClose}>
         <h3 className="modal-title">{stavka ? 'Izmena stavke budžeta' : 'Nova stavka budžeta'}</h3>
         {error && <div className="error-msg" style={{ marginBottom: '1rem' }}>{error}</div>}
 
@@ -119,7 +119,6 @@ export default function StavkaBudzetaModal({ stavka, kategorije, postojeceStavke
             {loading ? 'Čuvanje...' : 'Sačuvaj'}
           </button>
         </div>
-      </form>
-    </div>
+    </Modal>
   );
 }

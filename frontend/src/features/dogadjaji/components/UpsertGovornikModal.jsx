@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Modal from '@/shared/components/Modal';
 import * as sesijaApi from '@/features/dogadjaji/services/sesijaService';
 
 const EMPTY = {
@@ -71,41 +72,36 @@ export default function UpsertGovornikModal({ govornik, dogadjajId, onClose, onS
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-sheet"
-        onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}
-      >
+    <Modal boxClassName="modal-sheet" style={{ maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }} onClose={onClose}>
         <div className="modal-sheet-header">
           <div>
-            <div className="modal-sheet-sub">{isEdit ? 'Edit speaker' : 'New speaker'}</div>
-            <h2 className="modal-sheet-title">{isEdit ? 'Edit speaker' : 'Add a speaker'}</h2>
+            <div className="modal-sheet-sub">{isEdit ? 'Izmena govornika' : 'Novi govornik'}</div>
+            <h2 className="modal-sheet-title">{isEdit ? 'Izmeni govornika' : 'Dodaj govornika'}</h2>
             <p className="modal-sheet-desc">
-              Speakers appear on the speakers tab and on every session they're assigned to.
+              Govornici se prikazuju na tabu govornika i na svakoj sesiji kojoj su dodeljeni.
             </p>
           </div>
-          <button className="modal-sheet-close" onClick={onClose}>✕ Close</button>
+          <button className="modal-sheet-close" onClick={onClose}>✕ Zatvori</button>
         </div>
 
         <form onSubmit={handleSubmit} className="modal-sheet-form">
           {/* Name row */}
           <div className="form-row-2">
             <div className="form-group">
-              <label>First name *</label>
+              <label>Ime *</label>
               <input
                 className="form-input"
-                placeholder="e.g. Mara"
+                placeholder="npr. Mara"
                 value={form.ime}
                 onChange={set('ime')}
                 required
               />
             </div>
             <div className="form-group">
-              <label>Last name *</label>
+              <label>Prezime *</label>
               <input
                 className="form-input"
-                placeholder="e.g. Okafor"
+                placeholder="npr. Okafor"
                 value={form.prezime}
                 onChange={set('prezime')}
                 required
@@ -116,19 +112,19 @@ export default function UpsertGovornikModal({ govornik, dogadjajId, onClose, onS
           {/* Job / Company row */}
           <div className="form-row-2">
             <div className="form-group">
-              <label>Job title</label>
+              <label>Pozicija</label>
               <input
                 className="form-input"
-                placeholder="e.g. Design Lead"
+                placeholder="npr. Vođa dizajna"
                 value={form.pozicija}
                 onChange={set('pozicija')}
               />
             </div>
             <div className="form-group">
-              <label>Company / organization</label>
+              <label>Kompanija / organizacija</label>
               <input
                 className="form-input"
-                placeholder="e.g. Fjordline"
+                placeholder="npr. Fjordline"
                 value={form.kompanija}
                 onChange={set('kompanija')}
               />
@@ -138,12 +134,12 @@ export default function UpsertGovornikModal({ govornik, dogadjajId, onClose, onS
           {/* Bio */}
           <div className="form-group">
             <div className="bio-label-row">
-              <label style={{ marginBottom: 0 }}>Short bio</label>
+              <label style={{ marginBottom: 0 }}>Kratka biografija</label>
               <span className="bio-char-count">{form.biografija.length} / 500</span>
             </div>
             <textarea
               className="form-input"
-              placeholder="One or two paragraphs introducing the speaker to attendees."
+              placeholder="Jedan ili dva pasusa koja predstavljaju govornika učesnicima."
               value={form.biografija}
               onChange={set('biografija')}
               rows={4}
@@ -154,11 +150,11 @@ export default function UpsertGovornikModal({ govornik, dogadjajId, onClose, onS
           {/* Email / Honorar */}
           <div className="form-row-2">
             <div className="form-group">
-              <label>Email (private)</label>
+              <label>Email (privatno)</label>
               <input
                 className="form-input"
                 type="email"
-                placeholder="speaker@example.com"
+                placeholder="govornik@primer.com"
                 value={form.email}
                 onChange={set('email')}
               />
@@ -181,9 +177,9 @@ export default function UpsertGovornikModal({ govornik, dogadjajId, onClose, onS
           {sesije.length > 0 && (
             <div className="form-group">
               <div className="sessions-label-row">
-                <label style={{ marginBottom: 0 }}>Assigned sessions</label>
+                <label style={{ marginBottom: 0 }}>Dodeljene sesije</label>
                 {selectedSesijaIds.size > 0 && (
-                  <span className="sessions-count-badge">{selectedSesijaIds.size} selected</span>
+                  <span className="sessions-count-badge">{selectedSesijaIds.size} izabrano</span>
                 )}
               </div>
               <div className="sesija-checkbox-list">
@@ -204,7 +200,7 @@ export default function UpsertGovornikModal({ govornik, dogadjajId, onClose, onS
                 ))}
               </div>
               <p className="form-hint">
-                Pick the sessions this speaker is presenting. Can be changed later from the sessions tab.
+                Izaberite sesije koje ovaj govornik drži. Može se kasnije izmeniti sa taba sesija.
               </p>
             </div>
           )}
@@ -213,14 +209,13 @@ export default function UpsertGovornikModal({ govornik, dogadjajId, onClose, onS
 
           <div className="modal-sheet-footer">
             <button type="button" className="btn btn-outline" onClick={onClose}>
-              Cancel
+              Otkaži
             </button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Čuvanje...' : isEdit ? 'Save changes' : 'Add speaker'}
+              {saving ? 'Čuvanje...' : isEdit ? 'Sačuvaj izmene' : 'Dodaj govornika'}
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

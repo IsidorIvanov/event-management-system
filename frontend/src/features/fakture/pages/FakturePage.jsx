@@ -10,6 +10,7 @@ import * as fakturaApi from "@/features/fakture/services/fakturaService";
 import * as budzetApi from "@/features/budzet/services/budzetService";
 import { AlertLevelBadge } from "@/features/budzet/components/BudzetStatusBadge";
 import { notifyAlerts } from "@/shared/utils/alertUtils";
+import { formatMoney, formatDate as fmtDate } from "@/shared/utils/format";
 
 const TIP_DISPLAY = {
   ULAZNA: "Ulazna",
@@ -51,22 +52,7 @@ const PAYABLE_STATUSES = new Set(["IZDATA", "DELIMICNO_PLACENA", "DOSPELA"]);
 const RESERVED_REFUND_STATUSES = new Set(["TRAZENA", "ODOBRENA", "IZVRSENA"]);
 
 const formatDate = (value) =>
-  value
-    ? new Date(value).toLocaleDateString("sr-Latn", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })
-    : "—";
-
-const formatMoney = (value) => {
-  const number = Number(value ?? 0);
-  return new Intl.NumberFormat("sr-Latn-RS", {
-    style: "currency",
-    currency: "RSD",
-    maximumFractionDigits: 2,
-  }).format(Number.isNaN(number) ? 0 : number);
-};
+  fmtDate(value, { day: "2-digit", month: "2-digit", year: "numeric" });
 
 const extractError = (error, fallback) =>
   error?.response?.data?.message ||

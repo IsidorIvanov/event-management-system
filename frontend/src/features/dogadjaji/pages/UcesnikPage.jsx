@@ -2,15 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import * as registracijaApi from '@/features/dogadjaji/services/registracijaService';
-
-const formatDate = (s) =>
-  s
-    ? new Date(s).toLocaleDateString('sr-Latn', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      })
-    : '—';
+import { formatDate } from '@/shared/utils/format';
 
 const STATUS_KARTE_BADGE = {
   VALIDNA:     { label: 'Validna',     color: 'var(--success)' },

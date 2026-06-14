@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Modal from '@/shared/components/Modal';
 import api from '@/shared/services/api';
 
 function validate(form) {
@@ -52,8 +53,7 @@ export default function UpsertLokacijaModal({ lokacija, onClose, onSaved }) {
     : null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box modal-large" onClick={e => e.stopPropagation()}>
+    <Modal boxClassName="modal-box modal-large" onClose={onClose}>
         <div className="modal-header">
           <h3 className="modal-title">{isEdit ? 'Izmeni lokaciju' : 'Nova lokacija'}</h3>
           <button className="modal-close" onClick={onClose}>✕</button>
@@ -100,8 +100,7 @@ export default function UpsertLokacijaModal({ lokacija, onClose, onSaved }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

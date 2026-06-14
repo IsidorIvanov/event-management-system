@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Modal from '@/shared/components/Modal';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -40,8 +41,7 @@ export default function TrosakModal({ budzet, stavka, onClose, onSubmit, loading
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <form className="modal-box" onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
+    <Modal as="form" boxClassName="modal-box" onSubmit={handleSubmit} onClose={onClose}>
         <h3 className="modal-title">Novi trošak</h3>
         <p className="page-subtitle" style={{ marginTop: 0 }}>
           {budzet.nazivBudzeta} · {stavka.kategorijaNaziv}
@@ -108,7 +108,6 @@ export default function TrosakModal({ budzet, stavka, onClose, onSubmit, loading
             {loading ? 'Čuvanje...' : 'Sačuvaj trošak'}
           </button>
         </div>
-      </form>
-    </div>
+    </Modal>
   );
 }

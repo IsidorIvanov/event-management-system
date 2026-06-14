@@ -2,13 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import * as porukeService from '@/features/poruke/services/porukeService';
-
-const ULOGA_DISPLAY = {
-  KOORDINATOR_PROGRAMA: 'Koordinator programa',
-  MENADZER_DOGADJAJA: 'Menadžer događaja',
-  KOORDINATOR_RESURSA: 'Koordinator resursa',
-  FINANSIJSKI_KONTROLOR: 'Finansijski kontrolor',
-};
+import { ULOGA_DISPLAY } from '@/shared/constants/korisnik';
 
 function formatTime(dt) {
   if (!dt) return '';
@@ -304,7 +298,7 @@ export default function PorukeStrana() {
               <input
                 ref={inputRef}
                 className="poruke-input"
-                placeholder="Type a message..."
+                placeholder="Unesite poruku..."
                 value={tekst}
                 onChange={e => setTekst(e.target.value)}
                 onKeyDown={onKey}
@@ -315,7 +309,7 @@ export default function PorukeStrana() {
                 onClick={handleSend}
                 disabled={!tekst.trim() || sending}
               >
-                Send
+                Pošalji
               </button>
             </div>
           </>
