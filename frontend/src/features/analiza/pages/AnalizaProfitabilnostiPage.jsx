@@ -1,0 +1,404 @@
+import { useEffect, useMemo, useState } from 'react';
+import api from '@/shared/services/api';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { useToast } from '@/shared/components/ToastNotification';
+import { formatDate as fmtDate, formatDateTime } from '@/shared/utils/format';
+import * as analizaApi from '@/features/analiza/services/analizaProfitabilnostiService';
+
+const ANALIZA_STATUS_DISPLAY = {
+  DRAFT: 'Draft',
+  FINALIZOVANA: 'Finalizovana',
+};
+
+const REZULTAT_OCENE_DISPLAY = {
+  PROFITABILAN: 'Profitabilan',
+  BREAK_EVEN: 'Break-even',
+  GUBITAK: 'Gubitak',
+};
+
+const STATUS_STYLE = {
+  DRAFT: { backgroundColor: '#6b7280', color: '#fff' },
+  FINALIZOVANA: { backgroundColor: '#3478f6', color: '#fff' },
+};
+
+const REZULTAT_STYLE = {
+  PROFITABILAN: { backgroundColor: '#16a34a', color: '#fff' },
+  BREAK_EVEN: { backgroundColor: '#f59e0b', color: '#111827' },
+  GUBITAK: { backgroundColor: '#dc2626', color: '#fff' },
+};
+
+const extractError = (error, fallback = 'Došlo je do greške.') => {
+  const data = error?.response?.data;
+  if (typeof data === 'string') return data;
+  if (data?.details) return Object.values(data.details).join(', ');
+  if (data?.message) return data.message;
+  if (data?.error) return data.error;
+  return error?.message || fallback;
+};
+
+const formatMoneyString = (value) => (value == null ? '—' : `${value} RSD`);
+
+const formatPercent = (value) => {
+  if (value == null) return '—';
+  const number = Number(value);
+  if (Number.isNaN(number)) return '—';
+  return `${(number * 100).toFixed(2)}%`;
+};
+
+const formatDate = (value) =>
+  fmtDate(value, { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+function Badge({ value, labelMap, styleMap }) {
+  if (!value) return '—';
+
+  return (
+    <span className="status-badge" style={styleMap[value] || { backgroundColor: '#6b7280', color: '#fff' }}>
+      {labelMap[value] || value}
+    </span>
+  );
+}
+
+function NapomeneModal({ title, initialValue = '', onClose, onSubmit, loading }) {
+  const [napomene, setNapomene] = useState(initialValue || '');
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    onSubmit({ napomene: napomene.trim() || null });
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <h3 className="modal-title">{title}</h3>
+            <p className="page-subtitle" style={{ marginTop: '0.35rem' }}>
+              Napomene su opcione; iznosi se računaju iz backend agregata.
+            </p>
+          </div>
+          <button className="modal-close" onClick={onClose} type="button">
+            ✕
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ padding: '1rem' }}>
+          <textarea
+            className="form-control"
+            placeholder="Napomene"
+            value={napomene}
+            onChange={(event) => setNapomene(event.target.value)}
+            rows={5}
+            style={{ width: '100%', marginBottom: '1rem' }}
+          />
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+            <button className="btn btn-outline" type="button" onClick={onClose}>
+              Otkaži
+            </button>
+            <button className="btn btn-primary" type="submit" disabled={loading}>
+              {loading ? 'Čuvanje...' : 'Sačuvaj'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export default function AnalizaProfitabilnostiPage() {
+  const toast = useToast();
+  const { hasRole, getUserId } = useAuth();
+  const isFinKontrolor = hasRole('FINANSIJSKI_KONTROLOR');
+  const isMenadzer = hasRole('MENADZER_DOGADJAJA');
+  const currentUserId = getUserId();
+
+  const [dogadjaji, setDogadjaji] = useState([]);
+  const [selectedDogadjajId, setSelectedDogadjajId] = useState('');
+  const [analize, setAnalize] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [draftModalOpen, setDraftModalOpen] = useState(false);
+  const [editNapomeneTarget, setEditNapomeneTarget] = useState(null);
+
+  const selectedDogadjaj = useMemo(
+    () => dogadjaji.find((dogadjaj) => String(dogadjaj.dogadjajId) === String(selectedDogadjajId)) || null,
+    [dogadjaji, selectedDogadjajId],
+  );
+
+  const stats = useMemo(() => {
+    const latest = analize[0] || null;
+    return {
+      total: analize.length,
+      draft: analize.filter((analiza) => analiza.status === 'DRAFT').length,
+      finalizovane: analize.filter((analiza) => analiza.status === 'FINALIZOVANA').length,
+      latest,
+    };
+  }, [analize]);
+
+  const loadAnalize = async (dogadjajId) => {
+    if (!dogadjajId) {
+      setAnalize([]);
+      return;
+    }
+    const res = await analizaApi.getAnalizeByDogadjaj(dogadjajId);
+    setAnalize(Array.isArray(res.data) ? res.data : []);
+  };
+
+  useEffect(() => {
+    api
+      .get('/dogadjaj')
+      .then((res) => {
+        const zavrseni = (Array.isArray(res.data) ? res.data : []).filter(
+          (dogadjaj) => dogadjaj.status === 'ZAVRSEN',
+        );
+        setDogadjaji(zavrseni);
+        setSelectedDogadjajId(String(zavrseni[0]?.dogadjajId || ''));
+      })
+      .catch((err) => {
+        setError(extractError(err, 'Nije moguće učitati događaje.'));
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (!selectedDogadjajId) {
+      setAnalize([]);
+      return;
+    }
+    loadAnalize(selectedDogadjajId).catch((err) => {
+      toast(extractError(err, 'Nije moguće učitati analize profitabilnosti.'), 'error');
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDogadjajId]);
+
+  const handleCreateDraft = async (payload) => {
+    if (!selectedDogadjajId) return;
+    setBusy(true);
+    try {
+      await analizaApi.createDraft(selectedDogadjajId, payload);
+      toast('Draft analiza je kreirana.', 'success');
+      setDraftModalOpen(false);
+      await loadAnalize(selectedDogadjajId);
+    } catch (err) {
+      toast(extractError(err, 'Kreiranje analize nije uspelo.'), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleUpdateNapomene = async (payload) => {
+    if (!editNapomeneTarget) return;
+    setBusy(true);
+    try {
+      await analizaApi.updateDraft(editNapomeneTarget.analizaId, payload);
+      toast('Napomene su izmenjene.', 'success');
+      setEditNapomeneTarget(null);
+      await loadAnalize(selectedDogadjajId);
+    } catch (err) {
+      toast(extractError(err, 'Izmena napomena nije uspela.'), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleFinalize = async (analiza) => {
+    if (!window.confirm('Da li želite da finalizujete ovu analizu? Posle finalizacije više nije izmenjiva.')) {
+      return;
+    }
+    setBusy(true);
+    try {
+      await analizaApi.finalizeAnaliza(analiza.analizaId);
+      toast('Analiza je finalizovana.', 'success');
+      await loadAnalize(selectedDogadjajId);
+    } catch (err) {
+      toast(extractError(err, 'Finalizacija analize nije uspela.'), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="program-page">
+      {draftModalOpen && (
+        <NapomeneModal
+          title="Nova analiza (draft)"
+          onClose={() => setDraftModalOpen(false)}
+          onSubmit={handleCreateDraft}
+          loading={busy}
+        />
+      )}
+      {editNapomeneTarget && (
+        <NapomeneModal
+          title="Izmena napomena"
+          initialValue={editNapomeneTarget.napomene || ''}
+          onClose={() => setEditNapomeneTarget(null)}
+          onSubmit={handleUpdateNapomene}
+          loading={busy}
+        />
+      )}
+
+      <div className="program-header">
+        <div>
+          <h1>Analiza profitabilnosti</h1>
+          <p className="page-subtitle">
+            F5 snapshot ukupnih prihoda, troškova i rezultata za završene događaje.
+          </p>
+        </div>
+        {isFinKontrolor && selectedDogadjajId && (
+          <button className="btn btn-primary" onClick={() => setDraftModalOpen(true)} disabled={busy}>
+            Nova analiza (draft)
+          </button>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="events-table-card">Učitavanje...</div>
+      ) : error ? (
+        <div className="events-table-card" style={{ color: 'var(--danger)' }}>{error}</div>
+      ) : dogadjaji.length === 0 ? (
+        <div className="events-table-card">
+          Nema završenih događaja. Analiza profitabilnosti se kreira tek nakon završetka događaja.
+        </div>
+      ) : (
+        <>
+          <div className="events-table-card" style={{ marginBottom: '1.5rem' }}>
+            <div className="events-table-header">
+              <h2>Izbor događaja</h2>
+              <select
+                className="status-select"
+                value={selectedDogadjajId}
+                onChange={(event) => setSelectedDogadjajId(event.target.value)}
+              >
+                {dogadjaji.map((dogadjaj) => (
+                  <option key={dogadjaj.dogadjajId} value={dogadjaj.dogadjajId}>
+                    {dogadjaj.naziv} · {formatDate(dogadjaj.datumZavrsetka)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {selectedDogadjaj && (
+              <p className="page-subtitle" style={{ padding: '0 1rem 1rem' }}>
+                Izabrani događaj: {selectedDogadjaj.naziv}
+              </p>
+            )}
+          </div>
+
+          <div className="info-cards" style={{ marginBottom: '1.5rem' }}>
+            <div className="info-card">
+              <div className="label">Analize</div>
+              <div className="value accent">{stats.total}</div>
+            </div>
+            <div className="info-card">
+              <div className="label">Draft</div>
+              <div className="value warning">{stats.draft}</div>
+            </div>
+            <div className="info-card">
+              <div className="label">Finalizovane</div>
+              <div className="value success">{stats.finalizovane}</div>
+            </div>
+            <div className="info-card">
+              <div className="label">Poslednji neto</div>
+              <div className="value accent">{formatMoneyString(stats.latest?.neto)}</div>
+            </div>
+          </div>
+
+          <div className="events-table-card">
+            <div className="events-table-header">
+              <h2>Analize profitabilnosti</h2>
+              <span className="page-subtitle">{analize.length} zapisa</span>
+            </div>
+            {analize.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', padding: '1rem' }}>
+                Nema analiza za izabrani događaj.
+              </p>
+            ) : (
+              <table className="events-table">
+                <thead>
+                  <tr>
+                    <th>Datum</th>
+                    <th>Prihod</th>
+                    <th>Trošak</th>
+                    <th>Neto</th>
+                    <th>Marža</th>
+                    <th>ROI</th>
+                    <th>Status</th>
+                    <th>Rezultat</th>
+                    <th>Kreirao</th>
+                    <th>Napomene</th>
+                    <th>Akcije</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {analize.map((analiza) => {
+                    const canFinalize =
+                      isMenadzer &&
+                      analiza.status === 'DRAFT' &&
+                      String(analiza.kreiraoId) !== String(currentUserId);
+                    const canEditNapomene = isFinKontrolor && analiza.status === 'DRAFT';
+
+                    return (
+                      <tr key={analiza.analizaId}>
+                        <td>
+                          {formatDate(analiza.datumAnalize)}
+                          {analiza.finalizovanoAt && (
+                            <div className="card-hint">
+                              Finalizovano: {formatDateTime(analiza.finalizovanoAt)}
+                            </div>
+                          )}
+                        </td>
+                        <td>{formatMoneyString(analiza.ukupanPrihod)}</td>
+                        <td>{formatMoneyString(analiza.ukupanTrosak)}</td>
+                        <td>{formatMoneyString(analiza.neto)}</td>
+                        <td>{formatPercent(analiza.marza)}</td>
+                        <td>{formatPercent(analiza.roi)}</td>
+                        <td>
+                          <Badge
+                            value={analiza.status}
+                            labelMap={ANALIZA_STATUS_DISPLAY}
+                            styleMap={STATUS_STYLE}
+                          />
+                        </td>
+                        <td>
+                          <Badge
+                            value={analiza.rezultatOcene}
+                            labelMap={REZULTAT_OCENE_DISPLAY}
+                            styleMap={REZULTAT_STYLE}
+                          />
+                        </td>
+                        <td>{analiza.kreiraoImePrezime || `#${analiza.kreiraoId}`}</td>
+                        <td>{analiza.napomene || '—'}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            {canEditNapomene && (
+                              <button
+                                className="btn btn-outline btn-xs"
+                                onClick={() => setEditNapomeneTarget(analiza)}
+                                disabled={busy}
+                              >
+                                Edit napomene
+                              </button>
+                            )}
+                            {canFinalize && (
+                              <button
+                                className="btn btn-primary btn-xs"
+                                onClick={() => handleFinalize(analiza)}
+                                disabled={busy}
+                              >
+                                Finalizuj
+                              </button>
+                            )}
+                            {!canEditNapomene && !canFinalize && '—'}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
