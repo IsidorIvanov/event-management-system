@@ -22,6 +22,7 @@ public class RegistracijaService {
     private final RegistracijaRepository registracijaRepository;
     private final TipKarteRepository tipKarteRepository;
     private final CurrentUserService currentUserService;
+    private final EmailService emailService;
 
     @Transactional
     public RegistracijaResponseDto register(RegistracijaDto dto) {
@@ -34,9 +35,9 @@ public class RegistracijaService {
         TipKarte tipKarte = tipKarteRepository.findById(tipKarteId)
                 .orElseThrow(() -> new RuntimeException("Tip karte nije pronađen."));
 
-        // Check for duplicate registration on same event
-        if (registracijaRepository.existsByUcesnikKorisnikIdAndTipKarteIdDogadjajId(
-                ucesnik.getKorisnikId(), dto.getDogadjajId())) {
+        // Check for duplicate registration on same event (ignoring cancelled registrations)
+        if (registracijaRepository.existsByUcesnikKorisnikIdAndTipKarteIdDogadjajIdAndStatusNot(
+                ucesnik.getKorisnikId(), dto.getDogadjajId(), StatusRegistracije.OTKAZANA)) {
             throw new RuntimeException("Već ste registrovani na ovaj događaj.");
         }
 
@@ -51,6 +52,26 @@ public class RegistracijaService {
         // Generate unique ticket number after save
         reg.setBrojKarte("KT-" + reg.getRegistracijaId() + "-" + dto.getDogadjajId());
         reg = registracijaRepository.save(reg);
+
+        // Pošalji potvrdu registracije na email (asinhrono, ne blokira odgovor)
+        Dogadjaj dogadjaj = tipKarte.getDogadjaj();
+        Lokacija lokacija = dogadjaj.getLokacija();
+        String drzava = lokacija != null && lokacija.getDrzava() != null ? lokacija.getDrzava() : "";
+        String grad = lokacija != null ? lokacija.getGrad() : "";
+        String lokacijaText = (grad + (!drzava.isBlank() ? ", " + drzava : "")).trim();
+        emailService.posaljiPotvrduRegistracije(new EmailService.PotvrdaRegistracije(
+                ucesnik.getEmail(),
+                ucesnik.getIme(),
+                ucesnik.getPrezime(),
+                reg.getBrojKarte(),
+                dogadjaj.getNaziv(),
+                String.valueOf(dogadjaj.getDatumPocetka()),
+                String.valueOf(dogadjaj.getDatumZavrsetka()),
+                lokacijaText,
+                tipKarte.getId().getNazivTipa(),
+                String.valueOf(tipKarte.getVrsta()),
+                String.valueOf(tipKarte.getCena())
+        ));
 
         return toDto(reg);
     }
@@ -119,4 +140,3 @@ public class RegistracijaService {
         return dto;
     }
 }
-

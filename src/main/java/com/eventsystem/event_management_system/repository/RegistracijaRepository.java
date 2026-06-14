@@ -1,6 +1,7 @@
 package com.eventsystem.event_management_system.repository;
 
 import com.eventsystem.event_management_system.model.Registracija;
+import com.eventsystem.event_management_system.utils.enums.StatusRegistracije;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,6 +21,8 @@ public interface RegistracijaRepository extends JpaRepository<Registracija, Long
             @Param("nazivTipa") String nazivTipa);
 
     boolean existsByUcesnikKorisnikIdAndTipKarteIdDogadjajId(Long korisnikId, Long dogadjajId);
+
+    boolean existsByUcesnikKorisnikIdAndTipKarteIdDogadjajIdAndStatusNot(Long korisnikId, Long dogadjajId, StatusRegistracije status);
 
     @Query("SELECT r FROM Registracija r JOIN FETCH r.ucesnik u JOIN FETCH r.tipKarte tk JOIN FETCH tk.dogadjaj d LEFT JOIN FETCH d.lokacija WHERE tk.id.dogadjajId = :dogadjajId")
     List<Registracija> findByDogadjajIdWithDetails(@Param("dogadjajId") Long dogadjajId);
