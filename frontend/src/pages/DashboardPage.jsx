@@ -8,6 +8,7 @@ import FakturePage from './FakturePage';
 import TroskoviPage from './TroskoviPage';
 import PlacanjaPage from './PlacanjaPage';
 import UpozorenjaPage from './UpozorenjaPage';
+import UgovoriPage from './UgovoriPage';
 import UcesnikPage from './UcesnikPage';
 import OtkrijteDogadjajePageUcesnik from './OtkrijteDogadjajePageUcesnik';
 import UcesnikDogadjajDetaljPage from './UcesnikDogadjajDetaljPage';
@@ -836,6 +837,7 @@ export default function DashboardPage() {
             <>
               <NavLink to="/dashboard/budzet" icon="💰" label="Budžeti" />
               <NavLink to="/dashboard/fakture" icon="📄" label="Fakture" />
+              <NavLink to="/dashboard/ugovori" icon="🧾" label="Ugovori" />
               <NavLink to="/dashboard/placanja" icon="💳" label="Plaćanja" />
               <NavLink to="/dashboard/upozorenja" icon="⚠️" label="Upozorenja" />
             </>
@@ -895,6 +897,7 @@ export default function DashboardPage() {
           <Route path="dogadjaj/:id" element={<EventDetailPage />} />
           <Route path="budzet" element={<BudzetPage />} />
           <Route path="fakture" element={<FakturePage />} />
+          <Route path="ugovori" element={<UgovoriPage />} />
           <Route path="troskovi" element={<TroskoviPage />} />
           <Route path="placanja" element={<PlacanjaPage />} />
           <Route path="upozorenja" element={<UpozorenjaPage />} />
