@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { formatMoney } from "@/shared/utils/format";
+import Modal from "@/shared/components/Modal";
 
 const EMPTY = {
   iznos: "",
@@ -8,13 +10,6 @@ const EMPTY = {
   dokumentUrl: "",
   napomena: "",
 };
-
-const formatMoney = (value) =>
-  new Intl.NumberFormat("sr-Latn-RS", {
-    style: "currency",
-    currency: "RSD",
-    maximumFractionDigits: 2,
-  }).format(Number(value || 0));
 
 export default function KreirajPlacanjeModal({ onClose, onSubmit, faktura }) {
   const [form, setForm] = useState(EMPTY);
@@ -54,12 +49,11 @@ export default function KreirajPlacanjeModal({ onClose, onSubmit, faktura }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-card modal-card-wide"
-        style={{ maxWidth: 560 }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal
+      boxClassName="modal-card modal-card-wide"
+      style={{ maxWidth: 560 }}
+      onClose={onClose}
+    >
         <h3>Novo plaćanje</h3>
         {faktura && (
           <p className="page-subtitle" style={{ marginTop: "0.35rem" }}>
@@ -154,7 +148,6 @@ export default function KreirajPlacanjeModal({ onClose, onSubmit, faktura }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

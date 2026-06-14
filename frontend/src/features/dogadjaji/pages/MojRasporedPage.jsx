@@ -4,7 +4,7 @@ import * as sesijaApi from '@/features/dogadjaji/services/sesijaService';
 
 const TIP_LABEL = {
   KEYNOTE: 'Keynote',
-  WORKSHOP: 'Workshop',
+  WORKSHOP: 'Radionica',
   PANEL: 'Panel',
   NETWORKING: 'Networking',
 };

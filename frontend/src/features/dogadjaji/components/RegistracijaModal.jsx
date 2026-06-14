@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
+import Modal from '@/shared/components/Modal';
 import * as tipKarteApi from '@/features/dogadjaji/services/tipKarteService';
 import * as registracijaApi from '@/features/dogadjaji/services/registracijaService';
 
 const VRSTA_LABEL = {
-  VISEDNEVNA: 'Full Pass',
-  JEDNODNEVNA: 'Day Pass',
-  POJEDINACNA_SESIJA: 'Session Pass',
-  BESPLATNA: 'Free',
+  VISEDNEVNA: 'Višednevna',
+  JEDNODNEVNA: 'Jednodnevna',
+  POJEDINACNA_SESIJA: 'Pojedinačna sesija',
+  BESPLATNA: 'Besplatna',
 };
 
 export default function RegistracijaModal({ event, onClose, onSuccess }) {
@@ -45,10 +46,9 @@ export default function RegistracijaModal({ event, onClose, onSuccess }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+    <Modal boxClassName="modal-card" style={{ maxWidth: 480 }} onClose={onClose}>
         <div className="modal-header">
-          <h3 className="modal-title">Register for {event.naziv}</h3>
+          <h3 className="modal-title">Registracija za {event.naziv}</h3>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
@@ -82,7 +82,7 @@ export default function RegistracijaModal({ event, onClose, onSuccess }) {
                   </div>
                   <div className="reg-ticket-price">
                     {k.vrsta === 'BESPLATNA' ? (
-                      <span style={{ color: 'var(--success)' }}>Free</span>
+                      <span style={{ color: 'var(--success)' }}>Besplatno</span>
                     ) : (
                       <span>{Number(k.cena).toLocaleString('sr-Latn')} RSD</span>
                     )}
@@ -105,13 +105,12 @@ export default function RegistracijaModal({ event, onClose, onSuccess }) {
                 onClick={handleSubmit}
                 disabled={submitting || !selected}
               >
-                {submitting ? 'Registracija...' : 'Confirm Registration'}
+                {submitting ? 'Registracija...' : 'Potvrdi registraciju'}
               </button>
             </div>
           </>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Modal from '@/shared/components/Modal';
 
 export default function BudzetKategorijeModal({
   kategorije,
@@ -32,8 +33,7 @@ export default function BudzetKategorijeModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box modal-box-wide" onClick={(e) => e.stopPropagation()}>
+    <Modal boxClassName="modal-box modal-box-wide" onClose={onClose}>
         <h3 className="modal-title">Kategorije budžeta</h3>
 
         <form onSubmit={handleSubmit}>
@@ -91,7 +91,6 @@ export default function BudzetKategorijeModal({
         <div className="modal-actions">
           <button type="button" className="btn btn-outline" onClick={onClose}>Zatvori</button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

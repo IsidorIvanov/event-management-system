@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Modal from '@/shared/components/Modal';
 import * as lokacijaApi from '@/features/resursi/services/lokacijaService';
 
 const TIP_OPTIONS = ['KEYNOTE', 'WORKSHOP', 'PANEL', 'NETWORKING'];
@@ -88,12 +89,7 @@ export default function SesijaModal({ dogadjajId, event, sesija, onClose, onSave
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-card modal-card-wide"
-        style={{ maxWidth: 600 }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal boxClassName="modal-card modal-card-wide" style={{ maxWidth: 600 }} onClose={onClose}>
         <h3>{sesija ? 'Izmeni sesiju' : 'Dodaj sesiju'}</h3>
 
         {error && <div className="error-msg" style={{ marginBottom: '1rem' }}>{error}</div>}
@@ -169,8 +165,7 @@ export default function SesijaModal({ dogadjajId, event, sesija, onClose, onSave
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

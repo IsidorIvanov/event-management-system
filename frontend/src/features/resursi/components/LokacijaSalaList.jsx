@@ -1,6 +1,6 @@
 const TIP_LABELS = {
   GLAVNA: 'Glavna',
-  WORKSHOP: 'Workshop',
+  WORKSHOP: 'Radionica',
   PANEL: 'Panel',
   FOAJE: 'Foaje',
 };

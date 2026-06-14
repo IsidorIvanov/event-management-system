@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Modal from '@/shared/components/Modal';
 import api from '@/shared/services/api';
 
 const today = new Date().toISOString().split('T')[0];
@@ -74,8 +75,7 @@ export default function UpsertEventModal({ onClose, onCreated, event }) {
     : null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box modal-large" onClick={e => e.stopPropagation()}>
+    <Modal boxClassName="modal-box modal-large" onClose={onClose}>
         <div className="modal-header">
           <h3 className="modal-title">{isEdit ? 'Izmeni događaj' : 'Novi događaj'}</h3>
           <button className="modal-close" onClick={onClose}>✕</button>
@@ -136,7 +136,6 @@ export default function UpsertEventModal({ onClose, onCreated, event }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Modal from '@/shared/components/Modal';
 
 const initialForm = (budzet, selectedDogadjajId) => ({
   dogadjajId: budzet?.dogadjajId || selectedDogadjajId || '',
@@ -23,8 +24,7 @@ export default function BudzetFormModal({ budzet, dogadjaji, selectedDogadjajId,
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <form className="modal-box" onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
+    <Modal as="form" boxClassName="modal-box" onSubmit={handleSubmit} onClose={onClose}>
         <h3 className="modal-title">{budzet ? 'Izmena budžeta' : 'Novi budžet'}</h3>
 
         <div className="form-group">
@@ -87,7 +87,6 @@ export default function BudzetFormModal({ budzet, dogadjaji, selectedDogadjajId,
             {loading ? 'Čuvanje...' : 'Sačuvaj'}
           </button>
         </div>
-      </form>
-    </div>
+    </Modal>
   );
 }
