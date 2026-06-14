@@ -26,6 +26,7 @@ import { ULOGA_DISPLAY, TIP_DISPLAY } from '@/shared/constants/korisnik';
 import { STATUS_DISPLAY, STATUS_CLASS, STATUS_OPTIONS } from '@/features/dogadjaji/constants';
 import ConfirmDialog from '@/shared/components/ConfirmDialog';
 import TableStateRow from '@/shared/components/TableStateRow';
+import ProfilPage from '@/features/profil/ProfilPage';
 
 function DashboardHome() {
   const { user, hasRole } = useAuth();
@@ -601,7 +602,11 @@ function UcesnikDashboardLayout() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="user-info">
+          <div
+            className="user-info"
+            onClick={() => navigate("/dashboard/profil")}
+            title="Prikaži profil"
+          >
             <div className="user-avatar">{initials}</div>
             <div className="user-meta">
               <div className="user-name">
@@ -626,6 +631,7 @@ function UcesnikDashboardLayout() {
       <main className="main-content">
         <Routes>
           <Route index element={<UcesnikPage />} />
+          <Route path="profil" element={<ProfilPage />} />
           <Route path="otkrijte" element={<OtkrijteDogadjajePageUcesnik />} />
           <Route path="dogadjaj/:id" element={<UcesnikDogadjajDetaljPage />} />
           <Route path="raspored" element={<MojRasporedPage />} />
@@ -736,7 +742,11 @@ export default function DashboardPage() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="user-info">
+          <div
+            className="user-info"
+            onClick={() => navigate("/dashboard/profil")}
+            title="Prikaži profil"
+          >
             <div className="user-avatar">{initials}</div>
             <div className="user-meta">
               <div className="user-name">
@@ -766,6 +776,7 @@ export default function DashboardPage() {
               isProgram ? <ProgramSection user={user} /> : <DashboardHome />
             }
           />
+          <Route path="profil" element={<ProfilPage />} />
           <Route path="resursi" element={<ResursiPage />} />
           <Route path="lokacije" element={<LokacijaSection />} />
           <Route path="porudzbenice" element={<PorudzbenicePage />} />

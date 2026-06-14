@@ -15,7 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -105,7 +109,30 @@ public class AuthService {
         u.setKompanija(req.getKompanija());
         u.setPozicija(req.getPozicija());
         u.setDatumRodjenja(req.getDatumRodjenja());
+        u.setInteresi(normalizujInterese(req.getInteresi()));
         return u;
+    }
+
+    /**
+     * Čisti listu interesa: trimuje, izbacuje prazne i uklanja duplikate
+     * (bez obzira na velika/mala slova), čuvajući originalni unos.
+     */
+    private Set<String> normalizujInterese(List<String> interesi) {
+        Set<String> rezultat = new LinkedHashSet<>();
+        if (interesi == null) {
+            return rezultat;
+        }
+        Set<String> vidjeni = new HashSet<>();
+        for (String interes : interesi) {
+            if (interes == null) {
+                continue;
+            }
+            String ocisceno = interes.trim();
+            if (!ocisceno.isEmpty() && vidjeni.add(ocisceno.toLowerCase())) {
+                rezultat.add(ocisceno);
+            }
+        }
+        return rezultat;
     }
 
     private void setCommonFields(Korisnik k, RegisterRequest req) {

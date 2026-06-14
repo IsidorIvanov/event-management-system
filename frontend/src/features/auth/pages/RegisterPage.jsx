@@ -9,6 +9,20 @@ const TIP_LABELS = {
   UCESNIK: 'Učesnik',
 };
 
+// Predloženi interesi za brži unos - služe za sistem preporuka događaja
+const PREDLOZENI_INTERESI = [
+  'Tehnologija',
+  'Biznis',
+  'Marketing',
+  'Dizajn',
+  'Edukacija',
+  'Zdravlje',
+  'Muzika',
+  'Sport',
+  'Umetnost',
+  'Nauka',
+];
+
 const getRegisterErrorMessage = (err) => {
   if (!err.response) {
     return 'Server trenutno nije dostupan. Pokušajte ponovo kasnije.';
@@ -48,7 +62,9 @@ export default function RegisterPage() {
     // Ucesnik
     kompanija: '',
     datumRodjenja: '',
+    interesi: [],
   });
+  const [interesInput, setInteresInput] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
@@ -56,6 +72,32 @@ export default function RegisterPage() {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const dodajInteres = (vrednost) => {
+    const ocisceno = vrednost.trim();
+    if (!ocisceno) return;
+    const postoji = formData.interesi.some(
+      (i) => i.toLowerCase() === ocisceno.toLowerCase()
+    );
+    if (!postoji) {
+      setFormData((prev) => ({ ...prev, interesi: [...prev.interesi, ocisceno] }));
+    }
+    setInteresInput('');
+  };
+
+  const ukloniInteres = (vrednost) => {
+    setFormData((prev) => ({
+      ...prev,
+      interesi: prev.interesi.filter((i) => i !== vrednost),
+    }));
+  };
+
+  const handleInteresKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      dodajInteres(interesInput);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -87,6 +129,7 @@ export default function RegisterPage() {
         payload.kompanija = formData.kompanija || null;
         payload.pozicija = formData.pozicija || null;
         payload.datumRodjenja = formData.datumRodjenja || null;
+        payload.interesi = formData.interesi;
       }
 
       await register(payload);
@@ -214,6 +257,53 @@ export default function RegisterPage() {
               <div className="form-group">
                 <label>Datum rođenja</label>
                 <input type="date" name="datumRodjenja" value={formData.datumRodjenja} onChange={handleChange} />
+              </div>
+
+              <div className="form-group">
+                <label>Interesovanja</label>
+                <p className="subtitle" style={{ margin: '0 0 0.5rem', fontSize: '0.8rem' }}>
+                  Koristimo ih da vam preporučimo događaje koji vas zanimaju.
+                </p>
+
+                {formData.interesi.length > 0 && (
+                  <div className="interesi-tags">
+                    {formData.interesi.map((interes) => (
+                      <span key={interes} className="interes-tag">
+                        {interes}
+                        <button type="button" onClick={() => ukloniInteres(interes)} aria-label={`Ukloni ${interes}`}>
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <input
+                  value={interesInput}
+                  onChange={(e) => setInteresInput(e.target.value)}
+                  onKeyDown={handleInteresKeyDown}
+                  onBlur={() => dodajInteres(interesInput)}
+                  placeholder="Upišite interes i pritisnite Enter"
+                />
+
+                <div className="interesi-suggestions">
+                  {PREDLOZENI_INTERESI.map((predlog) => {
+                    const vecDodato = formData.interesi.some(
+                      (i) => i.toLowerCase() === predlog.toLowerCase()
+                    );
+                    return (
+                      <button
+                        key={predlog}
+                        type="button"
+                        className="interes-suggestion"
+                        onClick={() => dodajInteres(predlog)}
+                        disabled={vecDodato}
+                      >
+                        + {predlog}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </>
           )}
