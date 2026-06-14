@@ -1072,6 +1072,8 @@ body {
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .item-actions {
@@ -3669,3 +3671,431 @@ textarea.form-input {
   align-items: flex-start;
   padding-top: 0.15rem;
 }
+
+/* ===================== Poruke / Messages ===================== */
+
+.poruke-page-wrapper {
+  margin: -2rem;
+  height: calc(100vh - 0px);
+}
+
+.poruke-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  height: calc(100vh - 2rem);
+  min-height: 500px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-secondary);
+  font-family: var(--font);
+}
+
+/* ─── Left sidebar ─── */
+
+.poruke-sidebar {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.poruke-sidebar-header {
+  padding: 1.5rem 1.25rem 1rem;
+}
+
+.poruke-sidebar-header h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  font-family: var(--font);
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.poruke-sidebar-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 0.2rem;
+  font-family: var(--font);
+}
+
+.poruke-contact-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.poruke-contact-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.85rem 1.1rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed var(--border);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+  color: var(--text-primary);
+  position: relative;
+}
+
+.poruke-contact-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: transparent;
+  transition: background 0.12s;
+}
+
+.poruke-contact-item:hover {
+  background: var(--bg-secondary);
+}
+
+.poruke-contact-item.active {
+  background: rgba(99,102,241,0.06);
+}
+
+.poruke-contact-item.active::before {
+  background: var(--text-primary);
+}
+
+.poruke-contact-avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+  border: 1.5px dashed var(--border);
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-family: var(--font);
+  flex-shrink: 0;
+}
+
+.poruke-contact-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.poruke-contact-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font);
+}
+
+.poruke-contact-preview {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 0.15rem;
+  font-family: var(--font);
+}
+
+.poruke-contact-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.poruke-contact-time {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-family: var(--font);
+}
+
+.poruke-unread-badge {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  font-size: 0.6rem;
+  font-weight: 800;
+  border-radius: 99px;
+  padding: 0.1rem 0.4rem;
+  min-width: 18px;
+  text-align: center;
+  font-family: var(--font);
+}
+
+/* ─── Right chat area ─── */
+
+.poruke-chat {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+/* Empty state when no contact selected */
+.poruke-empty-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-style: italic;
+}
+
+.poruke-empty-icon {
+  font-size: 2.5rem;
+  opacity: 0.3;
+  font-style: normal;
+}
+
+.poruke-empty-chat h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-style: normal;
+}
+
+.poruke-empty-chat p {
+  font-size: 0.78rem;
+}
+
+.poruke-ws-status.disconnected {
+  color: var(--danger);
+  font-size: 0.72rem;
+}
+
+/* Chat header */
+.poruke-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 1.5rem;
+  background: var(--bg-primary);
+  border-bottom: 1px dashed var(--border);
+  flex-shrink: 0;
+}
+
+.poruke-chat-header-avatar {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 50%;
+  border: 1.5px dashed var(--border);
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-family: var(--font);
+}
+
+.poruke-chat-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.poruke-chat-header-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font);
+}
+
+.poruke-chat-header-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.1rem;
+  font-family: var(--font);
+}
+
+.poruke-ws-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+/* Messages area */
+.poruke-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.poruke-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  padding: 2rem;
+  font-style: italic;
+  font-family: var(--font);
+}
+
+/* Message rows */
+.poruke-msg-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.6rem;
+}
+
+.poruke-msg-row.mine {
+  flex-direction: row-reverse;
+}
+
+.poruke-msg-avatar {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  border: 1px dashed var(--border);
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-family: var(--font);
+  flex-shrink: 0;
+  margin-bottom: 1rem;
+}
+
+.poruke-msg-bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  max-width: 58%;
+}
+
+/* Received messages — bordered rectangle, like screenshot */
+.theirs .poruke-msg-text {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 0.55rem 1rem;
+  font-size: 0.84rem;
+  font-style: italic;
+  color: var(--text-primary);
+  line-height: 1.55;
+  word-break: break-word;
+  font-family: var(--font);
+}
+
+/* Sent messages — dark filled pill, like screenshot */
+.mine .poruke-msg-text {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  border: none;
+  border-radius: 22px;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.84rem;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.55;
+  word-break: break-word;
+  font-family: var(--font);
+}
+
+.poruke-msg-time {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  font-family: var(--font);
+  padding: 0 0.3rem;
+}
+
+.mine .poruke-msg-time {
+  text-align: right;
+}
+
+/* Input bar */
+.poruke-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px dashed var(--border);
+  background: var(--bg-primary);
+  flex-shrink: 0;
+}
+
+.poruke-input {
+  flex: 1;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 0.6rem 1.1rem;
+  color: var(--text-primary);
+  font-size: 0.84rem;
+  font-family: var(--font);
+  font-style: italic;
+  outline: none;
+  transition: border-color 0.15s;
+  min-width: 0;
+}
+
+.poruke-input:focus {
+  border-color: var(--text-secondary);
+  font-style: normal;
+}
+
+.poruke-input::placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.poruke-input:disabled {
+  opacity: 0.5;
+}
+
+.poruke-send-btn {
+  padding: 0.55rem 1.2rem;
+  border-radius: 22px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.poruke-send-btn:hover:not(:disabled) {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  border-color: var(--text-primary);
+}
+
+.poruke-send-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
