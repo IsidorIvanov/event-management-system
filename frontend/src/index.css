@@ -3379,3 +3379,293 @@ textarea.form-input {
   color: var(--text-secondary);
   font-size: 0.95rem;
 }
+
+/* ===================== Sesija Raspored Button ===================== */
+
+.sesija-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.sesija-raspored-btn {
+  flex-shrink: 0;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 20px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.sesija-raspored-btn:hover:not(:disabled) {
+  background: var(--accent-subtle);
+}
+
+.sesija-raspored-btn.in-raspored {
+  border-color: var(--success);
+  color: var(--success);
+  background: var(--success-subtle);
+}
+
+.sesija-raspored-btn.in-raspored:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.25);
+}
+
+.sesija-raspored-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===================== Moj Raspored Page ===================== */
+
+.raspored-container {
+  margin-top: 0.5rem;
+}
+
+.raspored-topbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+
+.raspored-expand-btns {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.raspored-expand-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.raspored-expand-btn:hover {
+  background: var(--accent-subtle);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── Event group (collapsible) ── */
+.raspored-event-group {
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.raspored-event-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.1rem;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.raspored-event-header:hover {
+  background: var(--bg-input);
+}
+
+.raspored-event-header.collapsed {
+  border-bottom: none;
+}
+
+.raspored-event-chevron {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.raspored-event-name {
+  font-size: 0.97rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.raspored-event-city {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.raspored-event-count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 0.15rem 0.6rem;
+}
+
+.raspored-event-goto {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-size: 0.9rem;
+  padding: 0.2rem 0.55rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  line-height: 1;
+}
+
+.raspored-event-goto:hover {
+  background: var(--accent-subtle);
+  border-color: var(--accent);
+}
+
+/* ── Event body (sessions + date sub-groups) ── */
+.raspored-event-body {
+  padding: 0.9rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: var(--bg-primary);
+}
+
+.raspored-event-day-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Date label inside an event group */
+.raspored-date-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.25rem;
+}
+
+.raspored-date-label-text {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.raspored-date-label-dow {
+  font-size: 0.75rem;
+  color: var(--accent);
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.raspored-date-label-count {
+  margin-left: auto;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.raspored-sesije-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.raspored-sesija-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  transition: border-color 0.15s;
+}
+
+.raspored-sesija-card:hover {
+  border-color: var(--accent);
+}
+
+.raspored-sesija-time {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  min-width: 48px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  padding-top: 0.1rem;
+}
+
+.raspored-sesija-time-sep {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+
+.raspored-sesija-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.raspored-sesija-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.35rem;
+  line-height: 1.3;
+}
+
+.raspored-sesija-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.35rem;
+}
+
+.raspored-sesija-room,
+.raspored-sesija-event {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.raspored-sesija-opis {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-top: 0.3rem;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.raspored-sesija-speakers {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-top: 0.3rem;
+}
+
+.raspored-sesija-actions {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 0.15rem;
+}

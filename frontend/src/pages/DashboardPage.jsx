@@ -11,6 +11,7 @@ import UpozorenjaPage from './UpozorenjaPage';
 import UcesnikPage from './UcesnikPage';
 import OtkrijteDogadjajePageUcesnik from './OtkrijteDogadjajePageUcesnik';
 import UcesnikDogadjajDetaljPage from './UcesnikDogadjajDetaljPage';
+import MojRasporedPage from './MojRasporedPage';
 import api from '../services/api';
 import UpsertEventModal from '../components/UpsertEventModal.jsx';
 import UpsertLokacijaModal from '../components/UpsertLokacijaModal.jsx';
@@ -752,16 +753,7 @@ function UcesnikDashboardLayout() {
           <Route index element={<UcesnikPage />} />
           <Route path="otkrijte" element={<OtkrijteDogadjajePageUcesnik />} />
           <Route path="dogadjaj/:id" element={<UcesnikDogadjajDetaljPage />} />
-          <Route
-            path="raspored"
-            element={
-              <PlaceholderPage
-                title="Moj raspored"
-                subtitle="vaše sesije i termini"
-                icon="📅"
-              />
-            }
-          />
+          <Route path="raspored" element={<MojRasporedPage />} />
           <Route
             path="preporuke"
             element={

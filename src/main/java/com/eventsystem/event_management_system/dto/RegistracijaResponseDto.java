@@ -2,6 +2,7 @@ package com.eventsystem.event_management_system.dto;
 
 import com.eventsystem.event_management_system.utils.enums.StatusKarte;
 import com.eventsystem.event_management_system.utils.enums.StatusRegistracije;
+import com.eventsystem.event_management_system.utils.enums.VrstaKarte;
 import lombok.*;
 
 @Getter @Setter
@@ -17,6 +18,7 @@ public class RegistracijaResponseDto {
     private String lokacijaGrad;
     private String lokacijaDrzava;
     private String nazivTipa;
+    private VrstaKarte vrstaKarte;
     private String datumRegistracije;
     private StatusRegistracije status;
     private String brojKarte;
