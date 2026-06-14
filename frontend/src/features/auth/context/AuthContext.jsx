@@ -53,6 +53,14 @@ export function AuthProvider({ children }) {
     return userData;
   };
 
+  const updateUser = (patch) => {
+    setUser((prev) => {
+      const updated = { ...prev, ...patch };
+      localStorage.setItem('user', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -71,7 +79,7 @@ export function AuthProvider({ children }) {
   const getUserRole = () => user?.uloga || null;
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, isAuthenticated, hasRole, getUserId, getUserRole }}>
+    <AuthContext.Provider value={{ user, loading, login, register, updateUser, logout, isAuthenticated, hasRole, getUserId, getUserRole }}>
       {children}
     </AuthContext.Provider>
   );
