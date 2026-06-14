@@ -99,6 +99,7 @@ public class RegistracijaService {
                 .lokacijaGrad(l != null ? l.getGrad() : "")
                 .lokacijaDrzava(l != null ? l.getDrzava() : "")
                 .nazivTipa(tk.getId().getNazivTipa())
+                .vrstaKarte(tk.getVrsta())
                 .datumRegistracije(r.getDatumRegistracije() != null ? r.getDatumRegistracije().toString() : null)
                 .status(r.getStatus())
                 .brojKarte(r.getBrojKarte())

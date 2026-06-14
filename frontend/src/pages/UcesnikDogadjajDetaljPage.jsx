@@ -30,20 +30,63 @@ function fillBar(registered, capacity) {
   return { pct, color };
 }
 
-function AgendaTab({ event }) {
+function AgendaTab({ event, isRegistered, userRegistration }) {
   const [sesije, setSesije] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterDay, setFilterDay] = useState('all');
   const [filterTrack, setFilterTrack] = useState('all');
   const [filterRoom, setFilterRoom] = useState('all');
+  const [rasporedIds, setRasporedIds] = useState(new Set());
+  const [togglingId, setTogglingId] = useState(null);
+
+  /**
+   * Determines whether the participant's ticket allows adding the given session
+   * to their schedule:
+   *  - VISEDNEVNA / BESPLATNA  → all sessions
+   *  - JEDNODNEVNA             → only sessions on the ticket's day (nazivTipa == sesija.datum)
+   *  - POJEDINACNA_SESIJA      → only the session whose name matches (nazivTipa == sesija.naziv)
+   */
+  const canAddToRaspored = (sesija) => {
+    if (!isRegistered || !userRegistration) return false;
+    const { vrstaKarte, nazivTipa } = userRegistration;
+    if (vrstaKarte === 'VISEDNEVNA' || vrstaKarte === 'BESPLATNA') return true;
+    if (vrstaKarte === 'JEDNODNEVNA') return sesija.datum === nazivTipa;
+    if (vrstaKarte === 'POJEDINACNA_SESIJA') return sesija.naziv === nazivTipa;
+    return false;
+  };
 
   useEffect(() => {
-    sesijaApi.getSesijeByDogadjaj(event.dogadjajId)
-      .then((res) => setSesije(res.data))
+    const loads = [sesijaApi.getSesijeByDogadjaj(event.dogadjajId)];
+    if (isRegistered) loads.push(sesijaApi.getMojRasporedIds());
+
+    Promise.all(loads)
+      .then(([sesRes, idsRes]) => {
+        setSesije(sesRes.data);
+        if (idsRes) setRasporedIds(new Set(idsRes.data));
+      })
       .catch(() => setSesije([]))
       .finally(() => setLoading(false));
-  }, [event.dogadjajId]);
+  }, [event.dogadjajId, isRegistered]);
+
+  const handleToggleRaspored = async (e, sesija) => {
+    e.stopPropagation();
+    if (togglingId) return;
+    setTogglingId(sesija.sesijaId);
+    try {
+      if (rasporedIds.has(sesija.sesijaId)) {
+        await sesijaApi.removeFromRaspored(sesija.sesijaId);
+        setRasporedIds((prev) => { const n = new Set(prev); n.delete(sesija.sesijaId); return n; });
+      } else {
+        await sesijaApi.addToRaspored(sesija.sesijaId);
+        setRasporedIds((prev) => new Set([...prev, sesija.sesijaId]));
+      }
+    } catch (err) {
+      // silently fail or could show a toast
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   const days   = [...new Set(sesije.map((s) => s.datum))].sort();
   const tracks = [...new Set(sesije.map((s) => s.tip))];
@@ -117,6 +160,8 @@ function AgendaTab({ event }) {
               const speakerText = s.govornici?.length > 0
                 ? s.govornici.map((g) => `${g.ime} ${g.prezime}`).join(', ')
                 : null;
+              const inRaspored = rasporedIds.has(s.sesijaId);
+              const isToggling = togglingId === s.sesijaId;
 
               return (
                 <div key={s.sesijaId} className="sesija-row">
@@ -132,6 +177,16 @@ function AgendaTab({ event }) {
                   <div className="sesija-row-main">
                     <div className="sesija-title-row">
                       <span className="sesija-title">{s.naziv}</span>
+                      {canAddToRaspored(s) && (
+                        <button
+                          className={`sesija-raspored-btn${inRaspored ? ' in-raspored' : ''}`}
+                          disabled={isToggling}
+                          onClick={(e) => handleToggleRaspored(e, s)}
+                          title={inRaspored ? 'Ukloni iz rasporeda' : 'Dodaj u raspored'}
+                        >
+                          {isToggling ? '...' : inRaspored ? '✓ U rasporedu' : '+ Raspored'}
+                        </button>
+                      )}
                     </div>
                     {s.opis && <div className="sesija-opis">{s.opis}</div>}
                     <div className="sesija-meta-row">
@@ -255,6 +310,7 @@ export default function UcesnikDogadjajDetaljPage() {
   const [activeTab, setActiveTab] = useState('Info');
   const [showRegModal, setShowRegModal] = useState(false);
   const [registered, setRegistered] = useState(false);
+  const [userRegistration, setUserRegistration] = useState(null);
 
   useEffect(() => {
     Promise.all([
@@ -263,10 +319,11 @@ export default function UcesnikDogadjajDetaljPage() {
     ])
       .then(([eventRes, regRes]) => {
         setEvent(eventRes.data);
-        const alreadyRegistered = regRes.data.some(
+        const activeReg = regRes.data.find(
           (r) => r.dogadjajId === Number(id) && r.status !== 'OTKAZANA'
         );
-        setRegistered(alreadyRegistered);
+        setRegistered(!!activeReg);
+        setUserRegistration(activeReg || null);
       })
       .catch(() => setEvent(null))
       .finally(() => setLoading(false));
@@ -293,9 +350,19 @@ export default function UcesnikDogadjajDetaljPage() {
         <RegistracijaModal
           event={event}
           onClose={() => setShowRegModal(false)}
-          onSuccess={() => {
+          onSuccess={(newReg) => {
             setShowRegModal(false);
             setRegistered(true);
+            if (newReg) setUserRegistration(newReg);
+            else {
+              // Reload registrations to get the full object
+              registracijaApi.getMyRegistrations().then((res) => {
+                const activeReg = res.data.find(
+                  (r) => r.dogadjajId === Number(id) && r.status !== 'OTKAZANA'
+                );
+                if (activeReg) setUserRegistration(activeReg);
+              }).catch(() => {});
+            }
           }}
         />
       )}
@@ -368,7 +435,6 @@ export default function UcesnikDogadjajDetaljPage() {
           <div className="ev-info-layout">
             <div className="ev-info-left">
               <div className="ev-cover-card">
-                <div className="ev-cover-placeholder">[ cover image ]</div>
                 <div className="ev-about">
                   <h3 className="ev-about-title">About this event</h3>
                   <p className="ev-about-desc">
@@ -443,7 +509,7 @@ export default function UcesnikDogadjajDetaljPage() {
         </div>
       )}
 
-      {activeTab === 'Agenda' && <AgendaTab event={event} />}
+      {activeTab === 'Agenda' && <AgendaTab event={event} isRegistered={registered} userRegistration={userRegistration} />}
 
       {activeTab === 'Speakers' && <SpeakersTab event={event} />}
 
