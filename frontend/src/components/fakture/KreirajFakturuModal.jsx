@@ -46,7 +46,13 @@ const formatClientLabel = (klijent) =>
   `Klijent #${getClientId(klijent)}`;
 
 const formatContractLabel = (ugovor) =>
-  `Ugovor #${ugovor.ugovorId}${ugovor.vaziDo ? ` — važi do ${ugovor.vaziDo}` : ""}`;
+  [
+    ugovor.brojUgovora || `Ugovor #${ugovor.ugovorId}`,
+    ugovor.predmet,
+    ugovor.vaziDo ? `važi do ${ugovor.vaziDo}` : null,
+  ]
+    .filter(Boolean)
+    .join(" — ");
 
 export default function KreirajFakturuModal({
   onClose,
@@ -139,8 +145,13 @@ export default function KreirajFakturuModal({
     let active = true;
     setUgovoriLoading(true);
     api
-      .get("/ugovori", { params: { dobavljacId: form.dobavljacId } })
-      .catch(() => api.get(`/nabavka/ugovor/dobavljac/${form.dobavljacId}`))
+      .get("/ugovori/aktivni", { params: { dobavljacId: form.dobavljacId } })
+      .catch((err) => {
+        if (err.response?.status === 404) {
+          return api.get(`/nabavka/ugovor/dobavljac/${form.dobavljacId}`);
+        }
+        throw err;
+      })
       .then((res) => {
         if (!active) return;
         const ugovori = Array.isArray(res.data) ? res.data : [];

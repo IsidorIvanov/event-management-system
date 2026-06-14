@@ -55,6 +55,8 @@ public class SecurityConfig {
                         "FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA",
                         "KOORDINATOR_RESURSA", "KOORDINATOR_PROGRAMA")
                 .requestMatchers("/api/budzet/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
+                .requestMatchers(HttpMethod.GET, "/api/ugovori/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
+                .requestMatchers("/api/ugovori/**").hasRole("MENADZER_DOGADJAJA")
                 .requestMatchers("/api/fakture/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
                 .requestMatchers("/api/placanja/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
                 .requestMatchers("/api/troskovi/**").hasAnyRole(

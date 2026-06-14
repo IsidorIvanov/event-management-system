@@ -2,6 +2,7 @@ package com.eventsystem.event_management_system.model;
 
 import com.eventsystem.event_management_system.utils.enums.FakturaStatus;
 import com.eventsystem.event_management_system.utils.enums.TipFakture;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -56,6 +57,11 @@ public class Faktura {
 
     @Column(name = "ugovor_id")
     private Long ugovorId;
+
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ugovor_id", insertable = false, updatable = false)
+    private Ugovor ugovor;
 
     @Column(name = "kreirao_id")
     private Long kreiraoId;
