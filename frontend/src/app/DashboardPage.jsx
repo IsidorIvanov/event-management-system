@@ -15,6 +15,7 @@ import UgovoriPage from '@/features/dogadjaji/pages/UgovoriPage.jsx';
 import OtkrijteDogadjajePageUcesnik from '@/features/dogadjaji/pages/OtkrijteDogadjajePageUcesnik';
 import UcesnikDogadjajDetaljPage from '@/features/dogadjaji/pages/UcesnikDogadjajDetaljPage';
 import MojRasporedPage from '@/features/dogadjaji/pages/MojRasporedPage';
+import PreporukePage from '@/features/dogadjaji/pages/PreporukePage';
 import PorukeStrana from '@/features/poruke/pages/PorukeStrana';
 import api from '@/shared/services/api';
 import UpsertEventModal from '@/features/dogadjaji/components/UpsertEventModal';
@@ -635,16 +636,7 @@ function UcesnikDashboardLayout() {
           <Route path="otkrijte" element={<OtkrijteDogadjajePageUcesnik />} />
           <Route path="dogadjaj/:id" element={<UcesnikDogadjajDetaljPage />} />
           <Route path="raspored" element={<MojRasporedPage />} />
-          <Route
-            path="preporuke"
-            element={
-              <PlaceholderPage
-                title="Preporuke"
-                subtitle="sesije i događaji prilagođeni vama"
-                icon="⭐"
-              />
-            }
-          />
+          <Route path="preporuke" element={<PreporukePage />} />
           <Route
             path="poruke"
             element={<PorukeStrana />}

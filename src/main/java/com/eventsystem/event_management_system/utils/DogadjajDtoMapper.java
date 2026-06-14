@@ -5,6 +5,8 @@ import com.eventsystem.event_management_system.model.Dogadjaj;
 import com.eventsystem.event_management_system.model.Lokacija;
 import lombok.NoArgsConstructor;
 
+import java.util.HashSet;
+
 @NoArgsConstructor
 public class DogadjajDtoMapper {
 
@@ -21,7 +23,8 @@ public class DogadjajDtoMapper {
                 l != null ? l.getNaziv() : "",
                 l != null ? l.getGrad() : "",
                 l != null ? l.getDrzava() : "",
-                l != null ? l.getAdresa() : ""
+                l != null ? l.getAdresa() : "",
+                new HashSet<>(d.getTagovi())
         );
     }
 }

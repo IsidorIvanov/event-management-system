@@ -4,6 +4,8 @@ import com.eventsystem.event_management_system.utils.enums.StatusDogadjaja;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.util.Set;
+
 @Getter
 @AllArgsConstructor
 public class DogadjajResponseDto {
@@ -29,4 +31,6 @@ public class DogadjajResponseDto {
     private String lokacijaDrzava;
 
     private String lokacijaAdresa;
+
+    private Set<String> tagovi;
 }
