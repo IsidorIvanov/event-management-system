@@ -1,0 +1,74 @@
+/* ===================== Registration Modal Ticket Options ===================== */
+
+.reg-ticket-option {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.85rem 1rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.reg-ticket-option:hover {
+  border-color: var(--accent);
+}
+
+.reg-ticket-option.selected {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.reg-ticket-radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.reg-ticket-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.reg-ticket-dot.active {
+  background: var(--accent);
+}
+
+.reg-ticket-option.selected .reg-ticket-radio {
+  border-color: var(--accent);
+}
+
+.reg-ticket-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.reg-ticket-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.15rem;
+}
+
+.reg-ticket-meta {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.reg-ticket-price {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}

@@ -1,0 +1,190 @@
+/* ===================== Porudžbenice ===================== */
+
+.porudzbenice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 960px) {
+  .porudzbenice-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.validacija-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.validacija-panel.validacija-ok {
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.validacija-panel.validacija-warn {
+  border-color: rgba(234, 179, 8, 0.5);
+}
+
+.validacija-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.validacija-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.validacija-meta {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.validacija-lista {
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
+  color: var(--warning, #eab308);
+  font-size: 0.85rem;
+}
+
+.porudzbenice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.nabavka-panel {
+  padding: 1rem 1.25rem 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.nabavka-panel h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.events-table tr.row-selected td {
+  background: var(--accent-subtle);
+}
+
+.manual-stavke-card {
+  margin-bottom: 1.5rem;
+}
+
+.manual-stavke-table .search-input {
+  width: 100%;
+}
+
+.porudzbenice-manual-body {
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.modal-box-wide {
+  max-width: 820px;
+}
+
+.link-button {
+  background: transparent;
+  border: none;
+  color: var(--accent-hover);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0;
+}
+
+.link-button:hover {
+  color: var(--text-primary);
+}
+
+.program-header-actions .btn-primary,
+.events-table-controls .btn-primary,
+.modal-actions .btn-primary {
+  width: auto;
+}
+
+.cenovnik-multiselect {
+  width: 100%;
+  min-height: 10rem;
+  padding: 0.5rem;
+  background: var(--bg-input, var(--bg-card));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 0.9rem;
+}
+
+.cenovnik-multiselect option {
+  padding: 0.35rem 0.5rem;
+}
+
+.cenovnik-multiselect option:checked {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ─── Karte list ─────────────────────────────────────────── */
+.karte-list {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.karte-list-header {
+  display: grid;
+  grid-template-columns: 150px 1fr 140px 100px 190px;
+  gap: 1rem;
+  padding: 0.65rem 1.25rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  align-items: center;
+}
+.karte-list-row {
+  display: grid;
+  grid-template-columns: 150px 1fr 140px 100px 190px;
+  gap: 1rem;
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px dashed var(--border);
+  align-items: center;
+}
+.karte-list-row:last-child { border-bottom: none; }
+.karte-vrsta-col { display: flex; align-items: center; }
+.karte-vrsta-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.karte-detalji-col { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+.karte-naziv-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.karte-naziv { font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+.karte-badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: transparent;
+}
+.karte-opis { font-size: 0.83rem; color: var(--text-secondary); line-height: 1.5; }
+.karte-cena-col { display: flex; align-items: center; }
+.karte-cena { font-size: 0.95rem; font-weight: 600; color: var(--text-primary); }
+.karte-kvota-col { display: flex; align-items: baseline; gap: 0.3rem; }
+.karte-kvota { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
+.karte-kvota-hint { font-size: 0.75rem; color: var(--text-muted); }
