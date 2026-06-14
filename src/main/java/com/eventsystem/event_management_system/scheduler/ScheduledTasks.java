@@ -1,19 +1,24 @@
 package com.eventsystem.event_management_system.scheduler;
 
 import com.eventsystem.event_management_system.repository.FakturaRepository;
+import com.eventsystem.event_management_system.repository.UgovorRepository;
 import com.eventsystem.event_management_system.utils.enums.FakturaStatus;
+import com.eventsystem.event_management_system.utils.enums.StatusUgovora;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.util.List;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ScheduledTasks {
 
     private final FakturaRepository fakturaRepository;
+    private final UgovorRepository ugovorRepository;
 
     // run daily at 02:00
     @Scheduled(cron = "0 0 2 * * *")
@@ -26,5 +31,16 @@ public class ScheduledTasks {
             f.setStatus(FakturaStatus.DOSPELA);
         }
         fakturaRepository.saveAll(list);
+    }
+
+    // run daily at 01:00
+    @Scheduled(cron = "0 0 1 * * *")
+    public void markExpiredUgovori() {
+        var list = ugovorRepository.findExpiredActive(LocalDate.now());
+        for (var ugovor : list) {
+            ugovor.setStatus(StatusUgovora.ISTEKAO);
+        }
+        ugovorRepository.saveAll(list);
+        log.info("Scheduled job prebacio {} ugovora u ISTEKAO status.", list.size());
     }
 }

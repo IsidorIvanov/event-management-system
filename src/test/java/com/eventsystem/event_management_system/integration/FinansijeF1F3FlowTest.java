@@ -77,7 +77,7 @@ class FinansijeF1F3FlowTest {
         Dogadjaj dogadjaj = persistDogadjaj(suffix);
         BudzetKategorija kategorija = persistKategorija(suffix);
         Dobavljac dobavljac = persistDobavljac(suffix);
-        Ugovor ugovor = persistAktivanUgovor(dobavljac);
+        Ugovor ugovor = persistAktivanUgovor(dobavljac, dogadjaj, suffix);
         entityManager.flush();
 
         authenticate(finansije.getEmail(), "ROLE_FINANSIJSKI_KONTROLOR", "ROLE_MENADZER_DOGADJAJA");
@@ -215,9 +215,14 @@ class FinansijeF1F3FlowTest {
         return dobavljac;
     }
 
-    private Ugovor persistAktivanUgovor(Dobavljac dobavljac) {
+    private Ugovor persistAktivanUgovor(Dobavljac dobavljac, Dogadjaj dogadjaj, String suffix) {
         Ugovor ugovor = Ugovor.builder()
+                .brojUgovora("INT-UG-" + suffix)
                 .dobavljac(dobavljac)
+                .dogadjaj(dogadjaj)
+                .datumPotpisivanja(LocalDate.now().minusDays(1))
+                .vrednost(new BigDecimal("200.00"))
+                .predmet("Integracioni dobavljački ugovor")
                 .status(StatusUgovora.AKTIVAN)
                 .vaziDo(LocalDate.now().plusDays(30))
                 .build();
