@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Client } from '@stomp/stompjs';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import * as porukeService from '@/features/poruke/services/porukeService';
+import { notifyPorukeRead } from '@/features/poruke/hooks/useUnreadPoruke';
 import { ULOGA_DISPLAY } from '@/shared/constants/korisnik';
 
 function formatTime(dt) {
@@ -20,6 +22,7 @@ function initials(ime, prezime) {
 
 export default function PorukeStrana() {
   const { user } = useAuth();
+  const location = useLocation();
   const [kontakti, setKontakti] = useState([]);
   const [aktivniKontakt, setAktivniKontakt] = useState(null);
   const [poruke, setPoruke] = useState([]);
@@ -41,13 +44,33 @@ export default function PorukeStrana() {
   useEffect(() => { userRef.current = user; }, [user]);
   useEffect(() => { porukeRef.current = poruke; }, [poruke]);
 
-  // load contacts
+  // load contacts (and preselect a contact passed via navigation, e.g. from Preporuke)
   useEffect(() => {
+    const pre = location.state?.kontakt;
     porukeService.getKontakti()
-      .then(r => setKontakti(r.data))
+      .then(r => {
+        let list = r.data;
+        if (pre?.korisnikId && !list.some(k => k.korisnikId === pre.korisnikId)) {
+          list = [{
+            korisnikId: pre.korisnikId,
+            ime: pre.ime,
+            prezime: pre.prezime,
+            uloga: pre.uloga ?? null,
+            tipKorisnika: pre.tipKorisnika ?? null,
+            poslednjaPorukaPreview: null,
+            vremePoslednjePoruke: null,
+            neprocitanihPoruka: 0,
+          }, ...list];
+        }
+        setKontakti(list);
+        if (pre?.korisnikId) {
+          const found = list.find(k => k.korisnikId === pre.korisnikId);
+          if (found) setAktivniKontakt(found);
+        }
+      })
       .catch(console.error)
       .finally(() => setLoadingKontakti(false));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // websocket — instant delivery when WS works
   useEffect(() => {
@@ -115,6 +138,8 @@ export default function PorukeStrana() {
         setKontakti(prev => prev.map(k =>
           k.korisnikId === aktivniKontakt.korisnikId ? { ...k, neprocitanihPoruka: 0 } : k
         ));
+        // Konverzacija je upravo obeležena pročitanom → skloni/azuriraj badge.
+        notifyPorukeRead();
       })
       .catch(console.error)
       .finally(() => setLoadingPoruke(false));
@@ -126,30 +151,35 @@ export default function PorukeStrana() {
     const interval = setInterval(() => {
       porukeService.getKonverzacija(aktivniKontakt.korisnikId)
         .then(({ data }) => {
-          setPoruke(prev => {
-            const existingIds = new Set(prev.map(p => p.porukaId));
-            const novePoruke = data.filter(p => !existingIds.has(p.porukaId));
-            if (novePoruke.length === 0) return prev;
-            // Update contact preview for newly arrived messages
-            novePoruke.forEach(nova => {
-              const currentUser = userRef.current;
-              if (currentUser) {
-                const drugaStrana = nova.posiljalacId === currentUser.korisnikId
-                  ? nova.primalacId : nova.posiljalacId;
-                setKontakti(prev2 => prev2.map(k =>
-                  k.korisnikId === drugaStrana
-                    ? {
-                        ...k,
-                        poslednjaPorukaPreview: nova.sadrzaj.length > 55
-                          ? nova.sadrzaj.slice(0, 55) + '...' : nova.sadrzaj,
-                        vremePoslednjePoruke: nova.vremeSlamja,
-                      }
-                    : k
-                ));
-              }
-            });
-            return [...prev, ...novePoruke];
+          const existingIds = new Set(porukeRef.current.map(p => p.porukaId));
+          const novePoruke = data.filter(p => !existingIds.has(p.porukaId));
+          if (novePoruke.length === 0) return;
+          // Update contact preview for newly arrived messages
+          const currentUser = userRef.current;
+          novePoruke.forEach(nova => {
+            if (currentUser) {
+              const drugaStrana = nova.posiljalacId === currentUser.korisnikId
+                ? nova.primalacId : nova.posiljalacId;
+              setKontakti(prev2 => prev2.map(k =>
+                k.korisnikId === drugaStrana
+                  ? {
+                      ...k,
+                      poslednjaPorukaPreview: nova.sadrzaj.length > 55
+                        ? nova.sadrzaj.slice(0, 55) + '...' : nova.sadrzaj,
+                      vremePoslednjePoruke: nova.vremeSlamja,
+                    }
+                  : k
+              ));
+            }
           });
+          // Dedup protiv WebSocket dostave radi se u updateru.
+          setPoruke(prev => {
+            const ids = new Set(prev.map(p => p.porukaId));
+            const stvarno = novePoruke.filter(p => !ids.has(p.porukaId));
+            return stvarno.length ? [...prev, ...stvarno] : prev;
+          });
+          // Pristigle poruke su obeležene pročitanim (chat je otvoren) → azuriraj badge.
+          notifyPorukeRead();
         })
         .catch(() => {}); // silent — polling failure is non-critical
     }, 3000);

@@ -41,3 +41,64 @@
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
 }
+
+/* ===== Tagovi / chip unos (npr. tagovi događaja, interesi) ===== */
+.tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: var(--accent-subtle, rgba(99, 102, 241, 0.12));
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.tag-chip button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.tag-chip button:hover {
+  color: var(--text-primary);
+}
+
+.tag-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.tag-suggestion {
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.tag-suggestion:hover:not(:disabled) {
+  border-style: solid;
+  color: var(--text-primary);
+}
+
+.tag-suggestion:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

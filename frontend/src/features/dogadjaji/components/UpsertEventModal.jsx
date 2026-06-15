@@ -4,6 +4,20 @@ import api from '@/shared/services/api';
 
 const today = new Date().toISOString().split('T')[0];
 
+// Predloženi tagovi za brži unos - služe za sistem preporuka događaja
+const PREDLOZENI_TAGOVI = [
+  'Tehnologija',
+  'Biznis',
+  'Marketing',
+  'Dizajn',
+  'Edukacija',
+  'Zdravlje',
+  'Muzika',
+  'Sport',
+  'Umetnost',
+  'Nauka',
+];
+
 function validate(form, isEdit) {
   const errors = {};
   if (!form.naziv.trim())                errors.naziv         = 'Naziv događaja je obavezan.';
@@ -27,7 +41,9 @@ export default function UpsertEventModal({ onClose, onCreated, event }) {
     datumZavrsetka: event?.datumZavrsetka           || '',
     maksKapacitet:  event ? String(event.maksKapacitet) : '',
     opis:           event?.opis                     || '',
+    tagovi:         event?.tagovi                    || [],
   });
+  const [tagInput, setTagInput]       = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [lokacije, setLokacije]       = useState([]);
   const [loading, setLoading]         = useState(false);
@@ -48,6 +64,28 @@ export default function UpsertEventModal({ onClose, onCreated, event }) {
   const set = (field) => (e) => {
     setForm(f => ({ ...f, [field]: e.target.value }));
     if (fieldErrors[field]) setFieldErrors(fe => ({ ...fe, [field]: undefined }));
+  };
+
+  const dodajTag = (vrednost) => {
+    const ocisceno = vrednost.trim();
+    if (!ocisceno) return;
+    setForm(f =>
+      f.tagovi.some(t => t.toLowerCase() === ocisceno.toLowerCase())
+        ? f
+        : { ...f, tagovi: [...f.tagovi, ocisceno] }
+    );
+    setTagInput('');
+  };
+
+  const ukloniTag = (vrednost) => {
+    setForm(f => ({ ...f, tagovi: f.tagovi.filter(t => t !== vrednost) }));
+  };
+
+  const handleTagKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      dodajTag(tagInput);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -127,6 +165,47 @@ export default function UpsertEventModal({ onClose, onCreated, event }) {
           <div className="form-group">
             <label>Opis</label>
             <textarea value={form.opis} onChange={set('opis')} placeholder="Kratki opis događaja..." rows={3} />
+          </div>
+
+          <div className="form-group">
+            <label>Tagovi (teme događaja)</label>
+            <p className="form-hint">Opisuju o čemu se radi na događaju — koriste se za preporuke učesnicima.</p>
+
+            {form.tagovi.length > 0 && (
+              <div className="tag-chips">
+                {form.tagovi.map(tag => (
+                  <span key={tag} className="tag-chip">
+                    {tag}
+                    <button type="button" onClick={() => ukloniTag(tag)} aria-label={`Ukloni ${tag}`}>×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <input
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={handleTagKeyDown}
+              onBlur={() => dodajTag(tagInput)}
+              placeholder="Upišite tag i pritisnite Enter"
+            />
+
+            <div className="tag-suggestions">
+              {PREDLOZENI_TAGOVI.map(predlog => {
+                const vecDodato = form.tagovi.some(t => t.toLowerCase() === predlog.toLowerCase());
+                return (
+                  <button
+                    key={predlog}
+                    type="button"
+                    className="tag-suggestion"
+                    onClick={() => dodajTag(predlog)}
+                    disabled={vecDodato}
+                  >
+                    {predlog}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="modal-actions">

@@ -10,9 +10,9 @@ import java.util.Optional;
 
 public interface DogadjajRepository extends JpaRepository<Dogadjaj, Long> {
 
-    @Query("SELECT d FROM Dogadjaj d JOIN FETCH d.lokacija")
+    @Query("SELECT DISTINCT d FROM Dogadjaj d JOIN FETCH d.lokacija LEFT JOIN FETCH d.tagovi")
     List<Dogadjaj> findAllWithLokacija();
 
-    @Query("SELECT d FROM Dogadjaj d JOIN FETCH d.lokacija WHERE d.dogadjajId = :id")
+    @Query("SELECT DISTINCT d FROM Dogadjaj d JOIN FETCH d.lokacija LEFT JOIN FETCH d.tagovi WHERE d.dogadjajId = :id")
     Optional<Dogadjaj> findByIdWithLokacija(@Param("id") Long id);
 }

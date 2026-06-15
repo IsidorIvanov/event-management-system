@@ -67,6 +67,20 @@
   border-right: 3px solid var(--accent);
 }
 
+.sidebar-nav-badge {
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--danger, #e5484d);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
 .sidebar-footer {
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--border);

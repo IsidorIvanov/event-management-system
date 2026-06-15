@@ -8,6 +8,7 @@ import com.eventsystem.event_management_system.repository.KorisnikRepository;
 import com.eventsystem.event_management_system.repository.PorukaRepository;
 import com.eventsystem.event_management_system.repository.RegistracijaRepository;
 import com.eventsystem.event_management_system.repository.ZaposleniRepository;
+import com.eventsystem.event_management_system.utils.enums.StatusDogadjaja;
 import com.eventsystem.event_management_system.utils.enums.UlogaZaposlenog;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -44,8 +45,22 @@ public class PorukaService {
                    zaposleni.getUloga() == UlogaZaposlenog.KOORDINATOR_PROGRAMA) {
             kontakti = getKontaktiZaKoordinatora();
         } else {
-            // Ostali nemaju kontakte
-            kontakti = Collections.emptyList();
+            // Ostali nemaju kontakte po ulozi
+            kontakti = new ArrayList<>();
+        }
+
+        // Uvek dodaj sagovornike sa kojima već postoji prepiska, čak i ako nisu u
+        // listi po ulozi (npr. preporučeni korisnici koji su poslali poruku).
+        Map<Long, Poruka> poslednjePoruke = getPoslednjePoruke(mojId);
+        Set<Long> postojeci = kontakti.stream()
+                .map(Korisnik::getKorisnikId)
+                .collect(Collectors.toCollection(HashSet::new));
+        for (Poruka p : poslednjePoruke.values()) {
+            Korisnik drugaStrana = p.getPosiljalac().getKorisnikId().equals(mojId)
+                    ? p.getPrimalac() : p.getPosiljalac();
+            if (postojeci.add(drugaStrana.getKorisnikId())) {
+                kontakti.add(drugaStrana);
+            }
         }
 
         // Ukloni samog sebe ako se pojavi
@@ -53,9 +68,6 @@ public class PorukaService {
                 .filter(k -> !k.getKorisnikId().equals(mojId))
                 .distinct()
                 .collect(Collectors.toList());
-
-        // Mapiraj u DTO sa podacima o poslednjoj poruci
-        Map<Long, Poruka> poslednjePoruke = getPoslednjePoruke(mojId);
 
         return kontakti.stream()
                 .map(k -> toKontaktDto(k, mojId, poslednjePoruke))
@@ -210,8 +222,15 @@ public class PorukaService {
                         .anyMatch(dogId -> registracijaRepository
                                 .existsByUcesnikKorisnikIdAndTipKarteIdDogadjajId(
                                         priUcesnik.getKorisnikId(), dogId));
-                if (!zajednickiDogadjaj) {
-                    throw new RuntimeException("Možete slati poruke samo učesnicima sa zajedničkih događaja.");
+                // Ako nemaju zajednički događaj, dozvoli kontakt sa učesnicima
+                // objavljenih/aktivnih (preporučenih) događaja — networking pre prijave.
+                boolean naAktivnomDogadjaju = !zajednickiDogadjaj && registracijaRepository
+                        .findByUcesnikIdWithDetails(priUcesnik.getKorisnikId())
+                        .stream()
+                        .map(r -> r.getTipKarte().getDogadjaj().getStatus())
+                        .anyMatch(s -> s == StatusDogadjaja.OBJAVLJEN || s == StatusDogadjaja.AKTIVAN);
+                if (!zajednickiDogadjaj && !naAktivnomDogadjaju) {
+                    throw new RuntimeException("Možete slati poruke samo učesnicima sa zajedničkih ili aktivnih događaja.");
                 }
             } else {
                 throw new RuntimeException("Nemate dozvolu da šaljete poruke ovom korisniku.");

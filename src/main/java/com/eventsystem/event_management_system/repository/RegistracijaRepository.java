@@ -21,6 +21,14 @@ public interface RegistracijaRepository extends JpaRepository<Registracija, Long
             @Param("dogadjajId") Long dogadjajId,
             @Param("nazivTipa") String nazivTipa);
 
+    @Query("""
+            SELECT DISTINCT r.tipKarte.id.dogadjajId
+            FROM Registracija r
+            WHERE r.ucesnik.korisnikId = :korisnikId
+              AND r.status <> com.eventsystem.event_management_system.utils.enums.StatusRegistracije.OTKAZANA
+            """)
+    List<Long> findRegistrovaniDogadjajIds(@Param("korisnikId") Long korisnikId);
+
     boolean existsByUcesnikKorisnikIdAndTipKarteIdDogadjajId(Long korisnikId, Long dogadjajId);
 
     boolean existsByUcesnikKorisnikIdAndTipKarteIdDogadjajIdAndStatusNot(Long korisnikId, Long dogadjajId, StatusRegistracije status);

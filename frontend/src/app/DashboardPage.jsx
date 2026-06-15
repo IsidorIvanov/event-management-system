@@ -15,7 +15,9 @@ import UgovoriPage from '@/features/dogadjaji/pages/UgovoriPage.jsx';
 import OtkrijteDogadjajePageUcesnik from '@/features/dogadjaji/pages/OtkrijteDogadjajePageUcesnik';
 import UcesnikDogadjajDetaljPage from '@/features/dogadjaji/pages/UcesnikDogadjajDetaljPage';
 import MojRasporedPage from '@/features/dogadjaji/pages/MojRasporedPage';
+import PreporukePage from '@/features/dogadjaji/pages/PreporukePage';
 import PorukeStrana from '@/features/poruke/pages/PorukeStrana';
+import { useUnreadPoruke } from '@/features/poruke/hooks/useUnreadPoruke';
 import api from '@/shared/services/api';
 import UpsertEventModal from '@/features/dogadjaji/components/UpsertEventModal';
 import UpsertLokacijaModal from '@/features/dogadjaji/components/UpsertLokacijaModal';
@@ -534,13 +536,16 @@ function FinansijePage({ title, description }) {
   );
 }
 
-function NavLink({ to, icon, label }) {
+function NavLink({ to, icon, label, badge = 0 }) {
   const { pathname } = useLocation();
   const active =
     to === "/dashboard" ? pathname === to : pathname.startsWith(to);
   return (
     <Link to={to} className={active ? "active" : ""}>
       <span>{icon}</span> <span>{label}</span>
+      {badge > 0 && (
+        <span className="sidebar-nav-badge">{badge > 99 ? "99+" : badge}</span>
+      )}
     </Link>
   );
 }
@@ -566,6 +571,7 @@ function UcesnikDashboardLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const unreadPoruke = useUnreadPoruke(true);
 
   if (!user) return null;
 
@@ -593,9 +599,15 @@ function UcesnikDashboardLayout() {
           <div className="sidebar-nav-group-label">ATTEND</div>
           {attendLinks.map(({ to, icon, label, exact }) => {
             const active = exact ? pathname === to : pathname.startsWith(to);
+            const showBadge = to === "/dashboard/poruke" && unreadPoruke > 0;
             return (
               <Link key={to} to={to} className={active ? "active" : ""}>
                 <span>{icon}</span> <span>{label}</span>
+                {showBadge && (
+                  <span className="sidebar-nav-badge">
+                    {unreadPoruke > 99 ? "99+" : unreadPoruke}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -635,16 +647,7 @@ function UcesnikDashboardLayout() {
           <Route path="otkrijte" element={<OtkrijteDogadjajePageUcesnik />} />
           <Route path="dogadjaj/:id" element={<UcesnikDogadjajDetaljPage />} />
           <Route path="raspored" element={<MojRasporedPage />} />
-          <Route
-            path="preporuke"
-            element={
-              <PlaceholderPage
-                title="Preporuke"
-                subtitle="sesije i događaji prilagođeni vama"
-                icon="⭐"
-              />
-            }
-          />
+          <Route path="preporuke" element={<PreporukePage />} />
           <Route
             path="poruke"
             element={<PorukeStrana />}
@@ -669,6 +672,7 @@ function UcesnikDashboardLayout() {
 export default function DashboardPage() {
   const { user, logout, hasRole } = useAuth();
   const navigate = useNavigate();
+  const unreadPoruke = useUnreadPoruke(hasRole("KOORDINATOR_PROGRAMA"));
 
   if (!user) return null;
 
@@ -730,7 +734,7 @@ export default function DashboardPage() {
             <NavLink to="/dashboard/resursi" icon="🏢" label="Resursi" />
           )}
           {hasRole("KOORDINATOR_PROGRAMA") && (
-            <NavLink to="/dashboard/poruke" icon="💬" label="Poruke" />
+            <NavLink to="/dashboard/poruke" icon="💬" label="Poruke" badge={unreadPoruke} />
           )}
           {hasRole("KLIJENT") && (
             <NavLink
