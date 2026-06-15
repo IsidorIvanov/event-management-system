@@ -28,3 +28,4 @@
 @import './features/dogadjaji/pages/MojRasporedPage.css'; /* Moj raspored page */
 @import './features/dogadjaji/pages/PreporukePage.css'; /* Preporuke page */
 @import './features/poruke/pages/PorukeStrana.css'; /* Poruke / messages */
+@import './features/notifikacije/pages/ObavestenjaPage.css'; /* Notifikacije / obaveštenja */

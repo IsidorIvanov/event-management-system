@@ -1,0 +1,97 @@
+/* Obaveštenja (notifikacije) — lista za učesnika */
+
+/* Badge indikator novih obaveštenja u sidebar-u — pulsira dok ima nepročitanih. */
+.sidebar-nav-badge-pulse {
+  animation: notif-badge-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes notif-badge-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(229, 72, 77, 0.55); }
+  50%      { box-shadow: 0 0 0 5px rgba(229, 72, 77, 0); }
+}
+
+.notif-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.notif-item:hover {
+  border-color: var(--accent);
+}
+
+.notif-item-unread {
+  background: var(--accent-subtle);
+  border-color: var(--accent);
+}
+
+.notif-icon {
+  font-size: 1.25rem;
+  line-height: 1.6rem;
+  flex-shrink: 0;
+}
+
+.notif-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.notif-tip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-hover);
+}
+
+.notif-time {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.notif-text {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.notif-item-unread .notif-text {
+  color: var(--text-primary, #e5e7eb);
+}
+
+.notif-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  margin-top: 0.4rem;
+}

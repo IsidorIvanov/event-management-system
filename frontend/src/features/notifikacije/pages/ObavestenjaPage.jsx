@@ -1,0 +1,132 @@
+import { useState, useEffect } from 'react';
+import * as notifikacijeService from '@/features/notifikacije/services/notifikacijeService';
+import { notifyNotifikacijeRead, NOTIF_NEW_EVENT } from '@/features/notifikacije/hooks/useNotifikacije';
+
+const TIP_META = {
+  DOGADJAJ:  { icon: '📅', label: 'Događaj' },
+  SESIJA:    { icon: '🎤', label: 'Sesija' },
+  PODSETNIK: { icon: '⏰', label: 'Podsetnik' },
+  OPSTE:     { icon: '📢', label: 'Opšte' },
+};
+
+function formatVreme(dt) {
+  if (!dt) return '';
+  const d = new Date(dt);
+  const now = new Date();
+  const min = Math.floor((now - d) / 60000);
+  if (min < 1) return 'upravo sada';
+  if (min < 60) return `pre ${min} min`;
+  if (d.toDateString() === now.toDateString()) return `pre ${Math.floor(min / 60)} h`;
+  return d.toLocaleDateString('sr-Latn', { day: '2-digit', month: 'short', year: 'numeric' })
+    + ' · ' + d.toLocaleTimeString('sr-Latn', { hour: '2-digit', minute: '2-digit' });
+}
+
+export default function ObavestenjaPage() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [markingAll, setMarkingAll] = useState(false);
+
+  const load = () => {
+    setLoading(true);
+    notifikacijeService.getMojeNotifikacije()
+      .then((r) => setItems(r.data))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  // Žива lista — prepend novu notifikaciju kada stigne preko WebSocket-a.
+  useEffect(() => {
+    const onNew = (e) => {
+      const nova = e.detail;
+      if (!nova || nova.notifikacijaId == null) return;
+      setItems((prev) =>
+        prev.some((x) => x.notifikacijaId === nova.notifikacijaId)
+          ? prev
+          : [nova, ...prev]
+      );
+    };
+    window.addEventListener(NOTIF_NEW_EVENT, onNew);
+    return () => window.removeEventListener(NOTIF_NEW_EVENT, onNew);
+  }, []);
+
+  const markRead = (n) => {
+    if (n.status === 'PROCITANO') return;
+    setItems((prev) => prev.map((x) =>
+      x.notifikacijaId === n.notifikacijaId ? { ...x, status: 'PROCITANO' } : x));
+    notifikacijeService.oznaciKaoProcitano(n.notifikacijaId)
+      .then(() => notifyNotifikacijeRead())
+      .catch(() => load());
+  };
+
+  const markAll = () => {
+    const neprocitane = items.filter((n) => n.status !== 'PROCITANO');
+    if (neprocitane.length === 0) return;
+    setMarkingAll(true);
+    setItems((prev) => prev.map((x) => ({ ...x, status: 'PROCITANO' })));
+    Promise.all(neprocitane.map((n) => notifikacijeService.oznaciKaoProcitano(n.notifikacijaId)))
+      .then(() => notifyNotifikacijeRead())
+      .catch(() => load())
+      .finally(() => setMarkingAll(false));
+  };
+
+  const neprocitanihBroj = items.filter((n) => n.status !== 'PROCITANO').length;
+
+  return (
+    <div className="ucesnik-page">
+      <div className="ucesnik-header notif-header">
+        <div>
+          <h1 className="ucesnik-welcome">🔔 Obaveštenja</h1>
+          <p className="ucesnik-subtitle">
+            najnovije vesti i promene
+            {neprocitanihBroj > 0 && ` · ${neprocitanihBroj} nepročitano`}
+          </p>
+        </div>
+        {neprocitanihBroj > 0 && (
+          <button className="btn btn-outline btn-sm" onClick={markAll} disabled={markingAll}>
+            {markingAll ? 'Označavanje...' : 'Označi sve kao pročitano'}
+          </button>
+        )}
+      </div>
+
+      <section className="ucesnik-section">
+        {loading ? (
+          <p className="ucesnik-empty">Učitavanje...</p>
+        ) : items.length === 0 ? (
+          <div className="ucesnik-empty-box">
+            <p>Nemate nijedno obaveštenje.</p>
+            <p style={{ fontSize: '0.85rem', marginTop: '0.5rem', color: 'var(--text-muted)' }}>
+              Ovde će se pojaviti obaveštenja o vašim događajima, sesijama i podsetnicima.
+            </p>
+          </div>
+        ) : (
+          <div className="notif-list">
+            {items.map((n) => {
+              const meta = TIP_META[n.tip] || TIP_META.OPSTE;
+              const unread = n.status !== 'PROCITANO';
+              return (
+                <div
+                  key={n.notifikacijaId}
+                  className={`notif-item${unread ? ' notif-item-unread' : ''}`}
+                  onClick={() => markRead(n)}
+                  title={unread ? 'Klikni da označiš kao pročitano' : undefined}
+                >
+                  <div className="notif-icon">{meta.icon}</div>
+                  <div className="notif-body">
+                    <div className="notif-top">
+                      <span className="notif-tip">{meta.label}</span>
+                      <span className="notif-time">{formatVreme(n.vremeSlanja)}</span>
+                    </div>
+                    <div className="notif-text">{n.sadrzaj}</div>
+                  </div>
+                  {unread && <span className="notif-dot" title="Nepročitano" />}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}

@@ -33,6 +33,8 @@ public interface RegistracijaRepository extends JpaRepository<Registracija, Long
 
     boolean existsByUcesnikKorisnikIdAndTipKarteIdDogadjajIdAndStatusNot(Long korisnikId, Long dogadjajId, StatusRegistracije status);
 
+    long countByTipKarteIdDogadjajIdAndStatus(Long dogadjajId, StatusRegistracije status);
+
     @Query("SELECT r FROM Registracija r JOIN FETCH r.ucesnik u JOIN FETCH r.tipKarte tk JOIN FETCH tk.dogadjaj d LEFT JOIN FETCH d.lokacija WHERE tk.id.dogadjajId = :dogadjajId")
     List<Registracija> findByDogadjajIdWithDetails(@Param("dogadjajId") Long dogadjajId);
 

@@ -6,8 +6,10 @@ import com.eventsystem.event_management_system.model.*;
 import com.eventsystem.event_management_system.model.compositePK.TipKarteId;
 import com.eventsystem.event_management_system.repository.RegistracijaRepository;
 import com.eventsystem.event_management_system.repository.TipKarteRepository;
+import com.eventsystem.event_management_system.utils.enums.KanalNotifikacije;
 import com.eventsystem.event_management_system.utils.enums.StatusKarte;
 import com.eventsystem.event_management_system.utils.enums.StatusRegistracije;
+import com.eventsystem.event_management_system.utils.enums.TipNotifikacije;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ public class RegistracijaService {
     private final TipKarteRepository tipKarteRepository;
     private final CurrentUserService currentUserService;
     private final EmailService emailService;
+    private final NotifikacijaService notifikacijaService;
 
     @Transactional
     public RegistracijaResponseDto register(RegistracijaDto dto) {
@@ -41,11 +44,21 @@ public class RegistracijaService {
             throw new RuntimeException("Već ste registrovani na ovaj događaj.");
         }
 
+        Dogadjaj dogadjaj = tipKarte.getDogadjaj();
+
+        // Provera kapaciteta događaja. Ako je broj potvrđenih prijava dostigao
+        // maksimalni kapacitet, učesnik se stavlja na listu čekanja (D2) umesto
+        // da prijava bude odmah potvrđena.
+        long potvrdjenih = registracijaRepository.countByTipKarteIdDogadjajIdAndStatus(
+                dogadjaj.getDogadjajId(), StatusRegistracije.POTVRDJENA);
+        boolean naCekanju = dogadjaj.getMaksKapacitet() != null
+                && potvrdjenih >= dogadjaj.getMaksKapacitet();
+
         Registracija reg = Registracija.builder()
                 .ucesnik(ucesnik)
                 .tipKarte(tipKarte)
-                .status(StatusRegistracije.POTVRDJENA)
-                .statusKarte(StatusKarte.VALIDNA)
+                .status(naCekanju ? StatusRegistracije.NA_CEKANJU : StatusRegistracije.POTVRDJENA)
+                .statusKarte(naCekanju ? StatusKarte.NA_CEKANJU : StatusKarte.VALIDNA)
                 .build();
 
         reg = registracijaRepository.save(reg);
@@ -53,25 +66,36 @@ public class RegistracijaService {
         reg.setBrojKarte("KT-" + reg.getRegistracijaId() + "-" + dto.getDogadjajId());
         reg = registracijaRepository.save(reg);
 
-        // Pošalji potvrdu registracije na email (asinhrono, ne blokira odgovor)
-        Dogadjaj dogadjaj = tipKarte.getDogadjaj();
-        Lokacija lokacija = dogadjaj.getLokacija();
-        String drzava = lokacija != null && lokacija.getDrzava() != null ? lokacija.getDrzava() : "";
-        String grad = lokacija != null ? lokacija.getGrad() : "";
-        String lokacijaText = (grad + (!drzava.isBlank() ? ", " + drzava : "")).trim();
-        emailService.posaljiPotvrduRegistracije(new EmailService.PotvrdaRegistracije(
-                ucesnik.getEmail(),
-                ucesnik.getIme(),
-                ucesnik.getPrezime(),
-                reg.getBrojKarte(),
-                dogadjaj.getNaziv(),
-                String.valueOf(dogadjaj.getDatumPocetka()),
-                String.valueOf(dogadjaj.getDatumZavrsetka()),
-                lokacijaText,
-                tipKarte.getId().getNazivTipa(),
-                String.valueOf(tipKarte.getVrsta()),
-                String.valueOf(tipKarte.getCena())
-        ));
+        if (naCekanju) {
+            // D2 — obavesti učesnika da je stavljen na listu čekanja (PUSH, tip DOGADJAJ).
+            notifikacijaService.posalji(
+                    ucesnik,
+                    TipNotifikacije.DOGADJAJ,
+                    KanalNotifikacije.PUSH,
+                    "Događaj \"" + dogadjaj.getNaziv() + "\" je popunjen. Stavljeni ste na listu "
+                            + "čekanja i obavestićemo vas ako se oslobodi mesto.",
+                    dogadjaj
+            );
+        } else {
+            // Pošalji potvrdu registracije na email (asinhrono, ne blokira odgovor)
+            Lokacija lokacija = dogadjaj.getLokacija();
+            String drzava = lokacija != null && lokacija.getDrzava() != null ? lokacija.getDrzava() : "";
+            String grad = lokacija != null ? lokacija.getGrad() : "";
+            String lokacijaText = (grad + (!drzava.isBlank() ? ", " + drzava : "")).trim();
+            emailService.posaljiPotvrduRegistracije(new EmailService.PotvrdaRegistracije(
+                    ucesnik.getEmail(),
+                    ucesnik.getIme(),
+                    ucesnik.getPrezime(),
+                    reg.getBrojKarte(),
+                    dogadjaj.getNaziv(),
+                    String.valueOf(dogadjaj.getDatumPocetka()),
+                    String.valueOf(dogadjaj.getDatumZavrsetka()),
+                    lokacijaText,
+                    tipKarte.getId().getNazivTipa(),
+                    String.valueOf(tipKarte.getVrsta()),
+                    String.valueOf(tipKarte.getCena())
+            ));
+        }
 
         return toDto(reg);
     }

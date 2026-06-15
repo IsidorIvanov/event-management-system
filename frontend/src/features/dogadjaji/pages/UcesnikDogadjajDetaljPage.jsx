@@ -411,6 +411,11 @@ export default function UcesnikDogadjajDetaljPage() {
     );
   }
 
+  const onWaitlist =
+    registered &&
+    (userRegistration?.statusKarte === 'NA_CEKANJU' ||
+      userRegistration?.status === 'NA_CEKANJU');
+
   return (
     <div className="ev-detail-page">
       {showRegModal && (
@@ -440,9 +445,15 @@ export default function UcesnikDogadjajDetaljPage() {
           ← Nazad
         </button>
         {registered ? (
-          <span style={{ fontSize: '0.9rem', color: 'var(--success)', fontWeight: 600 }}>
-            ✓ Uspešno registrovani!
-          </span>
+          onWaitlist ? (
+            <span style={{ fontSize: '0.9rem', color: 'var(--warning)', fontWeight: 600 }}>
+              ⏳ Na listi čekanja
+            </span>
+          ) : (
+            <span style={{ fontSize: '0.9rem', color: 'var(--success)', fontWeight: 600 }}>
+              ✓ Uspešno registrovani!
+            </span>
+          )
         ) : (
           <button className="discover-btn-register ev-register-btn" onClick={() => setShowRegModal(true)}>
             Registruj se za ovaj događaj
@@ -489,6 +500,16 @@ export default function UcesnikDogadjajDetaljPage() {
               <button className="discover-btn-register" onClick={() => setShowRegModal(true)}>
                 Registruj se
               </button>
+            </div>
+          ) : onWaitlist ? (
+            <div className="ev-not-registered-banner" style={{ background: 'rgba(245, 158, 11, 0.12)', borderColor: 'var(--warning)' }}>
+              <div className="ev-not-registered-text">
+                <strong style={{ color: 'var(--warning)' }}>⏳ Na listi čekanja</strong>
+                <p>
+                  Događaj je trenutno popunjen, pa je vaša prijava na listi čekanja. Obavestićemo
+                  vas čim se oslobodi mesto i tada će vaša karta biti potvrđena.
+                </p>
+              </div>
             </div>
           ) : (
             <div className="ev-not-registered-banner" style={{ background: 'var(--success-subtle)', borderColor: 'var(--success)' }}>

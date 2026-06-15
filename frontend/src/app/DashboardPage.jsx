@@ -17,7 +17,9 @@ import UcesnikDogadjajDetaljPage from '@/features/dogadjaji/pages/UcesnikDogadja
 import MojRasporedPage from '@/features/dogadjaji/pages/MojRasporedPage';
 import PreporukePage from '@/features/dogadjaji/pages/PreporukePage';
 import PorukeStrana from '@/features/poruke/pages/PorukeStrana';
+import ObavestenjaPage from '@/features/notifikacije/pages/ObavestenjaPage';
 import { useUnreadPoruke } from '@/features/poruke/hooks/useUnreadPoruke';
+import { useUnreadNotifikacije } from '@/features/notifikacije/hooks/useNotifikacije';
 import api from '@/shared/services/api';
 import UpsertEventModal from '@/features/dogadjaji/components/UpsertEventModal';
 import UpsertLokacijaModal from '@/features/dogadjaji/components/UpsertLokacijaModal';
@@ -550,28 +552,13 @@ function NavLink({ to, icon, label, badge = 0 }) {
   );
 }
 
-function PlaceholderPage({ title, subtitle, icon }) {
-  return (
-    <div className="ucesnik-page">
-      <div className="ucesnik-header">
-        <h1 className="ucesnik-welcome">{icon} {title}</h1>
-        <p className="ucesnik-subtitle">{subtitle}</p>
-      </div>
-      <div className="ucesnik-empty-box">
-        <p>Ovaj modul je u pripremi.</p>
-        <p style={{ fontSize: "0.85rem", marginTop: "0.5rem", color: "var(--text-muted)" }}>
-          Uskoro ćete moći da koristite ovu funkcionalnost.
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function UcesnikDashboardLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const toast = useToast();
   const unreadPoruke = useUnreadPoruke(true);
+  const unreadNotif = useUnreadNotifikacije(true, (n) => toast(n.sadrzaj, 'info'));
 
   if (!user) return null;
 
@@ -599,13 +586,20 @@ function UcesnikDashboardLayout() {
           <div className="sidebar-nav-group-label">ATTEND</div>
           {attendLinks.map(({ to, icon, label, exact }) => {
             const active = exact ? pathname === to : pathname.startsWith(to);
-            const showBadge = to === "/dashboard/poruke" && unreadPoruke > 0;
+            const badgeCount =
+              to === "/dashboard/poruke" ? unreadPoruke
+              : to === "/dashboard/obavesta" ? unreadNotif
+              : 0;
             return (
               <Link key={to} to={to} className={active ? "active" : ""}>
                 <span>{icon}</span> <span>{label}</span>
-                {showBadge && (
-                  <span className="sidebar-nav-badge">
-                    {unreadPoruke > 99 ? "99+" : unreadPoruke}
+                {badgeCount > 0 && (
+                  <span
+                    className={`sidebar-nav-badge${
+                      to === "/dashboard/obavesta" ? " sidebar-nav-badge-pulse" : ""
+                    }`}
+                  >
+                    {badgeCount > 99 ? "99+" : badgeCount}
                   </span>
                 )}
               </Link>
@@ -652,16 +646,7 @@ function UcesnikDashboardLayout() {
             path="poruke"
             element={<PorukeStrana />}
           />
-          <Route
-            path="obavesta"
-            element={
-              <PlaceholderPage
-                title="Obaveštenja"
-                subtitle="najnovije vesti i promene"
-                icon="🔔"
-              />
-            }
-          />
+          <Route path="obavesta" element={<ObavestenjaPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>
