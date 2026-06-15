@@ -359,6 +359,7 @@ public class DogadjajService {
                 d.getMaksKapacitet(),
                 d.getOpis(),
                 d.getStatus(),
+                l != null ? l.getLokacijaId() : null,
                 l != null ? l.getNaziv() : "",
                 l != null ? l.getGrad() : "",
                 l != null ? l.getDrzava() : "",

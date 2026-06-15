@@ -1,5 +1,6 @@
 package com.eventsystem.event_management_system.service;
 
+import com.eventsystem.event_management_system.exception.BadRequestException;
 import com.eventsystem.event_management_system.dto.EmailDetalj;
 import com.eventsystem.event_management_system.dto.SesijaDetaljDto;
 import com.eventsystem.event_management_system.dto.SesijaDto;
@@ -149,8 +150,14 @@ public class SesijaService {
         Dogadjaj dogadjaj = dogadjajRepository.findById(dto.getDogadjajId())
                 .orElseThrow(() -> new RuntimeException("Dogadjaj not found with id: " + dto.getDogadjajId()));
 
+        // Lokacija sesije mora biti lokacija na kojoj se održava događaj.
+        validirajLokaciju(dto, dogadjaj);
+
         Sala sala = salaRepository.findByLokacijaLokacijaIdAndIdNazivSale(dto.getLokacijaId(), dto.getNazivSale())
                 .orElseThrow(() -> new RuntimeException("Sala not found with lokacijaId: " + dto.getLokacijaId() + " and nazivSale: " + dto.getNazivSale()));
+
+        // Sprečava preklapanje satnice sa drugom sesijom u istoj sali.
+        validirajPreklapanje(dto, null);
 
         Sesija novaSesija = Sesija.builder()
                 .dogadjaj(dogadjaj)
@@ -181,6 +188,9 @@ public class SesijaService {
     public SesijaDto updateSesija(Long id, SesijaDto dto) {
         Sesija existingSesija = sesijaRepository.findByIdWithGovornici(id)
                 .orElseThrow(() -> new RuntimeException("Sesija not found with id: " + id));
+
+        // Sprečava preklapanje satnice sa drugom sesijom u istoj sali (izuzima samu sebe).
+        validirajPreklapanje(dto, id);
 
         // Zapamti stari termin radi detekcije izmene vremena (S2).
         boolean terminPromenjen = !dto.getDatum().equals(existingSesija.getDatum())
@@ -359,6 +369,41 @@ public class SesijaService {
             if (vidjeni.add(u.getKorisnikId())) rezultat.add(u);
         }
         return rezultat;
+    }
+
+    /**
+     * Validira da je izabrana lokacija sesije ista kao lokacija na kojoj se
+     * održava događaj — nije dozvoljeno birati drugu lokaciju.
+     */
+    private void validirajLokaciju(SesijaDto dto, Dogadjaj dogadjaj) {
+        Long lokacijaDogadjaja = dogadjaj.getLokacija().getLokacijaId();
+        if (!lokacijaDogadjaja.equals(dto.getLokacijaId())) {
+            throw new BadRequestException(
+                    "Sesija mora biti na lokaciji događaja (lokacija ID: " + lokacijaDogadjaja + ").");
+        }
+    }
+
+    /**
+     * Validira da se satnica sesije ne preklapa sa drugom sesijom u istoj sali
+     * istog dana. {@code excludeId} (može biti null) izuzima sesiju koja se menja.
+     */
+    private void validirajPreklapanje(SesijaDto dto, Long excludeId) {
+        if (!dto.getVremePocetka().isBefore(dto.getVremeZavrsetka())) {
+            throw new BadRequestException("Vreme početka mora biti pre vremena završetka.");
+        }
+
+        List<Sesija> preklapajuce = sesijaRepository.findPreklapajuce(
+                dto.getLokacijaId(), dto.getNazivSale(), dto.getDatum(),
+                dto.getVremePocetka(), dto.getVremeZavrsetka(), excludeId);
+
+        if (!preklapajuce.isEmpty()) {
+            Sesija konflikt = preklapajuce.get(0);
+            throw new BadRequestException(
+                    "Satnica se preklapa sa sesijom \"" + konflikt.getNaziv() + "\" ("
+                            + konflikt.getVremePocetka().format(SES_VREME) + "–"
+                            + konflikt.getVremeZavrsetka().format(SES_VREME) + ") u sali "
+                            + dto.getNazivSale() + ".");
+        }
     }
 
     private String termin(Sesija s) {

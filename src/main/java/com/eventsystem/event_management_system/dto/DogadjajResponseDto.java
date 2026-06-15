@@ -24,6 +24,8 @@ public class DogadjajResponseDto {
 
     private StatusDogadjaja status;
 
+    private Long lokacijaId;
+
     private String lokacijaNaziv;
 
     private String lokacijaGrad;
