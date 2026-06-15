@@ -156,7 +156,14 @@ export default function UcesnikPage() {
                   onClick={() => navigate(`/dashboard/dogadjaj/${r.dogadjajId}`)}
                 >
                   <div className="ucesnik-event-info">
-                    <div className="ucesnik-event-name">{r.dogadjajNaziv}</div>
+                    <div className="ucesnik-event-name">
+                      {r.dogadjajNaziv}
+                      {dogadjajBadge && (
+                        <span className={dogadjajBadge.cls} style={{ marginLeft: '0.5rem', verticalAlign: 'middle' }}>
+                          {dogadjajBadge.label}
+                        </span>
+                      )}
+                    </div>
                     <div className="ucesnik-event-meta">
                       {formatDate(r.dogadjajDatumPocetka)}
                       {r.dogadjajDatumZavrsetka && r.dogadjajDatumZavrsetka !== r.dogadjajDatumPocetka

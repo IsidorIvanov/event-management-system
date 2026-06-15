@@ -10,6 +10,8 @@ import com.eventsystem.event_management_system.model.Ucesnik;
 import com.eventsystem.event_management_system.repository.DogadjajRepository;
 import com.eventsystem.event_management_system.repository.LokacijaRepository;
 import com.eventsystem.event_management_system.repository.RegistracijaRepository;
+import com.eventsystem.event_management_system.utils.enums.KanalNotifikacije;
+import com.eventsystem.event_management_system.utils.enums.StatusDogadjaja;
 import com.eventsystem.event_management_system.utils.enums.StatusRegistracije;
 import com.eventsystem.event_management_system.utils.enums.TipNotifikacije;
 import lombok.RequiredArgsConstructor;
@@ -171,6 +173,42 @@ public class DogadjajService {
             throw new RuntimeException("Dogadjaj not found with id: " + id);
         }
         dogadjajRepository.deleteById(id);
+    }
+
+    /**
+     * D6 — prebacuje događaje koji su počeli (status OBJAVLJEN, a datum početka je
+     * stigao i događaj još traje) u status AKTIVAN i obaveštava prijavljene
+     * učesnike (PUSH). Poziva se iz zakazanog posla.
+     *
+     * @return broj aktiviranih događaja
+     */
+    @Transactional
+    public int aktivirajZapoceteDogadjaje() {
+        List<Dogadjaj> zaAktivaciju =
+                dogadjajRepository.findZaAktivaciju(StatusDogadjaja.OBJAVLJEN, LocalDate.now());
+        for (Dogadjaj dogadjaj : zaAktivaciju) {
+            dogadjaj.setStatus(StatusDogadjaja.AKTIVAN);
+            obavestiOPocetku(dogadjaj);
+        }
+        return zaAktivaciju.size();
+    }
+
+    /** Obaveštava potvrđene učesnike da je događaj počeo (D6, PUSH). */
+    private void obavestiOPocetku(Dogadjaj dogadjaj) {
+        String sadrzaj = "Događaj \"" + dogadjaj.getNaziv()
+                + "\" je počeo. Želimo Vam prijatno iskustvo!";
+        Set<Long> obavesteni = new HashSet<>();
+        for (Registracija r : registracijaRepository.findByDogadjajIdWithDetails(dogadjaj.getDogadjajId())) {
+            if (r.getStatus() != StatusRegistracije.POTVRDJENA) {
+                continue; // obaveštavamo samo potvrđene učesnike (ne i listu čekanja)
+            }
+            Ucesnik ucesnik = r.getUcesnik();
+            if (!obavesteni.add(ucesnik.getKorisnikId())) {
+                continue;
+            }
+            notifikacijaService.posalji(
+                    ucesnik, TipNotifikacije.DOGADJAJ, KanalNotifikacije.PUSH, sadrzaj, dogadjaj);
+        }
     }
 
     @Transactional(readOnly = true)
