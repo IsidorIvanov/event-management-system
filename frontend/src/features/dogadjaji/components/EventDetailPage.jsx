@@ -109,6 +109,24 @@ export default function EventDetailPage() {
 }
 
 function OverviewTab({ event }) {
+  const [stats, setStats] = useState({ sesije: null, govornici: null, prodateKarte: null });
+
+  useEffect(() => {
+    Promise.all([
+      sesijaApi.getSesijeByDogadjaj(event.dogadjajId),
+      govornikApi.getGovornikByDogadjaj(event.dogadjajId),
+      registracijaApi.getRegistracijeByDogadjaj(event.dogadjajId),
+    ])
+      .then(([sRes, gRes, rRes]) => {
+        setStats({
+          sesije: sRes.data.length,
+          govornici: gRes.data.length,
+          prodateKarte: rRes.data.filter((r) => r.status === 'POTVRDJENA').length,
+        });
+      })
+      .catch(() => { /* zadrži "—" ako učitavanje ne uspe */ });
+  }, [event.dogadjajId]);
+
   return (
     <div className="overview-layout">
       {/* Left — About */}
@@ -163,17 +181,17 @@ function OverviewTab({ event }) {
           </div>
           <div className="info-card">
             <div className="label">Sesije</div>
-            <div className="value success">—</div>
+            <div className="value success">{stats.sesije ?? '—'}</div>
             <div className="card-hint">planirane sesije</div>
           </div>
           <div className="info-card">
             <div className="label">Govornici</div>
-            <div className="value warning">—</div>
+            <div className="value warning">{stats.govornici ?? '—'}</div>
             <div className="card-hint">potvrđeni</div>
           </div>
           <div className="info-card">
             <div className="label">Prodate karte</div>
-            <div className="value">—</div>
+            <div className="value">{stats.prodateKarte ?? '—'}</div>
             <div className="card-hint">od ukupnog kapaciteta</div>
           </div>
         </div>
@@ -394,6 +412,11 @@ function SesijeTab({ event }) {
           dogadjajId={event.dogadjajId}
           event={event}
           sesija={modal?.sesija || null}
+          preostaloKapacitet={
+            event.maksKapacitet
+            - sesije.reduce((sum, s) => sum + (s.kapacitet || 0), 0)
+            + (modal?.sesija?.kapacitet || 0)
+          }
           onClose={() => setModal(null)}
           onSaved={handleSave}
         />

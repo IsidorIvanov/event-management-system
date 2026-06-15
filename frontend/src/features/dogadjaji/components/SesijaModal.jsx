@@ -16,7 +16,7 @@ const EMPTY = {
   nazivSale: '',
 };
 
-export default function SesijaModal({ dogadjajId, event, sesija, onClose, onSaved }) {
+export default function SesijaModal({ dogadjajId, event, sesija, preostaloKapacitet, onClose, onSaved }) {
   const [form, setForm] = useState(() => {
     if (sesija) {
       return {
@@ -62,6 +62,10 @@ export default function SesijaModal({ dogadjajId, event, sesija, onClose, onSave
     setError(null);
     if (!form.lokacijaId || !form.nazivSale) {
       setError('Izaberite lokaciju i salu.');
+      return;
+    }
+    if (preostaloKapacitet != null && Number(form.kapacitet) > preostaloKapacitet) {
+      setError(`Kapacitet sesije prelazi preostali kapacitet događaja (${preostaloKapacitet}).`);
       return;
     }
     setSaving(true);
@@ -147,7 +151,11 @@ export default function SesijaModal({ dogadjajId, event, sesija, onClose, onSave
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
             <div className="form-group">
               <label>Kapacitet *</label>
-              <input type="number" className="form-control" value={form.kapacitet} onChange={set('kapacitet')} required min={1} />
+              <input type="number" className="form-control" value={form.kapacitet} onChange={set('kapacitet')}
+                required min={1} max={preostaloKapacitet ?? undefined} />
+              {preostaloKapacitet != null && (
+                <small className="form-text">Preostali kapacitet događaja: {preostaloKapacitet}</small>
+              )}
             </div>
           </div>
 

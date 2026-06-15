@@ -159,6 +159,9 @@ public class SesijaService {
         // Sprečava preklapanje satnice sa drugom sesijom u istoj sali.
         validirajPreklapanje(dto, null);
 
+        // Zbir kapaciteta sesija ne sme da pređe maksimalni kapacitet događaja.
+        validirajKapacitet(dogadjaj, dto, null);
+
         Sesija novaSesija = Sesija.builder()
                 .dogadjaj(dogadjaj)
                 .sala(sala)
@@ -191,6 +194,9 @@ public class SesijaService {
 
         // Sprečava preklapanje satnice sa drugom sesijom u istoj sali (izuzima samu sebe).
         validirajPreklapanje(dto, id);
+
+        // Zbir kapaciteta sesija ne sme da pređe maksimalni kapacitet događaja (izuzima samu sebe).
+        validirajKapacitet(existingSesija.getDogadjaj(), dto, id);
 
         // Zapamti stari termin radi detekcije izmene vremena (S2).
         boolean terminPromenjen = !dto.getDatum().equals(existingSesija.getDatum())
@@ -380,6 +386,22 @@ public class SesijaService {
         if (!lokacijaDogadjaja.equals(dto.getLokacijaId())) {
             throw new BadRequestException(
                     "Sesija mora biti na lokaciji događaja (lokacija ID: " + lokacijaDogadjaja + ").");
+        }
+    }
+
+    /**
+     * Validira da zbir kapaciteta svih sesija događaja (uključujući ovu) ne pređe
+     * maksimalni kapacitet događaja. {@code excludeId} (može biti null) izuzima sesiju
+     * koja se menja da se njen postojeći kapacitet ne bi računao dvostruko.
+     */
+    private void validirajKapacitet(Dogadjaj dogadjaj, SesijaDto dto, Long excludeId) {
+        int postojeci = sesijaRepository.sumKapacitetaByDogadjaj(dogadjaj.getDogadjajId(), excludeId);
+        int ukupno = postojeci + dto.getKapacitet();
+        if (ukupno > dogadjaj.getMaksKapacitet()) {
+            int preostalo = Math.max(dogadjaj.getMaksKapacitet() - postojeci, 0);
+            throw new BadRequestException(
+                    "Zbir kapaciteta sesija (" + ukupno + ") prelazi maksimalni kapacitet događaja ("
+                            + dogadjaj.getMaksKapacitet() + "). Preostali kapacitet: " + preostalo + ".");
         }
     }
 

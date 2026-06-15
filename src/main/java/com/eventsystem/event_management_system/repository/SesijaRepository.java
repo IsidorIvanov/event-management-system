@@ -38,6 +38,16 @@ public interface SesijaRepository extends JpaRepository<Sesija, Long> {
                                   @Param("vremeZavrsetka") LocalTime vremeZavrsetka,
                                   @Param("excludeId") Long excludeId);
 
+    /**
+     * Zbir kapaciteta svih sesija jednog događaja. {@code excludeId} (može biti null)
+     * izuzima sesiju koja se menja. {@code COALESCE} vraća 0 kada događaj nema sesija.
+     */
+    @Query("SELECT COALESCE(SUM(s.kapacitet), 0) FROM Sesija s " +
+           "WHERE s.dogadjaj.dogadjajId = :dogadjajId " +
+           "AND (:excludeId IS NULL OR s.sesijaId <> :excludeId)")
+    int sumKapacitetaByDogadjaj(@Param("dogadjajId") Long dogadjajId,
+                                @Param("excludeId") Long excludeId);
+
     /** Sesije danas koje počinju u zadatom vremenskom prozoru a podsetnik još nije poslat (za P2). */
     @Query("SELECT s FROM Sesija s JOIN FETCH s.dogadjaj JOIN FETCH s.sala " +
            "WHERE s.datum = :datum AND s.vremePocetka >= :odVremena AND s.vremePocetka <= :doVremena " +
