@@ -22,4 +22,9 @@ public interface DogadjajRepository extends JpaRepository<Dogadjaj, Long> {
     @Query("SELECT d FROM Dogadjaj d WHERE d.status = :status AND d.datumPocetka = :danas")
     List<Dogadjaj> findZaAktivaciju(@Param("status") StatusDogadjaja status,
                                     @Param("danas") LocalDate danas);
+
+    /** Događaji kojima je prošao datum završetka a još nisu ZAVRSEN (za D7). */
+    @Query("SELECT d FROM Dogadjaj d WHERE d.status IN :statusi AND d.datumZavrsetka < :danas")
+    List<Dogadjaj> findZaZavrsetak(@Param("statusi") List<StatusDogadjaja> statusi,
+                                   @Param("danas") LocalDate danas);
 }

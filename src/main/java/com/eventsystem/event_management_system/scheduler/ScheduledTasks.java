@@ -54,4 +54,13 @@ public class ScheduledTasks {
             log.info("Scheduled job aktivirao {} događaja (OBJAVLJEN -> AKTIVAN).", aktivirano);
         }
     }
+
+    // D7 — prebaci događaje kojima je prošao datum završetka u ZAVRSEN i pošalji zahvalnice
+    @Scheduled(cron = "0 */1 * * * *")
+    public void zavrsiDogadjaje() {
+        int zavrseno = dogadjajService.zavrsiDogadjaje();
+        if (zavrseno > 0) {
+            log.info("Scheduled job završio {} događaja (-> ZAVRSEN).", zavrseno);
+        }
+    }
 }

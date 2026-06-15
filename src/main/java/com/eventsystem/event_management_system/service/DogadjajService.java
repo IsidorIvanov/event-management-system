@@ -193,6 +193,44 @@ public class DogadjajService {
         return zaAktivaciju.size();
     }
 
+    /**
+     * D7 — prebacuje događaje kojima je prošao datum završetka (status OBJAVLJEN
+     * ili AKTIVAN) u status ZAVRSEN i šalje potvrđenim učesnicima zahvalnicu sa
+     * molbom za utiske (EMAIL). Poziva se iz zakazanog posla.
+     *
+     * @return broj završenih događaja
+     */
+    @Transactional
+    public int zavrsiDogadjaje() {
+        List<Dogadjaj> zaZavrsetak = dogadjajRepository.findZaZavrsetak(
+                List.of(StatusDogadjaja.OBJAVLJEN, StatusDogadjaja.AKTIVAN), LocalDate.now());
+        for (Dogadjaj dogadjaj : zaZavrsetak) {
+            dogadjaj.setStatus(StatusDogadjaja.ZAVRSEN);
+            obavestiOZavrsetku(dogadjaj);
+        }
+        return zaZavrsetak.size();
+    }
+
+    /** Šalje potvrđenim učesnicima zahvalnicu i molbu za utiske (D7, samo email). */
+    private void obavestiOZavrsetku(Dogadjaj dogadjaj) {
+        String poruka = "hvala Vam što ste prisustvovali događaju \"" + dogadjaj.getNaziv()
+                + "\". Nadamo se da ste uživali! Bićemo zahvalni ako podelite svoje utiske i "
+                + "predloge — pomažu nam da budući događaji budu još bolji.";
+        String emailNaslov = "Hvala na učešću - " + dogadjaj.getNaziv();
+        Set<Long> obavesteni = new HashSet<>();
+        for (Registracija r : registracijaRepository.findByDogadjajIdWithDetails(dogadjaj.getDogadjajId())) {
+            if (r.getStatus() != StatusRegistracije.POTVRDJENA) {
+                continue; // zahvaljujemo se samo onima koji su zaista učestvovali
+            }
+            Ucesnik ucesnik = r.getUcesnik();
+            if (!obavesteni.add(ucesnik.getKorisnikId())) {
+                continue;
+            }
+            notifikacijaService.posaljiEmail(
+                    ucesnik, TipNotifikacije.DOGADJAJ, poruka, dogadjaj, emailNaslov);
+        }
+    }
+
     /** Obaveštava potvrđene učesnike da je događaj počeo (D6, PUSH). */
     private void obavestiOPocetku(Dogadjaj dogadjaj) {
         String sadrzaj = "Događaj \"" + dogadjaj.getNaziv()
