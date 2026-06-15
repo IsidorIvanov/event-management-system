@@ -33,4 +33,26 @@ public interface DogadjajRepository extends JpaRepository<Dogadjaj, Long> {
            "WHERE d.status = :status AND d.datumPocetka = :datum AND d.podsetnikPoslat = false")
     List<Dogadjaj> findZaPodsetnik(@Param("status") StatusDogadjaja status,
                                    @Param("datum") LocalDate datum);
+
+    /**
+     * Događaji na zadatoj lokaciji čiji se interval preklapa sa [pocetak, zavrsetak]
+     * (inkluzivno, jer događaj zauzima cele dane). Koristi se za proveru zauzetosti
+     * termina pri kreiranju/izmeni. Pri izmeni se {@code excludeId} koristi da se sam
+     * događaj ne računa kao konflikt.
+     */
+    @Query("SELECT d FROM Dogadjaj d WHERE d.lokacija.lokacijaId = :lokacijaId " +
+           "AND d.datumPocetka <= :zavrsetak AND d.datumZavrsetka >= :pocetak " +
+           "AND (:excludeId IS NULL OR d.dogadjajId <> :excludeId) " +
+           "ORDER BY d.datumPocetka")
+    List<Dogadjaj> findPreklapajuce(@Param("lokacijaId") Long lokacijaId,
+                                    @Param("pocetak") LocalDate pocetak,
+                                    @Param("zavrsetak") LocalDate zavrsetak,
+                                    @Param("excludeId") Long excludeId);
+
+    /** Svi događaji na zadatoj lokaciji (za prikaz zauzetih termina u formi). */
+    @Query("SELECT d FROM Dogadjaj d WHERE d.lokacija.lokacijaId = :lokacijaId " +
+           "AND (:excludeId IS NULL OR d.dogadjajId <> :excludeId) " +
+           "ORDER BY d.datumPocetka")
+    List<Dogadjaj> findByLokacija(@Param("lokacijaId") Long lokacijaId,
+                                  @Param("excludeId") Long excludeId);
 }
