@@ -49,6 +49,17 @@ public class NotifikacijaService {
         return posalji(primalac, tip, KanalNotifikacije.PUSH, sadrzaj, dogadjaj, emailNaslov);
     }
 
+    /**
+     * Šalje notifikaciju isključivo mejlom (kanal EMAIL) — bez in-app prikaza i
+     * bez push obaveštenja. Koristi se za potvrde koje korisnik treba da dobije
+     * mejlom ali ne i kao novo obaveštenje u aplikaciji (npr. D4 — otkaz prijave).
+     */
+    @Transactional
+    public Notifikacija posaljiEmail(Ucesnik primalac, TipNotifikacije tip, String sadrzaj,
+                                     Dogadjaj dogadjaj, String emailNaslov) {
+        return posalji(primalac, tip, KanalNotifikacije.EMAIL, sadrzaj, dogadjaj, emailNaslov);
+    }
+
     @Transactional
     public Notifikacija posalji(Ucesnik primalac, TipNotifikacije tip, KanalNotifikacije kanal,
                                 String sadrzaj, Dogadjaj dogadjaj, String emailNaslov) {
@@ -79,8 +90,8 @@ public class NotifikacijaService {
     @Transactional(readOnly = true)
     public long countNeprocitane() {
         Korisnik korisnik = currentUserService.getCurrentKorisnik();
-        return notifikacijaRepository.countByKorisnikKorisnikIdAndStatus(
-                korisnik.getKorisnikId(), StatusNotifikacije.NEPROCITANO);
+        return notifikacijaRepository.countByKorisnikKorisnikIdAndKanalAndStatus(
+                korisnik.getKorisnikId(), KanalNotifikacije.PUSH, StatusNotifikacije.NEPROCITANO);
     }
 
     @Transactional

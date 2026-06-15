@@ -133,6 +133,17 @@ public class RegistracijaService {
         reg.setStatusKarte(StatusKarte.NEVAZECA);
         RegistracijaResponseDto rezultat = toDto(registracijaRepository.save(reg));
 
+        // D4 — potvrda otkaza prijave (samo email).
+        notifikacijaService.posaljiEmail(
+                reg.getUcesnik(),
+                TipNotifikacije.DOGADJAJ,
+                "Vaša prijava za događaj \"" + dogadjaj.getNaziv() + "\" je otkazana, a karta "
+                        + (reg.getBrojKarte() != null ? "\"" + reg.getBrojKarte() + "\" " : "")
+                        + "je poništena.",
+                dogadjaj,
+                "Otkazana prijava - " + dogadjaj.getNaziv()
+        );
+
         // Otkazivanjem potvrđene prijave oslobađa se mesto — promoviši prvog sa liste čekanja (D3).
         if (biloPotvrdjeno) {
             promoviSiSaListeCekanja(dogadjaj);
