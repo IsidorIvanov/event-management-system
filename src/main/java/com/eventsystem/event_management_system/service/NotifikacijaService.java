@@ -13,11 +13,12 @@ import com.eventsystem.event_management_system.utils.enums.StatusNotifikacije;
 import com.eventsystem.event_management_system.utils.enums.TipNotifikacije;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -102,13 +103,17 @@ public class NotifikacijaService {
         return notifikacija;
     }
 
+    /**
+     * Stranica in-app notifikacija trenutnog korisnika, opciono filtrirana po
+     * tipu obaveštenja ({@code tip == null} → svi tipovi).
+     */
     @Transactional(readOnly = true)
-    public List<NotifikacijaResponseDto> getMojeNotifikacije() {
+    public Page<NotifikacijaResponseDto> getMojeNotifikacije(TipNotifikacije tip, Pageable pageable) {
         Korisnik korisnik = currentUserService.getCurrentKorisnik();
-        return notifikacijaRepository.findMojeWithDogadjaj(korisnik.getKorisnikId())
-                .stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+        Page<Notifikacija> page = (tip == null)
+                ? notifikacijaRepository.findMojeWithDogadjaj(korisnik.getKorisnikId(), pageable)
+                : notifikacijaRepository.findMojeWithDogadjajByTip(korisnik.getKorisnikId(), tip, pageable);
+        return page.map(this::toDto);
     }
 
     @Transactional(readOnly = true)
