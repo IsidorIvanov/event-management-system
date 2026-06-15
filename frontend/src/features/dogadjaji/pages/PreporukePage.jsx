@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import * as preporukaApi from '@/features/dogadjaji/services/preporukaService';
 import * as sesijaApi from '@/features/dogadjaji/services/sesijaService';
 import { formatDate } from '@/shared/utils/format';
+import { useToast } from '@/shared/components/ToastNotification';
 
 const TIP_LABEL = {
   KEYNOTE: 'Keynote',
@@ -39,6 +40,7 @@ const skorClass = (skor) => {
 
 export default function PreporukePage() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [preporuke, setPreporuke] = useState([]);
   const [loading, setLoading] = useState(true);
   // Set of dogadjajId-s that are currently collapsed
@@ -116,12 +118,14 @@ export default function PreporukePage() {
       if (rasporedIds.has(sesija.sesijaId)) {
         await sesijaApi.removeFromRaspored(sesija.sesijaId);
         setRasporedIds((prev) => { const n = new Set(prev); n.delete(sesija.sesijaId); return n; });
+        toast(`Sesija "${sesija.naziv}" uklonjena iz rasporeda.`, 'info');
       } else {
         await sesijaApi.addToRaspored(sesija.sesijaId);
         setRasporedIds((prev) => new Set([...prev, sesija.sesijaId]));
+        toast(`Sesija "${sesija.naziv}" dodata u raspored.`, 'success');
       }
     } catch {
-      // silently fail
+      toast('Došlo je do greške. Pokušajte ponovo.', 'error');
     } finally {
       setTogglingId(null);
     }
