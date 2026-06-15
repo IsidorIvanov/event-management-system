@@ -1,0 +1,146 @@
+package com.eventsystem.event_management_system.service;
+
+import com.eventsystem.event_management_system.dto.EmailDetalj;
+import com.eventsystem.event_management_system.dto.NotifikacijaResponseDto;
+import com.eventsystem.event_management_system.event.NotifikacijaCreatedEvent;
+import com.eventsystem.event_management_system.model.Dogadjaj;
+import com.eventsystem.event_management_system.model.Korisnik;
+import com.eventsystem.event_management_system.model.Notifikacija;
+import com.eventsystem.event_management_system.model.Ucesnik;
+import com.eventsystem.event_management_system.repository.NotifikacijaRepository;
+import com.eventsystem.event_management_system.utils.enums.KanalNotifikacije;
+import com.eventsystem.event_management_system.utils.enums.StatusNotifikacije;
+import com.eventsystem.event_management_system.utils.enums.TipNotifikacije;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class NotifikacijaService {
+
+    private final NotifikacijaRepository notifikacijaRepository;
+    private final CurrentUserService currentUserService;
+    private final ApplicationEventPublisher eventPublisher;
+
+    /**
+     * Kreira i sačuvava notifikaciju za učesnika, pa objavljuje
+     * {@link NotifikacijaCreatedEvent}. Poziva se unutar transakcije poslovne
+     * operacije — upis je atoman sa njom, a isporuka (PUSH/EMAIL) se dešava tek
+     * nakon commit-a (vidi {@code NotifikacijaEventListener}).
+     */
+    @Transactional
+    public Notifikacija posalji(Ucesnik primalac, TipNotifikacije tip, KanalNotifikacije kanal,
+                                String sadrzaj, Dogadjaj dogadjaj) {
+        return kreirajIPosalji(primalac, tip, kanal, sadrzaj, dogadjaj, null, null, List.of());
+    }
+
+    /**
+     * Kao {@link #posalji}, ali notifikaciju (PUSH u aplikaciji) dodatno
+     * isporučuje i mejlom sa zadatim naslovom. Koristi se za važna obaveštenja
+     * koja korisnik treba da dobije i van aplikacije (npr. D3 — oslobođeno mesto).
+     */
+    @Transactional
+    public Notifikacija posaljiSaEmailom(Ucesnik primalac, TipNotifikacije tip, String sadrzaj,
+                                         Dogadjaj dogadjaj, String emailNaslov) {
+        return kreirajIPosalji(primalac, tip, KanalNotifikacije.PUSH, sadrzaj, dogadjaj,
+                emailNaslov, null, List.of());
+    }
+
+    /**
+     * Kao {@link #posaljiSaEmailom(Ucesnik, TipNotifikacije, String, Dogadjaj, String)},
+     * ali email koristi zaseban tekst ({@code emailPoruka}) i prikazuje strukturirane
+     * redove ({@code emailDetalji}) — npr. D5, gde push nosi detaljnu rečenicu, a email
+     * kratak uvod + karticu sa novim datumom/lokacijom.
+     */
+    @Transactional
+    public Notifikacija posaljiSaEmailom(Ucesnik primalac, TipNotifikacije tip, String sadrzaj,
+                                         Dogadjaj dogadjaj, String emailNaslov,
+                                         String emailPoruka, List<EmailDetalj> emailDetalji) {
+        return kreirajIPosalji(primalac, tip, KanalNotifikacije.PUSH, sadrzaj, dogadjaj,
+                emailNaslov, emailPoruka, emailDetalji);
+    }
+
+    /**
+     * Šalje notifikaciju isključivo mejlom (kanal EMAIL) — bez in-app prikaza i
+     * bez push obaveštenja. Koristi se za potvrde koje korisnik treba da dobije
+     * mejlom ali ne i kao novo obaveštenje u aplikaciji (npr. D4 — otkaz prijave).
+     */
+    @Transactional
+    public Notifikacija posaljiEmail(Ucesnik primalac, TipNotifikacije tip, String sadrzaj,
+                                     Dogadjaj dogadjaj, String emailNaslov) {
+        return kreirajIPosalji(primalac, tip, KanalNotifikacije.EMAIL, sadrzaj, dogadjaj,
+                emailNaslov, null, List.of());
+    }
+
+    @Transactional
+    public Notifikacija posalji(Ucesnik primalac, TipNotifikacije tip, KanalNotifikacije kanal,
+                                String sadrzaj, Dogadjaj dogadjaj, String emailNaslov) {
+        return kreirajIPosalji(primalac, tip, kanal, sadrzaj, dogadjaj, emailNaslov, null, List.of());
+    }
+
+    private Notifikacija kreirajIPosalji(Ucesnik primalac, TipNotifikacije tip, KanalNotifikacije kanal,
+                                         String sadrzaj, Dogadjaj dogadjaj, String emailNaslov,
+                                         String emailPoruka, List<EmailDetalj> emailDetalji) {
+        Notifikacija notifikacija = Notifikacija.builder()
+                .korisnik(primalac)
+                .dogadjaj(dogadjaj)
+                .tip(tip)
+                .kanal(kanal)
+                .sadrzaj(sadrzaj)
+                .status(StatusNotifikacije.NEPROCITANO)
+                .build();
+
+        notifikacija = notifikacijaRepository.save(notifikacija);
+        eventPublisher.publishEvent(new NotifikacijaCreatedEvent(
+                primalac.getEmail(), primalac.getIme(), kanal, emailNaslov, emailPoruka,
+                emailDetalji != null ? emailDetalji : List.of(), toDto(notifikacija)));
+        return notifikacija;
+    }
+
+    @Transactional(readOnly = true)
+    public List<NotifikacijaResponseDto> getMojeNotifikacije() {
+        Korisnik korisnik = currentUserService.getCurrentKorisnik();
+        return notifikacijaRepository.findMojeWithDogadjaj(korisnik.getKorisnikId())
+                .stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public long countNeprocitane() {
+        Korisnik korisnik = currentUserService.getCurrentKorisnik();
+        return notifikacijaRepository.countByKorisnikKorisnikIdAndKanalAndStatus(
+                korisnik.getKorisnikId(), KanalNotifikacije.PUSH, StatusNotifikacije.NEPROCITANO);
+    }
+
+    @Transactional
+    public NotifikacijaResponseDto oznaciKaoProcitano(Long notifikacijaId) {
+        Korisnik korisnik = currentUserService.getCurrentKorisnik();
+        Notifikacija notifikacija = notifikacijaRepository.findById(notifikacijaId)
+                .orElseThrow(() -> new RuntimeException("Notifikacija nije pronađena."));
+        if (!notifikacija.getKorisnik().getKorisnikId().equals(korisnik.getKorisnikId())) {
+            throw new RuntimeException("Nemate pravo na ovu notifikaciju.");
+        }
+        notifikacija.setStatus(StatusNotifikacije.PROCITANO);
+        return toDto(notifikacijaRepository.save(notifikacija));
+    }
+
+    private NotifikacijaResponseDto toDto(Notifikacija n) {
+        Dogadjaj d = n.getDogadjaj();
+        return NotifikacijaResponseDto.builder()
+                .notifikacijaId(n.getNotifikacijaId())
+                .tip(n.getTip())
+                .kanal(n.getKanal())
+                .sadrzaj(n.getSadrzaj())
+                .vremeSlanja(n.getVremeSlanja())
+                .status(n.getStatus())
+                .dogadjajId(d != null ? d.getDogadjajId() : null)
+                .dogadjajNaziv(d != null ? d.getNaziv() : null)
+                .build();
+    }
+}

@@ -43,6 +43,10 @@ public class Dogadjaj {
     @Column(nullable = false, length = 20)
     private StatusDogadjaja status;
 
+    /** Da li je već poslat podsetnik „događaj uskoro" (P1) — sprečava ponovno slanje. */
+    @Column(name = "podsetnik_poslat", columnDefinition = "boolean default false")
+    private boolean podsetnikPoslat;
+
     /**
      * Tagovi/teme događaja (npr. "Tehnologija", "Biznis") koji opisuju o čemu se
      * radi na događaju. Koriste se za sistem preporuka — porede se sa interesima

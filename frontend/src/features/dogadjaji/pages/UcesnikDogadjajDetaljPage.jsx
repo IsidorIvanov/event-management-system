@@ -4,6 +4,7 @@ import api from '@/shared/services/api';
 import * as sesijaApi from '@/features/dogadjaji/services/sesijaService';
 import * as govornikApi from '@/features/dogadjaji/services/govornikService';
 import * as registracijaApi from '@/features/dogadjaji/services/registracijaService';
+import { NOTIF_NEW_EVENT } from '@/features/notifikacije/hooks/useNotifikacije';
 import RegistracijaModal from '@/features/dogadjaji/components/RegistracijaModal';
 
 const formatDate = (s) =>
@@ -56,7 +57,7 @@ function AgendaTab({ event, isRegistered, userRegistration }) {
     return false;
   };
 
-  useEffect(() => {
+  const loadAgenda = () => {
     const loads = [sesijaApi.getSesijeByDogadjaj(event.dogadjajId)];
     if (isRegistered) loads.push(sesijaApi.getMojRasporedIds());
 
@@ -67,6 +68,15 @@ function AgendaTab({ event, isRegistered, userRegistration }) {
       })
       .catch(() => setSesije([]))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { loadAgenda(); }, [event.dogadjajId, isRegistered]);
+
+  // Osveži agendu kad stigne notifikacija (nova/izmenjena/otkazana sesija, govornik — S1–S4).
+  useEffect(() => {
+    const onNotif = () => loadAgenda();
+    window.addEventListener(NOTIF_NEW_EVENT, onNotif);
+    return () => window.removeEventListener(NOTIF_NEW_EVENT, onNotif);
   }, [event.dogadjajId, isRegistered]);
 
   const handleToggleRaspored = async (e, sesija) => {
@@ -396,6 +406,27 @@ export default function UcesnikDogadjajDetaljPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  // Osveži događaj i registraciju kada stigne notifikacija, da se izmene odmah
+  // odraze: promocija sa liste čekanja (D3) ili izmenjen datum/lokacija (D5).
+  useEffect(() => {
+    const onNotif = () => {
+      api.get(`/dogadjaj/${id}`)
+        .then((res) => setEvent(res.data))
+        .catch(() => {});
+      registracijaApi.getMyRegistrations()
+        .then((res) => {
+          const activeReg = res.data.find(
+            (r) => r.dogadjajId === Number(id) && r.status !== 'OTKAZANA'
+          );
+          setRegistered(!!activeReg);
+          setUserRegistration(activeReg || null);
+        })
+        .catch(() => {});
+    };
+    window.addEventListener(NOTIF_NEW_EVENT, onNotif);
+    return () => window.removeEventListener(NOTIF_NEW_EVENT, onNotif);
+  }, [id]);
+
   if (loading) {
     return <div className="ucesnik-empty" style={{ padding: '3rem' }}>Učitavanje...</div>;
   }
@@ -410,6 +441,11 @@ export default function UcesnikDogadjajDetaljPage() {
       </div>
     );
   }
+
+  const onWaitlist =
+    registered &&
+    (userRegistration?.statusKarte === 'NA_CEKANJU' ||
+      userRegistration?.status === 'NA_CEKANJU');
 
   return (
     <div className="ev-detail-page">
@@ -440,9 +476,15 @@ export default function UcesnikDogadjajDetaljPage() {
           ← Nazad
         </button>
         {registered ? (
-          <span style={{ fontSize: '0.9rem', color: 'var(--success)', fontWeight: 600 }}>
-            ✓ Uspešno registrovani!
-          </span>
+          onWaitlist ? (
+            <span style={{ fontSize: '0.9rem', color: 'var(--warning)', fontWeight: 600 }}>
+              ⏳ Na listi čekanja
+            </span>
+          ) : (
+            <span style={{ fontSize: '0.9rem', color: 'var(--success)', fontWeight: 600 }}>
+              ✓ Uspešno registrovani!
+            </span>
+          )
         ) : (
           <button className="discover-btn-register ev-register-btn" onClick={() => setShowRegModal(true)}>
             Registruj se za ovaj događaj
@@ -489,6 +531,16 @@ export default function UcesnikDogadjajDetaljPage() {
               <button className="discover-btn-register" onClick={() => setShowRegModal(true)}>
                 Registruj se
               </button>
+            </div>
+          ) : onWaitlist ? (
+            <div className="ev-not-registered-banner" style={{ background: 'rgba(245, 158, 11, 0.12)', borderColor: 'var(--warning)' }}>
+              <div className="ev-not-registered-text">
+                <strong style={{ color: 'var(--warning)' }}>⏳ Na listi čekanja</strong>
+                <p>
+                  Događaj je trenutno popunjen, pa je vaša prijava na listi čekanja. Obavestićemo
+                  vas čim se oslobodi mesto i tada će vaša karta biti potvrđena.
+                </p>
+              </div>
             </div>
           ) : (
             <div className="ev-not-registered-banner" style={{ background: 'var(--success-subtle)', borderColor: 'var(--success)' }}>

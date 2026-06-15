@@ -19,6 +19,10 @@ public interface UcesnikSesijaRepository extends JpaRepository<UcesnikSesija, Lo
            "WHERE us.ucesnik.korisnikId = :ucesnikId")
     List<UcesnikSesija> findByUcesnikIdWithDetails(@Param("ucesnikId") Long ucesnikId);
 
+    /** Svi učesnici koji imaju datu sesiju u svom rasporedu (za S2/S3/S4 notifikacije). */
+    @Query("SELECT us FROM UcesnikSesija us JOIN FETCH us.ucesnik WHERE us.sesija.sesijaId = :sesijaId")
+    List<UcesnikSesija> findBySesijaIdWithUcesnik(@Param("sesijaId") Long sesijaId);
+
     Optional<UcesnikSesija> findByUcesnik_KorisnikIdAndSesija_SesijaId(Long ucesnikId, Long sesijaId);
 
     boolean existsByUcesnik_KorisnikIdAndSesija_SesijaId(Long ucesnikId, Long sesijaId);

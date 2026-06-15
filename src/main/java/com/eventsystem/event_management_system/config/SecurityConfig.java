@@ -90,6 +90,8 @@ public class SecurityConfig {
 
                 .requestMatchers("/api/preporuka/**").hasAnyRole("UCESNIK")
 
+                .requestMatchers("/api/notifikacije/**").hasAnyRole("UCESNIK")
+
                 // Poruke — Ucesnik i Koordinator programa
                 .requestMatchers("/api/poruke/**").hasAnyRole("UCESNIK", "KOORDINATOR_PROGRAMA")
 
