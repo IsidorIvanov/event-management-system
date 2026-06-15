@@ -745,6 +745,7 @@ function KarteTab({ event }) {
         <UpsertKarteModal
           dogadjajId={event.dogadjajId}
           event={event}
+          karte={karte}
           tipKarte={modal === 'add' ? null : modal}
           onClose={() => setModal(null)}
           onSaved={handleSave}
@@ -763,11 +764,11 @@ function KarteTab({ event }) {
         </div>
         <div className="sesija-stat-card">
           <div className="sesija-stat-label">Sesijske karte</div>
-          <div className="sesija-stat-value">{karte.filter((k) => k.vrsta === 'POJEDINACNA_SESIJA').length}</div>
+          <div className="sesija-stat-value">{karte.filter((k) => k.vrsta === 'POJEDINACNA_SESIJA').reduce((s, k) => s + (k.kvota || 0), 0)}</div>
         </div>
         <div className="sesija-stat-card">
           <div className="sesija-stat-label">Besplatne karte</div>
-          <div className="sesija-stat-value">{karte.filter((k) => k.vrsta === 'BESPLATNA').length}</div>
+          <div className="sesija-stat-value">{karte.filter((k) => k.vrsta === 'BESPLATNA').reduce((s, k) => s + (k.kvota || 0), 0)}</div>
         </div>
       </div>
 

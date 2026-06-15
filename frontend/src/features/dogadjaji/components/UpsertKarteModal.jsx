@@ -48,8 +48,15 @@ function buildNazivTipa(vrsta, datum, sesija) {
   return vrsta;
 }
 
-export default function UpsertKarteModal({ dogadjajId, event, tipKarte, onClose, onSaved }) {
+export default function UpsertKarteModal({ dogadjajId, event, karte = [], tipKarte, onClose, onSaved }) {
   const isEdit = !!tipKarte;
+
+  const maksKapacitet = event?.maksKapacitet ?? 0;
+  // Zbir kvota ostalih tipova karata (u edit modu izuzima tip koji se menja).
+  const zbirOstalihKvota = karte
+    .filter((k) => !isEdit || k.nazivTipa !== tipKarte.nazivTipa)
+    .reduce((s, k) => s + (k.kvota || 0), 0);
+  const preostaliKapacitet = maksKapacitet - zbirOstalihKvota;
 
   const [vrsta, setVrsta] = useState(tipKarte?.vrsta || 'VISEDNEVNA');
   const [datum, setDatum] = useState('');           // za JEDNODNEVNA
@@ -96,6 +103,8 @@ export default function UpsertKarteModal({ dogadjajId, event, tipKarte, onClose,
     }
     if (!kvota || isNaN(Number(kvota)) || Number(kvota) < 1)
       e.kvota = 'Kvota mora biti najmanje 1.';
+    else if (Number(kvota) > preostaliKapacitet)
+      e.kvota = `Zbir kvota prelazi maksimalni kapacitet događaja (${maksKapacitet}). Dostupno još: ${Math.max(preostaliKapacitet, 0)}.`;
     return e;
   };
 
@@ -247,10 +256,13 @@ export default function UpsertKarteModal({ dogadjajId, event, tipKarte, onClose,
                 className={`form-input${errors.kvota ? ' input-error' : ''}`}
                 type="number"
                 min="1"
+                max={Math.max(preostaliKapacitet, 0)}
                 value={kvota}
                 onChange={(e) => setKvota(e.target.value)}
               />
-              {errors.kvota && <span className="form-error">{errors.kvota}</span>}
+              {errors.kvota
+                ? <span className="form-error">{errors.kvota}</span>
+                : <span className="form-hint">Dostupno mesta: {Math.max(preostaliKapacitet, 0)} / {maksKapacitet}</span>}
             </div>
           </div>
 
