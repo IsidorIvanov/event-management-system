@@ -214,7 +214,7 @@ public class DogadjajService {
     @Transactional
     public int zavrsiDogadjaje() {
         List<Dogadjaj> zaZavrsetak = dogadjajRepository.findZaZavrsetak(
-                List.of(StatusDogadjaja.OBJAVLJEN, StatusDogadjaja.AKTIVAN), LocalDate.now());
+                List.of(StatusDogadjaja.DRAFT, StatusDogadjaja.OBJAVLJEN, StatusDogadjaja.AKTIVAN), LocalDate.now());
         for (Dogadjaj dogadjaj : zaZavrsetak) {
             dogadjaj.setStatus(StatusDogadjaja.ZAVRSEN);
             obavestiOZavrsetku(dogadjaj);
