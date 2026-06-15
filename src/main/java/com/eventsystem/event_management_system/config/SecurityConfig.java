@@ -83,7 +83,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/tip-karte/**").hasAnyRole("KOORDINATOR_PROGRAMA", "MENADZER_DOGADJAJA")
 
                 .requestMatchers(HttpMethod.GET, "/api/registracija/dogadjaj/**").hasAnyRole(
-                        "KOORDINATOR_PROGRAMA", "MENADZER_DOGADJAJA")
+                        "KOORDINATOR_PROGRAMA", "MENADZER_DOGADJAJA", "UCESNIK")
                 .requestMatchers("/api/registracija/**").hasAnyRole("UCESNIK")
 
                 .requestMatchers("/api/raspored/**").hasAnyRole("UCESNIK")
