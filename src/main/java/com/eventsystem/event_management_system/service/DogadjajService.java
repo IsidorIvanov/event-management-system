@@ -231,6 +231,49 @@ public class DogadjajService {
         }
     }
 
+    /**
+     * P1 — dan pre početka šalje potvrđenim učesnicima podsetnik da događaj počinje
+     * sutra i da pripreme QR kartu (EMAIL + PUSH). Flag {@code podsetnikPoslat}
+     * sprečava ponovno slanje. Poziva se iz zakazanog posla.
+     *
+     * @return broj događaja za koje je poslat podsetnik
+     */
+    @Transactional
+    public int posaljiPodsetnikeZaDogadjaje() {
+        LocalDate sutra = LocalDate.now().plusDays(1);
+        List<Dogadjaj> dogadjaji = dogadjajRepository.findZaPodsetnik(StatusDogadjaja.OBJAVLJEN, sutra);
+        for (Dogadjaj dogadjaj : dogadjaji) {
+            posaljiPodsetnikZaDogadjaj(dogadjaj);
+            dogadjaj.setPodsetnikPoslat(true);
+        }
+        return dogadjaji.size();
+    }
+
+    private void posaljiPodsetnikZaDogadjaj(Dogadjaj dogadjaj) {
+        String sadrzaj = "Podsetnik: događaj \"" + dogadjaj.getNaziv() + "\" počinje sutra ("
+                + dogadjaj.getDatumPocetka().format(DATUM_FORMAT) + "). Pripremite svoju QR kartu za ulaz.";
+        String emailPoruka = "podsećamo Vas da događaj \"" + dogadjaj.getNaziv() + "\" počinje sutra. "
+                + "Ponesite svoju kartu sa QR kodom radi bržeg ulaza. Vidimo se!";
+        String emailNaslov = "Podsetnik: " + dogadjaj.getNaziv() + " počinje sutra";
+        List<EmailDetalj> detalji = List.of(
+                new EmailDetalj("Događaj", dogadjaj.getNaziv()),
+                new EmailDetalj("Datum", formatirajPeriod(dogadjaj.getDatumPocetka(), dogadjaj.getDatumZavrsetka())),
+                new EmailDetalj("Lokacija", opisLokacije(dogadjaj.getLokacija())));
+
+        Set<Long> obavesteni = new HashSet<>();
+        for (Registracija r : registracijaRepository.findByDogadjajIdWithDetails(dogadjaj.getDogadjajId())) {
+            if (r.getStatus() != StatusRegistracije.POTVRDJENA) {
+                continue;
+            }
+            Ucesnik ucesnik = r.getUcesnik();
+            if (!obavesteni.add(ucesnik.getKorisnikId())) {
+                continue;
+            }
+            notifikacijaService.posaljiSaEmailom(
+                    ucesnik, TipNotifikacije.PODSETNIK, sadrzaj, dogadjaj, emailNaslov, emailPoruka, detalji);
+        }
+    }
+
     /** Obaveštava potvrđene učesnike da je događaj počeo (D6, PUSH). */
     private void obavestiOPocetku(Dogadjaj dogadjaj) {
         String sadrzaj = "Događaj \"" + dogadjaj.getNaziv()

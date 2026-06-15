@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,4 +20,12 @@ public interface SesijaRepository extends JpaRepository<Sesija, Long> {
 
     List<Sesija> findBySala_Lokacija_LokacijaIdAndDatumBetween(
             Long lokacijaId, LocalDate datumOd, LocalDate datumDo);
+
+    /** Sesije danas koje počinju u zadatom vremenskom prozoru a podsetnik još nije poslat (za P2). */
+    @Query("SELECT s FROM Sesija s JOIN FETCH s.dogadjaj JOIN FETCH s.sala " +
+           "WHERE s.datum = :datum AND s.vremePocetka >= :odVremena AND s.vremePocetka <= :doVremena " +
+           "AND s.podsetnikPoslat = false")
+    List<Sesija> findZaPodsetnik(@Param("datum") LocalDate datum,
+                                 @Param("odVremena") LocalTime odVremena,
+                                 @Param("doVremena") LocalTime doVremena);
 }

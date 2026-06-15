@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -294,6 +295,39 @@ public class SesijaService {
         }
 
         return toDto(sesija);
+    }
+
+    /**
+     * P2 — šalje učesnicima koji imaju sesiju u rasporedu podsetnik da sesija
+     * počinje uskoro (PUSH). Bira sesije koje danas počinju u narednih ~60 min a
+     * podsetnik još nije poslat; flag {@code podsetnikPoslat} sprečava ponavljanje.
+     *
+     * @return broj sesija za koje je poslat podsetnik
+     */
+    @Transactional
+    public int posaljiPodsetnikeZaSesije() {
+        LocalTime sada = LocalTime.now();
+        LocalTime granica = sada.plusMinutes(60);
+        if (granica.isBefore(sada)) {
+            granica = LocalTime.MAX; // prozor prelazi ponoć — ograniči na kraj dana
+        }
+        List<Sesija> sesije = sesijaRepository.findZaPodsetnik(LocalDate.now(), sada, granica);
+        for (Sesija sesija : sesije) {
+            posaljiPodsetnikZaSesiju(sesija);
+            sesija.setPodsetnikPoslat(true);
+        }
+        return sesije.size();
+    }
+
+    private void posaljiPodsetnikZaSesiju(Sesija sesija) {
+        Dogadjaj dogadjaj = sesija.getDogadjaj();
+        String sala = sesija.getSala().getId().getNazivSale();
+        String sadrzaj = "Podsetnik: sesija \"" + sesija.getNaziv() + "\" iz vašeg rasporeda počinje uskoro, "
+                + "u " + sesija.getVremePocetka().format(SES_VREME) + " (sala " + sala + ").";
+        for (Ucesnik ucesnik : ucesniciURasporedu(sesija.getSesijaId())) {
+            notifikacijaService.posalji(
+                    ucesnik, TipNotifikacije.PODSETNIK, KanalNotifikacije.PUSH, sadrzaj, dogadjaj);
+        }
     }
 
     private void obavestiOPromeniGovornika(Sesija sesija, String sadrzaj) {
