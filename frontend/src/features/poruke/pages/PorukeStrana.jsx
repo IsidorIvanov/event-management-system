@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { Client } from '@stomp/stompjs';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import * as porukeService from '@/features/poruke/services/porukeService';
+import { notifyPorukeRead } from '@/features/poruke/hooks/useUnreadPoruke';
 import { ULOGA_DISPLAY } from '@/shared/constants/korisnik';
 
 function formatTime(dt) {
@@ -137,6 +138,8 @@ export default function PorukeStrana() {
         setKontakti(prev => prev.map(k =>
           k.korisnikId === aktivniKontakt.korisnikId ? { ...k, neprocitanihPoruka: 0 } : k
         ));
+        // Konverzacija je upravo obeležena pročitanom → skloni/azuriraj badge.
+        notifyPorukeRead();
       })
       .catch(console.error)
       .finally(() => setLoadingPoruke(false));
@@ -148,30 +151,35 @@ export default function PorukeStrana() {
     const interval = setInterval(() => {
       porukeService.getKonverzacija(aktivniKontakt.korisnikId)
         .then(({ data }) => {
-          setPoruke(prev => {
-            const existingIds = new Set(prev.map(p => p.porukaId));
-            const novePoruke = data.filter(p => !existingIds.has(p.porukaId));
-            if (novePoruke.length === 0) return prev;
-            // Update contact preview for newly arrived messages
-            novePoruke.forEach(nova => {
-              const currentUser = userRef.current;
-              if (currentUser) {
-                const drugaStrana = nova.posiljalacId === currentUser.korisnikId
-                  ? nova.primalacId : nova.posiljalacId;
-                setKontakti(prev2 => prev2.map(k =>
-                  k.korisnikId === drugaStrana
-                    ? {
-                        ...k,
-                        poslednjaPorukaPreview: nova.sadrzaj.length > 55
-                          ? nova.sadrzaj.slice(0, 55) + '...' : nova.sadrzaj,
-                        vremePoslednjePoruke: nova.vremeSlamja,
-                      }
-                    : k
-                ));
-              }
-            });
-            return [...prev, ...novePoruke];
+          const existingIds = new Set(porukeRef.current.map(p => p.porukaId));
+          const novePoruke = data.filter(p => !existingIds.has(p.porukaId));
+          if (novePoruke.length === 0) return;
+          // Update contact preview for newly arrived messages
+          const currentUser = userRef.current;
+          novePoruke.forEach(nova => {
+            if (currentUser) {
+              const drugaStrana = nova.posiljalacId === currentUser.korisnikId
+                ? nova.primalacId : nova.posiljalacId;
+              setKontakti(prev2 => prev2.map(k =>
+                k.korisnikId === drugaStrana
+                  ? {
+                      ...k,
+                      poslednjaPorukaPreview: nova.sadrzaj.length > 55
+                        ? nova.sadrzaj.slice(0, 55) + '...' : nova.sadrzaj,
+                      vremePoslednjePoruke: nova.vremeSlamja,
+                    }
+                  : k
+              ));
+            }
           });
+          // Dedup protiv WebSocket dostave radi se u updateru.
+          setPoruke(prev => {
+            const ids = new Set(prev.map(p => p.porukaId));
+            const stvarno = novePoruke.filter(p => !ids.has(p.porukaId));
+            return stvarno.length ? [...prev, ...stvarno] : prev;
+          });
+          // Pristigle poruke su obeležene pročitanim (chat je otvoren) → azuriraj badge.
+          notifyPorukeRead();
         })
         .catch(() => {}); // silent — polling failure is non-critical
     }, 3000);
