@@ -8,7 +8,7 @@
 .poruke-layout {
   display: grid;
   grid-template-columns: 240px 1fr;
-  height: calc(100vh - 2rem);
+  height: calc(100vh - 4rem);
   min-height: 500px;
   border: 1px solid var(--border);
   border-radius: var(--radius);

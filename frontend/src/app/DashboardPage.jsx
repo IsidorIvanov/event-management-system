@@ -287,7 +287,8 @@ function ProgramSection({ user }) {
           <thead>
             <tr>
               <th>NAZIV</th>
-              <th>DATUM</th>
+              <th>DATUM POČETKA</th>
+              <th>DATUM ZAVRŠETKA</th>
               <th>LOKACIJA</th>
               <th>STATUS</th>
               <th>AKCIJE</th>
@@ -296,7 +297,7 @@ function ProgramSection({ user }) {
           <tbody>
             {loading || error || filtered.length === 0 ? (
               <TableStateRow
-                colSpan={5}
+                colSpan={6}
                 loading={loading}
                 error={error}
                 isEmpty={filtered.length === 0}
@@ -315,6 +316,7 @@ function ProgramSection({ user }) {
                     </span>
                   </td>
                   <td>{formatDate(event.datumPocetka)}</td>
+                  <td>{formatDate(event.datumZavrsetka)}</td>
                   <td>
                     {event.lokacijaGrad}
                     {event.lokacijaDrzava ? `, ${event.lokacijaDrzava}` : ""}
