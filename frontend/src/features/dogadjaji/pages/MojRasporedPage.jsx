@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as sesijaApi from '@/features/dogadjaji/services/sesijaService';
 import { NOTIF_NEW_EVENT } from '@/features/notifikacije/hooks/useNotifikacije';
+import { useToast } from '@/shared/components/ToastNotification';
 
 const TIP_LABEL = {
   KEYNOTE: 'Keynote',
@@ -24,6 +25,7 @@ const dayOfWeek = (datum) => {
 
 export default function MojRasporedPage() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [sesije, setSesije] = useState([]);
   const [loading, setLoading] = useState(true);
   const [removingId, setRemovingId] = useState(null);
@@ -47,14 +49,15 @@ export default function MojRasporedPage() {
     return () => window.removeEventListener(NOTIF_NEW_EVENT, onNotif);
   }, []);
 
-  const handleRemove = async (e, sesijaId) => {
+  const handleRemove = async (e, sesijaId, naziv) => {
     e.stopPropagation();
     setRemovingId(sesijaId);
     try {
       await sesijaApi.removeFromRaspored(sesijaId);
       setSesije((prev) => prev.filter((s) => s.sesijaId !== sesijaId));
+      toast(`Sesija "${naziv}" uklonjena iz rasporeda.`, 'info');
     } catch {
-      // silently fail
+      toast('Došlo je do greške. Pokušajte ponovo.', 'error');
     } finally {
       setRemovingId(null);
     }
@@ -116,7 +119,7 @@ export default function MojRasporedPage() {
         <button
           className="btn btn-xs btn-danger-outline"
           disabled={removingId === s.sesijaId}
-          onClick={(e) => handleRemove(e, s.sesijaId)}
+          onClick={(e) => handleRemove(e, s.sesijaId, s.naziv)}
         >
           {removingId === s.sesijaId ? '...' : 'Ukloni'}
         </button>
