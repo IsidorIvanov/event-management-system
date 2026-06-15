@@ -21,6 +21,33 @@ public interface SesijaRepository extends JpaRepository<Sesija, Long> {
     List<Sesija> findBySala_Lokacija_LokacijaIdAndDatumBetween(
             Long lokacijaId, LocalDate datumOd, LocalDate datumDo);
 
+    /**
+     * Sesije u istoj sali (lokacija + naziv sale) istog dana čija se satnica preklapa
+     * sa zadatim terminom. Dva termina se preklapaju ako počinje pre nego što drugi
+     * završi i obrnuto. {@code excludeId} (može biti null) izuzima sesiju koja se menja.
+     */
+    @Query("SELECT s FROM Sesija s " +
+           "WHERE s.sala.id.lokacijaId = :lokacijaId AND s.sala.id.nazivSale = :nazivSale " +
+           "AND s.datum = :datum " +
+           "AND (:excludeId IS NULL OR s.sesijaId <> :excludeId) " +
+           "AND s.vremePocetka < :vremeZavrsetka AND :vremePocetka < s.vremeZavrsetka")
+    List<Sesija> findPreklapajuce(@Param("lokacijaId") Long lokacijaId,
+                                  @Param("nazivSale") String nazivSale,
+                                  @Param("datum") LocalDate datum,
+                                  @Param("vremePocetka") LocalTime vremePocetka,
+                                  @Param("vremeZavrsetka") LocalTime vremeZavrsetka,
+                                  @Param("excludeId") Long excludeId);
+
+    /**
+     * Zbir kapaciteta svih sesija jednog događaja. {@code excludeId} (može biti null)
+     * izuzima sesiju koja se menja. {@code COALESCE} vraća 0 kada događaj nema sesija.
+     */
+    @Query("SELECT COALESCE(SUM(s.kapacitet), 0) FROM Sesija s " +
+           "WHERE s.dogadjaj.dogadjajId = :dogadjajId " +
+           "AND (:excludeId IS NULL OR s.sesijaId <> :excludeId)")
+    int sumKapacitetaByDogadjaj(@Param("dogadjajId") Long dogadjajId,
+                                @Param("excludeId") Long excludeId);
+
     /** Sesije danas koje počinju u zadatom vremenskom prozoru a podsetnik još nije poslat (za P2). */
     @Query("SELECT s FROM Sesija s JOIN FETCH s.dogadjaj JOIN FETCH s.sala " +
            "WHERE s.datum = :datum AND s.vremePocetka >= :odVremena AND s.vremePocetka <= :doVremena " +

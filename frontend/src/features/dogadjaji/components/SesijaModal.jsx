@@ -16,7 +16,7 @@ const EMPTY = {
   nazivSale: '',
 };
 
-export default function SesijaModal({ dogadjajId, event, sesija, onClose, onSaved }) {
+export default function SesijaModal({ dogadjajId, event, sesija, preostaloKapacitet, onClose, onSaved }) {
   const [form, setForm] = useState(() => {
     if (sesija) {
       return {
@@ -31,30 +31,28 @@ export default function SesijaModal({ dogadjajId, event, sesija, onClose, onSave
         nazivSale: sesija.nazivSale || '',
       };
     }
-    return { ...EMPTY, datum: event?.datumPocetka || '' };
+    // Sesija uvek mora biti na lokaciji događaja — postavi je podrazumevano.
+    return { ...EMPTY, datum: event?.datumPocetka || '', lokacijaId: event?.lokacijaId || '' };
   });
 
-  const [lokacije, setLokacije] = useState([]);
   const [sale, setSale] = useState([]);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     lokacijaApi.getLokacije().then((res) => {
-      setLokacije(res.data);
-      if (sesija?.lokacijaId) {
-        const lok = res.data.find((l) => l.lokacijaId === sesija.lokacijaId);
-        setSale(lok?.sale || []);
+      // Sala se bira isključivo iz lokacije događaja — nađi je po ID-u,
+      // a ako ID nije dostupan, po nazivu lokacije događaja.
+      const lokId = sesija?.lokacijaId ?? event?.lokacijaId;
+      const lok =
+        res.data.find((l) => l.lokacijaId === lokId) ||
+        res.data.find((l) => l.naziv === event?.lokacijaNaziv);
+      if (lok) {
+        setSale(lok.sale || []);
+        setForm((f) => ({ ...f, lokacijaId: lok.lokacijaId }));
       }
     });
   }, []);
-
-  const handleLokacijaChange = (e) => {
-    const id = Number(e.target.value);
-    const lok = lokacije.find((l) => l.lokacijaId === id);
-    setSale(lok?.sale || []);
-    setForm((f) => ({ ...f, lokacijaId: id, nazivSale: '' }));
-  };
 
   const set = (field) => (e) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -64,6 +62,10 @@ export default function SesijaModal({ dogadjajId, event, sesija, onClose, onSave
     setError(null);
     if (!form.lokacijaId || !form.nazivSale) {
       setError('Izaberite lokaciju i salu.');
+      return;
+    }
+    if (preostaloKapacitet != null && Number(form.kapacitet) > preostaloKapacitet) {
+      setError(`Kapacitet sesije prelazi preostali kapacitet događaja (${preostaloKapacitet}).`);
       return;
     }
     setSaving(true);
@@ -128,12 +130,12 @@ export default function SesijaModal({ dogadjajId, event, sesija, onClose, onSave
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
             <div className="form-group">
               <label>Lokacija *</label>
-              <select className="form-control" value={form.lokacijaId} onChange={handleLokacijaChange} required>
-                <option value="">— izaberi lokaciju —</option>
-                {lokacije.map((l) => (
-                  <option key={l.lokacijaId} value={l.lokacijaId}>{l.naziv}</option>
-                ))}
-              </select>
+              <input
+                className="form-control"
+                value={event?.lokacijaNaziv || ''}
+                disabled
+                title="Sesija se održava na lokaciji događaja"
+              />
             </div>
             <div className="form-group">
               <label>Sala *</label>
@@ -149,7 +151,11 @@ export default function SesijaModal({ dogadjajId, event, sesija, onClose, onSave
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
             <div className="form-group">
               <label>Kapacitet *</label>
-              <input type="number" className="form-control" value={form.kapacitet} onChange={set('kapacitet')} required min={1} />
+              <input type="number" className="form-control" value={form.kapacitet} onChange={set('kapacitet')}
+                required min={1} max={preostaloKapacitet ?? undefined} />
+              {preostaloKapacitet != null && (
+                <small className="form-text">Preostali kapacitet događaja: {preostaloKapacitet}</small>
+              )}
             </div>
           </div>
 

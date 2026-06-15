@@ -28,6 +28,8 @@ public class TipKarteService {
             throw new RuntimeException("Tip karte '" + dto.getNazivTipa() + "' već postoji za ovaj događaj.");
         }
 
+        validateZbirKvota(dogadjaj, dto.getNazivTipa(), dto.getKvota());
+
         TipKarteId id = new TipKarteId(dto.getDogadjajId(), dto.getNazivTipa());
 
         TipKarte tipKarte = TipKarte.builder()
@@ -62,6 +64,11 @@ public class TipKarteService {
         TipKarte existing = tipKarteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Tip karte nije pronađen."));
 
+        Dogadjaj dogadjaj = dogadjajRepository.findById(dogadjajId)
+                .orElseThrow(() -> new RuntimeException("Događaj nije pronađen sa id: " + dogadjajId));
+
+        validateZbirKvota(dogadjaj, nazivTipa, dto.getKvota());
+
         existing.setVrsta(dto.getVrsta());
         existing.setCena(dto.getCena());
         existing.setKvota(dto.getKvota());
@@ -69,6 +76,25 @@ public class TipKarteService {
 
         tipKarteRepository.save(existing);
         return dto;
+    }
+
+    /**
+     * Proverava da li zbir kvota svih tipova karata događaja (uz novu/izmenjenu
+     * vrednost za {@code nazivTipa}) prelazi maksimalni kapacitet događaja.
+     */
+    private void validateZbirKvota(Dogadjaj dogadjaj, String nazivTipa, int novaKvota) {
+        int zbirOstalih = tipKarteRepository.findAllByDogadjaj_DogadjajId(dogadjaj.getDogadjajId())
+                .stream()
+                .filter(t -> !t.getId().getNazivTipa().equals(nazivTipa))
+                .mapToInt(TipKarte::getKvota)
+                .sum();
+
+        int ukupno = zbirOstalih + novaKvota;
+        if (ukupno > dogadjaj.getMaksKapacitet()) {
+            throw new RuntimeException("Zbir kvota tipova karata (" + ukupno
+                    + ") ne sme biti veći od maksimalnog kapaciteta događaja ("
+                    + dogadjaj.getMaksKapacitet() + ").");
+        }
     }
 
     public void deleteTipKarte(Long dogadjajId, String nazivTipa) {

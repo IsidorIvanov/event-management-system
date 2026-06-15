@@ -18,7 +18,16 @@ const PREDLOZENI_TAGOVI = [
   'Nauka',
 ];
 
-function validate(form, isEdit) {
+// ISO datumi ('YYYY-MM-DD') se mogu porediti leksikografski. Dva intervala se
+// preklapaju ako svaki počinje pre (ili na dan) kraja onog drugog.
+function pronadjiPreklapanje(pocetak, zavrsetak, zauzetiTermini) {
+  if (!pocetak || !zavrsetak) return null;
+  return zauzetiTermini.find(
+    t => t.datumPocetka <= zavrsetak && t.datumZavrsetka >= pocetak
+  ) || null;
+}
+
+function validate(form, isEdit, zauzetiTermini) {
   const errors = {};
   if (!form.naziv.trim())                errors.naziv         = 'Naziv događaja je obavezan.';
   if (!form.lokacijaId)                  errors.lokacijaId    = 'Molimo izaberite lokaciju.';
@@ -26,9 +35,26 @@ function validate(form, isEdit) {
   else if (!isEdit && form.datumPocetka < today) errors.datumPocetka = 'Datum početka ne može biti u prošlosti.';
   if (!form.datumZavrsetka)              errors.datumZavrsetka = 'Datum završetka je obavezan.';
   else if (form.datumZavrsetka < form.datumPocetka) errors.datumZavrsetka = 'Datum završetka ne može biti pre datuma početka.';
+  else {
+    const konflikt = pronadjiPreklapanje(form.datumPocetka, form.datumZavrsetka, zauzetiTermini);
+    if (konflikt) {
+      errors.datumZavrsetka = `Termin se preklapa sa već postojećim događajem na izabranoj lokaciji.`;
+    }
+  }
   if (!form.maksKapacitet)               errors.maksKapacitet = 'Kapacitet je obavezan.';
   else if (Number(form.maksKapacitet) < 1) errors.maksKapacitet = 'Kapacitet mora biti najmanje 1.';
   return errors;
+}
+
+function formatirajDatum(iso) {
+  const [g, m, d] = iso.split('-');
+  return `${d}.${m}.${g}.`;
+}
+
+function formatirajPeriod(pocetak, zavrsetak) {
+  return pocetak === zavrsetak
+    ? formatirajDatum(pocetak)
+    : `${formatirajDatum(pocetak)} – ${formatirajDatum(zavrsetak)}`;
 }
 
 export default function UpsertEventModal({ onClose, onCreated, event }) {
@@ -46,6 +72,7 @@ export default function UpsertEventModal({ onClose, onCreated, event }) {
   const [tagInput, setTagInput]       = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [lokacije, setLokacije]       = useState([]);
+  const [zauzetiTermini, setZauzetiTermini] = useState([]);
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState(null);
 
@@ -60,6 +87,20 @@ export default function UpsertEventModal({ onClose, onCreated, event }) {
       }
     }).catch(() => {});
   }, []);
+
+  // Kad se izabere lokacija, dovuci zauzete termine na njoj da se preklapanje
+  // prikaže i blokira pre slanja (sam događaj se izuzima pri izmeni).
+  useEffect(() => {
+    if (!form.lokacijaId) {
+      setZauzetiTermini([]);
+      return;
+    }
+    const params = { lokacijaId: form.lokacijaId };
+    if (isEdit) params.excludeId = event.dogadjajId;
+    api.get('/dogadjaj/zauzeti-termini', { params })
+      .then(res => setZauzetiTermini(res.data))
+      .catch(() => setZauzetiTermini([]));
+  }, [form.lokacijaId]);
 
   const set = (field) => (e) => {
     setForm(f => ({ ...f, [field]: e.target.value }));
@@ -90,7 +131,7 @@ export default function UpsertEventModal({ onClose, onCreated, event }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const errors = validate(form, isEdit);
+    const errors = validate(form, isEdit, zauzetiTermini);
     if (Object.keys(errors).length > 0) { setFieldErrors(errors); return; }
     setLoading(true);
     setError(null);
@@ -154,6 +195,24 @@ export default function UpsertEventModal({ onClose, onCreated, event }) {
               <F name="datumZavrsetka" />
             </div>
           </div>
+
+          {form.lokacijaId && zauzetiTermini.length > 0 && (
+            <div className="form-group">
+              <p className="form-hint">Zauzeti termini na izabranoj lokaciji — izaberite datume van ovih opsega:</p>
+              <div className="tag-chips">
+                {zauzetiTermini.map(t => {
+                  const sukob = !!form.datumPocetka && !!form.datumZavrsetka
+                    && t.datumPocetka <= form.datumZavrsetka && t.datumZavrsetka >= form.datumPocetka;
+                  return (
+                    <span key={t.dogadjajId} className="tag-chip" title={t.naziv}
+                      style={sukob ? { background: '#fde2e1', color: '#b42318', borderColor: '#f5b5b0' } : undefined}>
+                      {formatirajPeriod(t.datumPocetka, t.datumZavrsetka)}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="form-group">
             <label>Maksimalni kapacitet *</label>

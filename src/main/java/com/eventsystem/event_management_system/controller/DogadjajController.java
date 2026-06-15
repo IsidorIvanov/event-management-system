@@ -2,6 +2,7 @@ package com.eventsystem.event_management_system.controller;
 
 import com.eventsystem.event_management_system.dto.DogadjajDto;
 import com.eventsystem.event_management_system.dto.DogadjajResponseDto;
+import com.eventsystem.event_management_system.dto.ZauzetiTerminDto;
 import com.eventsystem.event_management_system.service.DogadjajService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,13 @@ public class DogadjajController {
     @PostMapping("")
     public ResponseEntity<DogadjajResponseDto> createDogadjaj(@Valid @RequestBody DogadjajDto dto) {
         return ResponseEntity.ok(dogadjajService.saveDogadjaj(dto));
+    }
+
+    @GetMapping("/zauzeti-termini")
+    public ResponseEntity<List<ZauzetiTerminDto>> getZauzetiTermini(
+            @RequestParam Long lokacijaId,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(dogadjajService.getZauzetiTermini(lokacijaId, excludeId));
     }
 
     @GetMapping("/{id}")

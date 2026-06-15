@@ -3,6 +3,8 @@ package com.eventsystem.event_management_system.service;
 import com.eventsystem.event_management_system.dto.DogadjajDto;
 import com.eventsystem.event_management_system.dto.DogadjajResponseDto;
 import com.eventsystem.event_management_system.dto.EmailDetalj;
+import com.eventsystem.event_management_system.dto.ZauzetiTerminDto;
+import com.eventsystem.event_management_system.exception.BadRequestException;
 import com.eventsystem.event_management_system.model.Dogadjaj;
 import com.eventsystem.event_management_system.model.Lokacija;
 import com.eventsystem.event_management_system.model.Registracija;
@@ -46,11 +48,15 @@ public class DogadjajService {
         Lokacija lokacija = lokacijaRepository.findById(dto.getLokacijaId())
                 .orElseThrow(() -> new RuntimeException("Lokacija not found with id: " + dto.getLokacijaId()));
 
+        LocalDate pocetak = LocalDate.parse(dto.getDatumPocetka());
+        LocalDate zavrsetak = LocalDate.parse(dto.getDatumZavrsetka());
+        proveriPreklapanje(dto.getLokacijaId(), pocetak, zavrsetak, null);
+
         Dogadjaj dogadjaj = Dogadjaj.builder()
                 .lokacija(lokacija)
                 .naziv(dto.getNaziv())
-                .datumPocetka(LocalDate.parse(dto.getDatumPocetka()))
-                .datumZavrsetka(LocalDate.parse(dto.getDatumZavrsetka()))
+                .datumPocetka(pocetak)
+                .datumZavrsetka(zavrsetak)
                 .maksKapacitet(dto.getMaksKapacitet())
                 .opis(dto.getOpis())
                 .build();
@@ -77,10 +83,15 @@ public class DogadjajService {
         LocalDate stariZavrsetak = existingDogadjaj.getDatumZavrsetka();
         Lokacija staraLokacija = existingDogadjaj.getLokacija();
 
+        LocalDate noviPocetak = LocalDate.parse(dto.getDatumPocetka());
+        LocalDate noviZavrsetak = LocalDate.parse(dto.getDatumZavrsetka());
+        // Sam događaj se isključuje iz provere (excludeId), da se ne računa kao konflikt sa sobom.
+        proveriPreklapanje(dto.getLokacijaId(), noviPocetak, noviZavrsetak, id);
+
         existingDogadjaj.setLokacija(lokacija);
         existingDogadjaj.setNaziv(dto.getNaziv());
-        existingDogadjaj.setDatumPocetka(LocalDate.parse(dto.getDatumPocetka()));
-        existingDogadjaj.setDatumZavrsetka(LocalDate.parse(dto.getDatumZavrsetka()));
+        existingDogadjaj.setDatumPocetka(noviPocetak);
+        existingDogadjaj.setDatumZavrsetka(noviZavrsetak);
         existingDogadjaj.setMaksKapacitet(dto.getMaksKapacitet());
         existingDogadjaj.setOpis(dto.getOpis());
 
@@ -203,7 +214,7 @@ public class DogadjajService {
     @Transactional
     public int zavrsiDogadjaje() {
         List<Dogadjaj> zaZavrsetak = dogadjajRepository.findZaZavrsetak(
-                List.of(StatusDogadjaja.OBJAVLJEN, StatusDogadjaja.AKTIVAN), LocalDate.now());
+                List.of(StatusDogadjaja.DRAFT, StatusDogadjaja.OBJAVLJEN, StatusDogadjaja.AKTIVAN), LocalDate.now());
         for (Dogadjaj dogadjaj : zaZavrsetak) {
             dogadjaj.setStatus(StatusDogadjaja.ZAVRSEN);
             obavestiOZavrsetku(dogadjaj);
@@ -306,6 +317,38 @@ public class DogadjajService {
         return toResponseDto(d);
     }
 
+    /**
+     * Proverava da li je termin [pocetak, zavrsetak] na zadatoj lokaciji zauzet
+     * nekim postojećim događajem. Pri izmeni se preko {@code excludeId} sam događaj
+     * izuzima iz provere. Baca {@link BadRequestException} ako postoji preklapanje.
+     */
+    private void proveriPreklapanje(Long lokacijaId, LocalDate pocetak, LocalDate zavrsetak, Long excludeId) {
+        if (zavrsetak.isBefore(pocetak)) {
+            throw new BadRequestException("Datum završetka ne može biti pre datuma početka.");
+        }
+        List<Dogadjaj> preklapanja =
+                dogadjajRepository.findPreklapajuce(lokacijaId, pocetak, zavrsetak, excludeId);
+        if (!preklapanja.isEmpty()) {
+            Dogadjaj konflikt = preklapanja.get(0);
+            throw new BadRequestException(
+                    "Termin se preklapa sa događajem \"" + konflikt.getNaziv() + "\" ("
+                    + formatirajPeriod(konflikt.getDatumPocetka(), konflikt.getDatumZavrsetka())
+                    + ") na izabranoj lokaciji. Izaberite drugi termin ili lokaciju.");
+        }
+    }
+
+    /** Vraća zauzete termine na lokaciji radi prikaza u formi (excludeId izuzima sam događaj pri izmeni). */
+    @Transactional(readOnly = true)
+    public List<ZauzetiTerminDto> getZauzetiTermini(Long lokacijaId, Long excludeId) {
+        return dogadjajRepository.findByLokacija(lokacijaId, excludeId).stream()
+                .map(d -> new ZauzetiTerminDto(
+                        d.getDogadjajId(),
+                        d.getNaziv(),
+                        d.getDatumPocetka().toString(),
+                        d.getDatumZavrsetka().toString()))
+                .collect(Collectors.toList());
+    }
+
     private DogadjajResponseDto toResponseDto(Dogadjaj d) {
         Lokacija l = d.getLokacija();
         return new DogadjajResponseDto(
@@ -316,6 +359,7 @@ public class DogadjajService {
                 d.getMaksKapacitet(),
                 d.getOpis(),
                 d.getStatus(),
+                l != null ? l.getLokacijaId() : null,
                 l != null ? l.getNaziv() : "",
                 l != null ? l.getGrad() : "",
                 l != null ? l.getDrzava() : "",

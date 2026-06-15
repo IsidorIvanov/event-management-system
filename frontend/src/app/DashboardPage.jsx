@@ -97,6 +97,7 @@ function ProgramSection({ user }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("SVE");
   const [sortDir, setSortDir] = useState("asc");
+  const [timeTab, setTimeTab] = useState("buduci"); // "buduci" | "zavrseni"
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
@@ -122,7 +123,11 @@ function ProgramSection({ user }) {
       .finally(() => setDeleteTarget(null));
   };
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isZavrsen = (e) => e.datumZavrsetka < todayStr;
+
   const filtered = events
+    .filter((e) => (timeTab === "zavrseni" ? isZavrsen(e) : !isZavrsen(e)))
     .filter((e) => statusFilter === "SVE" || e.status === statusFilter)
     .filter((e) =>
       [e.naziv, `${e.lokacijaGrad}, ${e.lokacijaDrzava}`].some((s) =>
@@ -241,6 +246,20 @@ function ProgramSection({ user }) {
       </div>
 
       <div className="events-table-card">
+        <div className="event-detail-tabs" style={{ marginBottom: "1.25rem" }}>
+          <button
+            className={`tab-btn${timeTab === "buduci" ? " active" : ""}`}
+            onClick={() => setTimeTab("buduci")}
+          >
+            Predstojeći ({events.filter((e) => !isZavrsen(e)).length})
+          </button>
+          <button
+            className={`tab-btn${timeTab === "zavrseni" ? " active" : ""}`}
+            onClick={() => setTimeTab("zavrseni")}
+          >
+            Arhivirani ({events.filter(isZavrsen).length})
+          </button>
+        </div>
         <div className="events-table-header">
           <h2>Događaji</h2>
           <div className="events-table-controls">
@@ -268,7 +287,8 @@ function ProgramSection({ user }) {
           <thead>
             <tr>
               <th>NAZIV</th>
-              <th>DATUM</th>
+              <th>DATUM POČETKA</th>
+              <th>DATUM ZAVRŠETKA</th>
               <th>LOKACIJA</th>
               <th>STATUS</th>
               <th>AKCIJE</th>
@@ -277,7 +297,7 @@ function ProgramSection({ user }) {
           <tbody>
             {loading || error || filtered.length === 0 ? (
               <TableStateRow
-                colSpan={5}
+                colSpan={6}
                 loading={loading}
                 error={error}
                 isEmpty={filtered.length === 0}
@@ -296,6 +316,7 @@ function ProgramSection({ user }) {
                     </span>
                   </td>
                   <td>{formatDate(event.datumPocetka)}</td>
+                  <td>{formatDate(event.datumZavrsetka)}</td>
                   <td>
                     {event.lokacijaGrad}
                     {event.lokacijaDrzava ? `, ${event.lokacijaDrzava}` : ""}

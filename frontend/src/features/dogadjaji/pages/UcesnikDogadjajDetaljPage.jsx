@@ -6,6 +6,7 @@ import * as govornikApi from '@/features/dogadjaji/services/govornikService';
 import * as registracijaApi from '@/features/dogadjaji/services/registracijaService';
 import { NOTIF_NEW_EVENT } from '@/features/notifikacije/hooks/useNotifikacije';
 import RegistracijaModal from '@/features/dogadjaji/components/RegistracijaModal';
+import { useToast } from '@/shared/components/ToastNotification';
 
 const formatDate = (s) =>
   s
@@ -40,6 +41,7 @@ function AgendaTab({ event, isRegistered, userRegistration }) {
   const [filterRoom, setFilterRoom] = useState('all');
   const [rasporedIds, setRasporedIds] = useState(new Set());
   const [togglingId, setTogglingId] = useState(null);
+  const toast = useToast();
 
   /**
    * Determines whether the participant's ticket allows adding the given session
@@ -87,12 +89,14 @@ function AgendaTab({ event, isRegistered, userRegistration }) {
       if (rasporedIds.has(sesija.sesijaId)) {
         await sesijaApi.removeFromRaspored(sesija.sesijaId);
         setRasporedIds((prev) => { const n = new Set(prev); n.delete(sesija.sesijaId); return n; });
+        toast(`Sesija "${sesija.naziv}" uklonjena iz rasporeda.`, 'info');
       } else {
         await sesijaApi.addToRaspored(sesija.sesijaId);
         setRasporedIds((prev) => new Set([...prev, sesija.sesijaId]));
+        toast(`Sesija "${sesija.naziv}" dodata u raspored.`, 'success');
       }
     } catch (err) {
-      // silently fail or could show a toast
+      toast('Došlo je do greške. Pokušajte ponovo.', 'error');
     } finally {
       setTogglingId(null);
     }
@@ -576,11 +580,6 @@ export default function UcesnikDogadjajDetaljPage() {
                     </div>
                     <div className="ev-organizer-desc">
                       Zvanični organizator događaja za ovaj prostor.
-                    </div>
-                    <div className="ev-organizer-actions">
-                      <button className="ev-org-btn">+ Prati</button>
-                      <button className="ev-org-btn">Pogledaj druge događaje</button>
-                      <button className="ev-org-btn">Kontaktiraj organizatora</button>
                     </div>
                   </div>
                 </div>
