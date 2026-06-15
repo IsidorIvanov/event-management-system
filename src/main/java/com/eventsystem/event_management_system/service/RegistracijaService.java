@@ -125,9 +125,52 @@ public class RegistracijaService {
         if (!reg.getUcesnik().getKorisnikId().equals(korisnik.getKorisnikId())) {
             throw new RuntimeException("Nemate pravo da otkazujete ovu registraciju.");
         }
+
+        boolean biloPotvrdjeno = reg.getStatus() == StatusRegistracije.POTVRDJENA;
+        Dogadjaj dogadjaj = reg.getTipKarte().getDogadjaj();
+
         reg.setStatus(StatusRegistracije.OTKAZANA);
         reg.setStatusKarte(StatusKarte.NEVAZECA);
-        return toDto(registracijaRepository.save(reg));
+        RegistracijaResponseDto rezultat = toDto(registracijaRepository.save(reg));
+
+        // Otkazivanjem potvrđene prijave oslobađa se mesto — promoviši prvog sa liste čekanja (D3).
+        if (biloPotvrdjeno) {
+            promoviSiSaListeCekanja(dogadjaj);
+        }
+
+        return rezultat;
+    }
+
+    /**
+     * Kada se oslobodi mesto na popunjenom događaju, promoviše najstariju prijavu
+     * sa liste čekanja (NA_CEKANJU → POTVRDJENA) i šalje joj notifikaciju (D3).
+     */
+    private void promoviSiSaListeCekanja(Dogadjaj dogadjaj) {
+        if (dogadjaj.getMaksKapacitet() != null) {
+            long potvrdjenih = registracijaRepository.countByTipKarteIdDogadjajIdAndStatus(
+                    dogadjaj.getDogadjajId(), StatusRegistracije.POTVRDJENA);
+            if (potvrdjenih >= dogadjaj.getMaksKapacitet()) {
+                return; // i dalje nema slobodnog mesta
+            }
+        }
+
+        registracijaRepository
+                .findFirstByTipKarteIdDogadjajIdAndStatusOrderByRegistracijaIdAsc(
+                        dogadjaj.getDogadjajId(), StatusRegistracije.NA_CEKANJU)
+                .ifPresent(prva -> {
+                    prva.setStatus(StatusRegistracije.POTVRDJENA);
+                    prva.setStatusKarte(StatusKarte.VALIDNA);
+                    registracijaRepository.save(prva);
+
+                    notifikacijaService.posaljiSaEmailom(
+                            prva.getUcesnik(),
+                            TipNotifikacije.DOGADJAJ,
+                            "Oslobodilo se mesto na događaju \"" + dogadjaj.getNaziv() + "\". "
+                                    + "Vaša prijava je potvrđena i karta je sada validna.",
+                            dogadjaj,
+                            "Oslobodilo se mesto - " + dogadjaj.getNaziv()
+                    );
+                });
     }
 
     private RegistracijaResponseDto toDto(Registracija r) {

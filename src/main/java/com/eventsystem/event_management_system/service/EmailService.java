@@ -39,6 +39,20 @@ public class EmailService {
     ) {}
 
     /**
+     * Generičko email obaveštenje (naslov + tekst). Koristi se za notifikacije
+     * koje treba isporučiti i mejlom (npr. D3 — oslobođeno mesto sa liste čekanja).
+     */
+    public record ObavestenjeEmail(
+            String emailPrimaoca,
+            String ime,
+            String naslov,
+            String poruka,
+            String tipLabel,        // kategorija obaveštenja (npr. "Događaj")
+            String nazivDogadjaja,  // opciono — naziv povezanog događaja
+            String vreme            // opciono — formatirano vreme slanja
+    ) {}
+
+    /**
      * Šalje učesniku potvrdu o uspešnoj registraciji na događaj zajedno sa
      * podacima o kupljenoj karti. Greška pri slanju se loguje, ali ne prekida
      * poslovnu transakciju (poziva se asinhrono).
@@ -60,6 +74,94 @@ public class EmailService {
             log.error("Neuspešno slanje emaila za kartu {}: {}",
                     p.brojKarte(), e.getMessage(), e);
         }
+    }
+
+    /**
+     * Šalje generičko obaveštenje na email. Greška se loguje, ali ne prekida
+     * poslovni tok (poziva se asinhrono, posle commit-a transakcije).
+     */
+    @Async
+    public void posaljiObavestenje(ObavestenjeEmail o) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
+            helper.setFrom(from);
+            helper.setTo(o.emailPrimaoca());
+            helper.setSubject(o.naslov());
+            helper.setText(buildObavestenjeHtml(o), true);
+
+            mailSender.send(message);
+            log.info("Poslat email obaveštenja '{}' na {}", o.naslov(), o.emailPrimaoca());
+        } catch (Exception e) {
+            log.error("Neuspešno slanje email obaveštenja na {}: {}",
+                    o.emailPrimaoca(), e.getMessage(), e);
+        }
+    }
+
+    private String buildObavestenjeHtml(ObavestenjeEmail o) {
+        String tipLabel = (o.tipLabel() != null && !o.tipLabel().isBlank())
+                ? o.tipLabel() : "Obaveštenje";
+
+        String detalji = ""
+                + (o.nazivDogadjaja() != null && !o.nazivDogadjaja().isBlank()
+                    ? detaljRed("Događaj", o.nazivDogadjaja()) : "")
+                + detaljRed("Kategorija", tipLabel)
+                + (o.vreme() != null && !o.vreme().isBlank()
+                    ? detaljRed("Vreme", o.vreme()) : "");
+
+        String infoKartica = """
+            <div style="
+                margin-top:30px;border:2px dashed #d6d6d6;border-radius:14px;
+                padding:20px 25px;background:#fafbff;
+            ">
+                <table style="width:100%%;border-collapse:collapse;font-size:15px;">
+                    %s
+                </table>
+            </div>
+            """.formatted(detalji);
+
+        return """
+        <div style="font-family:'Segoe UI',Arial,sans-serif;padding:30px 15px;">
+            <div style="
+                max-width:650px;margin:auto;background:#ffffff;border-radius:16px;
+                overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.12);
+            ">
+                <div style="
+                    background:linear-gradient(135deg,#0b1020 0%%,#131b32 60%%,#312e81 100%%);
+                    padding:35px;text-align:center;color:white;
+                ">
+                    <div style="
+                        display:inline-block;padding:5px 14px;margin-bottom:14px;
+                        border-radius:999px;background:rgba(129,140,248,0.25);
+                        color:#c7d2fe;font-size:12px;font-weight:600;
+                        text-transform:uppercase;letter-spacing:1px;
+                    ">%s</div>
+                    <h1 style="margin:0;font-size:26px;font-weight:700;">%s</h1>
+                </div>
+                <div style="padding:35px;">
+                    <p style="font-size:16px;">Poštovani/a <strong>%s</strong>,</p>
+                    <p style="color:#555;line-height:1.7;font-size:15px;">%s</p>
+                    %s
+                </div>
+                <div style="
+                    text-align:center;padding:20px;background:#f8fafc;
+                    color:#94a3b8;font-size:12px;
+                ">
+                    Hvala što koristite EventSys.<br>
+                    Ovo je automatski generisana poruka, molimo Vas da ne odgovarate na nju.
+                </div>
+            </div>
+        </div>
+        """.formatted(tipLabel, o.naslov(), o.ime(), o.poruka(), infoKartica);
+    }
+
+    private String detaljRed(String oznaka, String vrednost) {
+        return """
+        <tr>
+            <td style="padding:9px 0;color:#666;">%s</td>
+            <td style="text-align:right;font-weight:600;">%s</td>
+        </tr>
+        """.formatted(oznaka, vrednost);
     }
 
     private String buildHtml(PotvrdaRegistracije p) {

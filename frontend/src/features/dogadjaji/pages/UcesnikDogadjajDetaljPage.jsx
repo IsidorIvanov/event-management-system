@@ -4,6 +4,7 @@ import api from '@/shared/services/api';
 import * as sesijaApi from '@/features/dogadjaji/services/sesijaService';
 import * as govornikApi from '@/features/dogadjaji/services/govornikService';
 import * as registracijaApi from '@/features/dogadjaji/services/registracijaService';
+import { NOTIF_NEW_EVENT } from '@/features/notifikacije/hooks/useNotifikacije';
 import RegistracijaModal from '@/features/dogadjaji/components/RegistracijaModal';
 
 const formatDate = (s) =>
@@ -394,6 +395,24 @@ export default function UcesnikDogadjajDetaljPage() {
       })
       .catch(() => setEvent(null))
       .finally(() => setLoading(false));
+  }, [id]);
+
+  // Osveži registraciju kada stigne notifikacija (npr. promocija sa liste čekanja — D3),
+  // da se baner i status karte odmah ažuriraju iz "Na čekanju" u "Potvrđeno".
+  useEffect(() => {
+    const onNotif = () => {
+      registracijaApi.getMyRegistrations()
+        .then((res) => {
+          const activeReg = res.data.find(
+            (r) => r.dogadjajId === Number(id) && r.status !== 'OTKAZANA'
+          );
+          setRegistered(!!activeReg);
+          setUserRegistration(activeReg || null);
+        })
+        .catch(() => {});
+    };
+    window.addEventListener(NOTIF_NEW_EVENT, onNotif);
+    return () => window.removeEventListener(NOTIF_NEW_EVENT, onNotif);
   }, [id]);
 
   if (loading) {

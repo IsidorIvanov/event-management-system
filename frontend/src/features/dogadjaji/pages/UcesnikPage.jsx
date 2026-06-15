@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import * as registracijaApi from '@/features/dogadjaji/services/registracijaService';
+import { NOTIF_NEW_EVENT } from '@/features/notifikacije/hooks/useNotifikacije';
 import { formatDate } from '@/shared/utils/format';
 
 const STATUS_KARTE_BADGE = {
@@ -37,6 +38,13 @@ export default function UcesnikPage() {
 
   useEffect(() => {
     loadRegistrations();
+  }, []);
+
+  // Osveži registracije kada stigne notifikacija (npr. promocija sa liste čekanja — D3).
+  useEffect(() => {
+    const onNotif = () => loadRegistrations();
+    window.addEventListener(NOTIF_NEW_EVENT, onNotif);
+    return () => window.removeEventListener(NOTIF_NEW_EVENT, onNotif);
   }, []);
 
   const handleCancel = (e, r) => {

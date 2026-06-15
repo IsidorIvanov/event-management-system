@@ -35,6 +35,23 @@ public class NotifikacijaService {
     @Transactional
     public Notifikacija posalji(Ucesnik primalac, TipNotifikacije tip, KanalNotifikacije kanal,
                                 String sadrzaj, Dogadjaj dogadjaj) {
+        return posalji(primalac, tip, kanal, sadrzaj, dogadjaj, null);
+    }
+
+    /**
+     * Kao {@link #posalji}, ali notifikaciju (PUSH u aplikaciji) dodatno
+     * isporučuje i mejlom sa zadatim naslovom. Koristi se za važna obaveštenja
+     * koja korisnik treba da dobije i van aplikacije (npr. D3 — oslobođeno mesto).
+     */
+    @Transactional
+    public Notifikacija posaljiSaEmailom(Ucesnik primalac, TipNotifikacije tip, String sadrzaj,
+                                         Dogadjaj dogadjaj, String emailNaslov) {
+        return posalji(primalac, tip, KanalNotifikacije.PUSH, sadrzaj, dogadjaj, emailNaslov);
+    }
+
+    @Transactional
+    public Notifikacija posalji(Ucesnik primalac, TipNotifikacije tip, KanalNotifikacije kanal,
+                                String sadrzaj, Dogadjaj dogadjaj, String emailNaslov) {
         Notifikacija notifikacija = Notifikacija.builder()
                 .korisnik(primalac)
                 .dogadjaj(dogadjaj)
@@ -45,8 +62,8 @@ public class NotifikacijaService {
                 .build();
 
         notifikacija = notifikacijaRepository.save(notifikacija);
-        eventPublisher.publishEvent(
-                new NotifikacijaCreatedEvent(primalac.getEmail(), kanal, toDto(notifikacija)));
+        eventPublisher.publishEvent(new NotifikacijaCreatedEvent(
+                primalac.getEmail(), primalac.getIme(), kanal, emailNaslov, toDto(notifikacija)));
         return notifikacija;
     }
 
