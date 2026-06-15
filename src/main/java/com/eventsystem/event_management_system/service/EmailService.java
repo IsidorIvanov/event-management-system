@@ -1,5 +1,6 @@
 package com.eventsystem.event_management_system.service;
 
+import com.eventsystem.event_management_system.dto.EmailDetalj;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +9,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -47,9 +50,8 @@ public class EmailService {
             String ime,
             String naslov,
             String poruka,
-            String tipLabel,        // kategorija obaveštenja (npr. "Događaj")
-            String nazivDogadjaja,  // opciono — naziv povezanog događaja
-            String vreme            // opciono — formatirano vreme slanja
+            String tipLabel,            // kategorija obaveštenja (npr. "Događaj")
+            List<EmailDetalj> detalji   // strukturirani redovi za karticu (može biti prazno)
     ) {}
 
     /**
@@ -102,14 +104,17 @@ public class EmailService {
         String tipLabel = (o.tipLabel() != null && !o.tipLabel().isBlank())
                 ? o.tipLabel() : "Obaveštenje";
 
-        String detalji = ""
-                + (o.nazivDogadjaja() != null && !o.nazivDogadjaja().isBlank()
-                    ? detaljRed("Događaj", o.nazivDogadjaja()) : "")
-                + detaljRed("Kategorija", tipLabel)
-                + (o.vreme() != null && !o.vreme().isBlank()
-                    ? detaljRed("Vreme", o.vreme()) : "");
+        String redovi = "";
+        if (o.detalji() != null) {
+            for (EmailDetalj d : o.detalji()) {
+                if (d != null && d.vrednost() != null && !d.vrednost().isBlank()) {
+                    redovi += detaljRed(d.oznaka(), d.vrednost());
+                }
+            }
+        }
 
-        String infoKartica = """
+        // Kartica sa detaljima se prikazuje samo ako postoji bar jedan red.
+        String infoKartica = redovi.isEmpty() ? "" : """
             <div style="
                 margin-top:30px;border:2px dashed #d6d6d6;border-radius:14px;
                 padding:20px 25px;background:#fafbff;
@@ -118,7 +123,7 @@ public class EmailService {
                     %s
                 </table>
             </div>
-            """.formatted(detalji);
+            """.formatted(redovi);
 
         return """
         <div style="font-family:'Segoe UI',Arial,sans-serif;padding:30px 15px;">

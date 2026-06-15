@@ -11,8 +11,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-import java.time.format.DateTimeFormatter;
-
 /**
  * Isporučuje notifikaciju primaocu tek nakon što transakcija koja ju je
  * kreirala uspešno commit-uje ({@link TransactionPhase#AFTER_COMMIT}). Radi
@@ -39,25 +37,21 @@ public class NotifikacijaEventListener {
                     event.getDto()
             );
         }
-        // Opciono dodatna isporuka mejlom (npr. D3 — oslobođeno mesto).
+        // Opciono dodatna isporuka mejlom (npr. D3 — oslobođeno mesto, D5 — izmena).
         if (event.getEmailNaslov() != null) {
             NotifikacijaResponseDto dto = event.getDto();
-            String vreme = dto.getVremeSlanja() != null
-                    ? dto.getVremeSlanja().format(VREME_FORMAT) : null;
+            // Email može imati zaseban tekst (kraći uvod); ako nije zadat, koristi sadržaj notifikacije.
+            String poruka = event.getEmailPoruka() != null ? event.getEmailPoruka() : dto.getSadrzaj();
             emailService.posaljiObavestenje(new EmailService.ObavestenjeEmail(
                     event.getPrimalacEmail(),
                     event.getPrimalacIme(),
                     event.getEmailNaslov(),
-                    dto.getSadrzaj(),
+                    poruka,
                     tipLabel(dto.getTip()),
-                    dto.getDogadjajNaziv(),
-                    vreme
+                    event.getEmailDetalji()
             ));
         }
     }
-
-    private static final DateTimeFormatter VREME_FORMAT =
-            DateTimeFormatter.ofPattern("dd.MM.yyyy. HH:mm");
 
     private String tipLabel(TipNotifikacije tip) {
         if (tip == null) return "Obaveštenje";

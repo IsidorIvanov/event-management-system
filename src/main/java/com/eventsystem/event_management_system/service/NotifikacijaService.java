@@ -1,5 +1,6 @@
 package com.eventsystem.event_management_system.service;
 
+import com.eventsystem.event_management_system.dto.EmailDetalj;
 import com.eventsystem.event_management_system.dto.NotifikacijaResponseDto;
 import com.eventsystem.event_management_system.event.NotifikacijaCreatedEvent;
 import com.eventsystem.event_management_system.model.Dogadjaj;
@@ -35,7 +36,7 @@ public class NotifikacijaService {
     @Transactional
     public Notifikacija posalji(Ucesnik primalac, TipNotifikacije tip, KanalNotifikacije kanal,
                                 String sadrzaj, Dogadjaj dogadjaj) {
-        return posalji(primalac, tip, kanal, sadrzaj, dogadjaj, null);
+        return kreirajIPosalji(primalac, tip, kanal, sadrzaj, dogadjaj, null, null, List.of());
     }
 
     /**
@@ -46,7 +47,22 @@ public class NotifikacijaService {
     @Transactional
     public Notifikacija posaljiSaEmailom(Ucesnik primalac, TipNotifikacije tip, String sadrzaj,
                                          Dogadjaj dogadjaj, String emailNaslov) {
-        return posalji(primalac, tip, KanalNotifikacije.PUSH, sadrzaj, dogadjaj, emailNaslov);
+        return kreirajIPosalji(primalac, tip, KanalNotifikacije.PUSH, sadrzaj, dogadjaj,
+                emailNaslov, null, List.of());
+    }
+
+    /**
+     * Kao {@link #posaljiSaEmailom(Ucesnik, TipNotifikacije, String, Dogadjaj, String)},
+     * ali email koristi zaseban tekst ({@code emailPoruka}) i prikazuje strukturirane
+     * redove ({@code emailDetalji}) — npr. D5, gde push nosi detaljnu rečenicu, a email
+     * kratak uvod + karticu sa novim datumom/lokacijom.
+     */
+    @Transactional
+    public Notifikacija posaljiSaEmailom(Ucesnik primalac, TipNotifikacije tip, String sadrzaj,
+                                         Dogadjaj dogadjaj, String emailNaslov,
+                                         String emailPoruka, List<EmailDetalj> emailDetalji) {
+        return kreirajIPosalji(primalac, tip, KanalNotifikacije.PUSH, sadrzaj, dogadjaj,
+                emailNaslov, emailPoruka, emailDetalji);
     }
 
     /**
@@ -57,12 +73,19 @@ public class NotifikacijaService {
     @Transactional
     public Notifikacija posaljiEmail(Ucesnik primalac, TipNotifikacije tip, String sadrzaj,
                                      Dogadjaj dogadjaj, String emailNaslov) {
-        return posalji(primalac, tip, KanalNotifikacije.EMAIL, sadrzaj, dogadjaj, emailNaslov);
+        return kreirajIPosalji(primalac, tip, KanalNotifikacije.EMAIL, sadrzaj, dogadjaj,
+                emailNaslov, null, List.of());
     }
 
     @Transactional
     public Notifikacija posalji(Ucesnik primalac, TipNotifikacije tip, KanalNotifikacije kanal,
                                 String sadrzaj, Dogadjaj dogadjaj, String emailNaslov) {
+        return kreirajIPosalji(primalac, tip, kanal, sadrzaj, dogadjaj, emailNaslov, null, List.of());
+    }
+
+    private Notifikacija kreirajIPosalji(Ucesnik primalac, TipNotifikacije tip, KanalNotifikacije kanal,
+                                         String sadrzaj, Dogadjaj dogadjaj, String emailNaslov,
+                                         String emailPoruka, List<EmailDetalj> emailDetalji) {
         Notifikacija notifikacija = Notifikacija.builder()
                 .korisnik(primalac)
                 .dogadjaj(dogadjaj)
@@ -74,7 +97,8 @@ public class NotifikacijaService {
 
         notifikacija = notifikacijaRepository.save(notifikacija);
         eventPublisher.publishEvent(new NotifikacijaCreatedEvent(
-                primalac.getEmail(), primalac.getIme(), kanal, emailNaslov, toDto(notifikacija)));
+                primalac.getEmail(), primalac.getIme(), kanal, emailNaslov, emailPoruka,
+                emailDetalji != null ? emailDetalji : List.of(), toDto(notifikacija)));
         return notifikacija;
     }
 

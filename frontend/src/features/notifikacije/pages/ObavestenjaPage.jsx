@@ -3,10 +3,10 @@ import * as notifikacijeService from '@/features/notifikacije/services/notifikac
 import { notifyNotifikacijeRead, NOTIF_NEW_EVENT } from '@/features/notifikacije/hooks/useNotifikacije';
 
 const TIP_META = {
-  DOGADJAJ:  { icon: '📅', label: 'Događaj' },
-  SESIJA:    { icon: '🎤', label: 'Sesija' },
-  PODSETNIK: { icon: '⏰', label: 'Podsetnik' },
-  OPSTE:     { icon: '📢', label: 'Opšte' },
+  DOGADJAJ:  { icon: '📅', label: 'Događaj',   color: '#6366f1' },
+  SESIJA:    { icon: '🎤', label: 'Sesija',    color: '#a855f7' },
+  PODSETNIK: { icon: '⏰', label: 'Podsetnik', color: '#f59e0b' },
+  OPSTE:     { icon: '📢', label: 'Opšte',     color: '#14b8a6' },
 };
 
 function formatVreme(dt) {
@@ -109,13 +109,14 @@ export default function ObavestenjaPage() {
                 <div
                   key={n.notifikacijaId}
                   className={`notif-item${unread ? ' notif-item-unread' : ''}`}
+                  style={{ '--notif-accent': meta.color }}
                   onClick={() => markRead(n)}
                   title={unread ? 'Klikni da označiš kao pročitano' : undefined}
                 >
                   <div className="notif-icon">{meta.icon}</div>
                   <div className="notif-body">
                     <div className="notif-top">
-                      <span className="notif-tip">{meta.label}</span>
+                      <span className="notif-cat">{meta.label}</span>
                       <span className="notif-time">{formatVreme(n.vremeSlanja)}</span>
                     </div>
                     <div className="notif-text">{n.sadrzaj}</div>

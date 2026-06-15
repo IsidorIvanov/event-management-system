@@ -1,9 +1,12 @@
 package com.eventsystem.event_management_system.event;
 
+import com.eventsystem.event_management_system.dto.EmailDetalj;
 import com.eventsystem.event_management_system.dto.NotifikacijaResponseDto;
 import com.eventsystem.event_management_system.utils.enums.KanalNotifikacije;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
 
 /**
  * Domain event objavljen kada je notifikacija sačuvana u bazi. Isporuka kroz
@@ -21,5 +24,7 @@ public class NotifikacijaCreatedEvent {
     private final String primalacIme;
     private final KanalNotifikacije kanal;
     private final String emailNaslov;
+    private final String emailPoruka;
+    private final List<EmailDetalj> emailDetalji;
     private final NotifikacijaResponseDto dto;
 }

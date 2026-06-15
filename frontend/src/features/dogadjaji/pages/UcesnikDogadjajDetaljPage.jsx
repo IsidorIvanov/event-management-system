@@ -397,10 +397,13 @@ export default function UcesnikDogadjajDetaljPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  // Osveži registraciju kada stigne notifikacija (npr. promocija sa liste čekanja — D3),
-  // da se baner i status karte odmah ažuriraju iz "Na čekanju" u "Potvrđeno".
+  // Osveži događaj i registraciju kada stigne notifikacija, da se izmene odmah
+  // odraze: promocija sa liste čekanja (D3) ili izmenjen datum/lokacija (D5).
   useEffect(() => {
     const onNotif = () => {
+      api.get(`/dogadjaj/${id}`)
+        .then((res) => setEvent(res.data))
+        .catch(() => {});
       registracijaApi.getMyRegistrations()
         .then((res) => {
           const activeReg = res.data.find(

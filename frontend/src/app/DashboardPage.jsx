@@ -18,6 +18,7 @@ import MojRasporedPage from '@/features/dogadjaji/pages/MojRasporedPage';
 import PreporukePage from '@/features/dogadjaji/pages/PreporukePage';
 import PorukeStrana from '@/features/poruke/pages/PorukeStrana';
 import ObavestenjaPage from '@/features/notifikacije/pages/ObavestenjaPage';
+import NotifikacijaToaster from '@/features/notifikacije/components/NotifikacijaToaster';
 import { useUnreadPoruke } from '@/features/poruke/hooks/useUnreadPoruke';
 import { useUnreadNotifikacije } from '@/features/notifikacije/hooks/useNotifikacije';
 import api from '@/shared/services/api';
@@ -556,9 +557,8 @@ function UcesnikDashboardLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const toast = useToast();
   const unreadPoruke = useUnreadPoruke(true);
-  const unreadNotif = useUnreadNotifikacije(true, (n) => toast(n.sadrzaj, 'info'));
+  const unreadNotif = useUnreadNotifikacije(true);
 
   if (!user) return null;
 
@@ -650,6 +650,8 @@ function UcesnikDashboardLayout() {
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>
+
+      <NotifikacijaToaster />
     </div>
   );
 }
