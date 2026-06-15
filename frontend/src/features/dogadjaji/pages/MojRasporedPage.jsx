@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as sesijaApi from '@/features/dogadjaji/services/sesijaService';
+import { NOTIF_NEW_EVENT } from '@/features/notifikacije/hooks/useNotifikacije';
 
 const TIP_LABEL = {
   KEYNOTE: 'Keynote',
@@ -29,12 +30,21 @@ export default function MojRasporedPage() {
   // Set of dogadjajId-s that are currently collapsed
   const [collapsed, setCollapsed] = useState(new Set());
 
-  useEffect(() => {
+  const load = () => {
     setLoading(true);
     sesijaApi.getMojRaspored()
       .then((res) => setSesije(res.data))
       .catch(() => setSesije([]))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  // Osveži raspored kad stigne notifikacija (izmena/otkazivanje sesije — S2/S3).
+  useEffect(() => {
+    const onNotif = () => load();
+    window.addEventListener(NOTIF_NEW_EVENT, onNotif);
+    return () => window.removeEventListener(NOTIF_NEW_EVENT, onNotif);
   }, []);
 
   const handleRemove = async (e, sesijaId) => {

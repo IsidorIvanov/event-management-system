@@ -57,7 +57,7 @@ function AgendaTab({ event, isRegistered, userRegistration }) {
     return false;
   };
 
-  useEffect(() => {
+  const loadAgenda = () => {
     const loads = [sesijaApi.getSesijeByDogadjaj(event.dogadjajId)];
     if (isRegistered) loads.push(sesijaApi.getMojRasporedIds());
 
@@ -68,6 +68,15 @@ function AgendaTab({ event, isRegistered, userRegistration }) {
       })
       .catch(() => setSesije([]))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { loadAgenda(); }, [event.dogadjajId, isRegistered]);
+
+  // Osveži agendu kad stigne notifikacija (nova/izmenjena/otkazana sesija, govornik — S1–S4).
+  useEffect(() => {
+    const onNotif = () => loadAgenda();
+    window.addEventListener(NOTIF_NEW_EVENT, onNotif);
+    return () => window.removeEventListener(NOTIF_NEW_EVENT, onNotif);
   }, [event.dogadjajId, isRegistered]);
 
   const handleToggleRaspored = async (e, sesija) => {
