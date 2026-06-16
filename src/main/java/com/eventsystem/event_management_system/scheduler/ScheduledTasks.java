@@ -23,6 +23,7 @@ public class ScheduledTasks {
     private final UgovorRepository ugovorRepository;
     private final DogadjajService dogadjajService;
     private final SesijaService sesijaService;
+    private final com.eventsystem.event_management_system.service.DodelaOpremeService dodelaOpremeService;
 
     // run daily at 02:00
     @Scheduled(cron = "0 0 2 * * *")
@@ -81,6 +82,14 @@ public class ScheduledTasks {
         int poslato = sesijaService.posaljiPodsetnikeZaSesije();
         if (poslato > 0) {
             log.info("Scheduled job poslao podsetnik (P2) za {} sesija.", poslato);
+        }
+    }
+
+    @Scheduled(cron = "0 0 3 * * *")
+    public void oslobodiIstekleDodeleOpreme() {
+        int count = dodelaOpremeService.oslobodiIstekleDodele();
+        if (count > 0) {
+            log.info("Scheduled job oslobodio opremu sa {} isteklih dodela.", count);
         }
     }
 }

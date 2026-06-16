@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '@/shared/services/api';
 import { useToast } from '@/shared/components/ToastNotification';
 import * as nabavkaApi from '@/features/fakture/services/nabavkaService';
+import * as inventarApi from '@/features/inventar/services/inventarService';
 
 const STATUS_PORUDZBENICE = {
   KREIRANA: { label: 'Kreirana', cls: 'status-draft' },
@@ -54,6 +55,7 @@ export default function PorudzbenicePage() {
 
   const [nabavke, setNabavke] = useState([]);
   const [porudzbenice, setPorudzbenice] = useState([]);
+  const [prijemStatus, setPrijemStatus] = useState({});
   const [selectedNabavkaId, setSelectedNabavkaId] = useState('');
 
   const dostupniCenovnik = cenovnik.filter((c) => c.dostupnost !== false);
@@ -80,6 +82,18 @@ export default function PorudzbenicePage() {
     ]);
     setNabavke(nRes.data);
     setPorudzbenice(pRes.data);
+    const statusMap = {};
+    await Promise.all(
+      pRes.data.map(async (p) => {
+        try {
+          const st = await inventarApi.statusPrijemaPorudzbenice(p.porudzbenicaId);
+          statusMap[p.porudzbenicaId] = st.data.primljeno;
+        } catch {
+          statusMap[p.porudzbenicaId] = false;
+        }
+      }),
+    );
+    setPrijemStatus(statusMap);
     setSelectedNabavkaId((prev) =>
       prev && nRes.data.some((n) => n.nabavkaId === Number(prev)) ? prev : (nRes.data[0]?.nabavkaId?.toString() || '')
     );
@@ -196,6 +210,19 @@ export default function PorudzbenicePage() {
       const res = await nabavkaApi.generisiPorudzbenicu({ nabavkaId: Number(selectedNabavkaId) });
       toast(`Porudžbenica ${res.data.brojPorudzbenice} generisana.`, 'success');
       await loadNabavkeIPorudzbenice(selectedDogadjajId);
+    } catch (err) {
+      toast(extractError(err), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handlePrijemUInventar = async (porudzbenicaId) => {
+    setBusy(true);
+    try {
+      await inventarApi.primiIzPorudzbenice(porudzbenicaId);
+      setPrijemStatus((prev) => ({ ...prev, [porudzbenicaId]: true }));
+      toast('Roba primljena u inventar.', 'success');
     } catch (err) {
       toast(extractError(err), 'error');
     } finally {
@@ -418,7 +445,7 @@ export default function PorudzbenicePage() {
               ) : (
                 <table className="events-table">
                   <thead>
-                    <tr><th>BROJ</th><th>DOBAVLJAČ</th><th>STATUS</th><th>UKUPNO</th><th>AKCIJA</th></tr>
+                    <tr><th>BROJ</th><th>DOBAVLJAČ</th><th>STATUS</th><th>UKUPNO</th><th>INVENTAR</th><th>AKCIJA</th></tr>
                   </thead>
                   <tbody>
                     {porudzbenice.map((p) => {
@@ -429,6 +456,22 @@ export default function PorudzbenicePage() {
                           <td>{p.dobavljacNaziv}</td>
                           <td><span className={`status-badge ${st.cls}`}>{st.label}</span></td>
                           <td>{formatMoney(p.ukupnaCena)}</td>
+                          <td>
+                            {prijemStatus[p.porudzbenicaId] ? (
+                              <span className="status-badge status-published">Primljeno</span>
+                            ) : p.status === 'ISPORUCENA' ? (
+                              <button
+                                type="button"
+                                className="btn btn-outline btn-sm"
+                                disabled={busy}
+                                onClick={() => handlePrijemUInventar(p.porudzbenicaId)}
+                              >
+                                Primljeno u inventar
+                              </button>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>—</span>
+                            )}
+                          </td>
                           <td>
                             <select
                               className="status-select"

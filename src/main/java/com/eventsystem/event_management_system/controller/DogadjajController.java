@@ -2,8 +2,10 @@ package com.eventsystem.event_management_system.controller;
 
 import com.eventsystem.event_management_system.dto.DogadjajDto;
 import com.eventsystem.event_management_system.dto.DogadjajResponseDto;
+import com.eventsystem.event_management_system.dto.SredstvaDogadjajaDto;
 import com.eventsystem.event_management_system.dto.ZauzetiTerminDto;
 import com.eventsystem.event_management_system.service.DogadjajService;
+import com.eventsystem.event_management_system.service.SredstvaDogadjajaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,7 @@ import java.util.List;
 public class DogadjajController {
 
     private final DogadjajService dogadjajService;
+    private final SredstvaDogadjajaService sredstvaDogadjajaService;
 
     @GetMapping("")
     public ResponseEntity<List<DogadjajResponseDto>> getAllDogadjaji() {
@@ -33,6 +36,11 @@ public class DogadjajController {
             @RequestParam Long lokacijaId,
             @RequestParam(required = false) Long excludeId) {
         return ResponseEntity.ok(dogadjajService.getZauzetiTermini(lokacijaId, excludeId));
+    }
+
+    @GetMapping("/{id}/sredstva")
+    public ResponseEntity<SredstvaDogadjajaDto> getSredstva(@PathVariable Long id) {
+        return ResponseEntity.ok(sredstvaDogadjajaService.getSredstva(id));
     }
 
     @GetMapping("/{id}")

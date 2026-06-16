@@ -14,6 +14,15 @@ public interface NabavkaRepository extends JpaRepository<Nabavka, Long> {
     List<Nabavka> findByDogadjajDogadjajIdOrderByKreiranAtDesc(Long dogadjajId);
 
     @Query("""
+            SELECT DISTINCT n FROM Nabavka n
+            LEFT JOIN FETCH n.stavke
+            LEFT JOIN FETCH n.dobavljac
+            WHERE n.dogadjaj.dogadjajId = :dogadjajId
+            ORDER BY n.kreiranAt DESC
+            """)
+    List<Nabavka> findByDogadjajWithStavke(@Param("dogadjajId") Long dogadjajId);
+
+    @Query("""
             SELECT n FROM Nabavka n
             JOIN FETCH n.dogadjaj
             JOIN FETCH n.kreirao
