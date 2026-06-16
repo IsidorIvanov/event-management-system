@@ -88,12 +88,13 @@ public class DobavljacSelekcijaService {
     }
 
     private Comparator<SupplierScore> comparatorZa(KriterijumSelekcijeDobavljaca kriterijum) {
+        Comparator<BigDecimal> rejtingDesc = Comparator.nullsLast(Comparator.<BigDecimal>reverseOrder());
         if (kriterijum == KriterijumSelekcijeDobavljaca.NAJBOLJI_REJTING) {
-            return Comparator.comparing((SupplierScore s) -> s.dobavljac.getRejting()).reversed()
+            return Comparator.comparing((SupplierScore s) -> s.dobavljac.getRejting(), rejtingDesc)
                     .thenComparing(s -> s.ukupnaCena);
         }
         return Comparator.comparing((SupplierScore s) -> s.ukupnaCena)
-                .thenComparing(s -> s.dobavljac.getRejting(), Comparator.reverseOrder());
+                .thenComparing((SupplierScore s) -> s.dobavljac.getRejting(), rejtingDesc);
     }
 
     private static class SupplierScore {

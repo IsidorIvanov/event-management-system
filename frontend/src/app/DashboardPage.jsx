@@ -3,6 +3,8 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import { useNavigate, Link, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import ResursiPage from '@/features/resursi/pages/ResursiPage';
 import PorudzbenicePage from '@/features/fakture/pages/PorudzbenicePage';
+import DobavljaciPage from '@/features/fakture/pages/DobavljaciPage';
+import CenovnikPage from '@/features/fakture/pages/CenovnikPage';
 import BudzetPage from '@/features/budzet/pages/BudzetPage';
 import FakturePage from '@/features/fakture/pages/FakturePage';
 import TroskoviPage from '@/features/budzet/pages/TroskoviPage';
@@ -717,6 +719,8 @@ export default function DashboardPage() {
           {hasRole("MENADZER_DOGADJAJA") && (
             <>
               <NavLink to="/dashboard/lokacije" icon="📍" label="Lokacije" />
+              <NavLink to="/dashboard/dobavljaci" icon="🤝" label="Dobavljači" />
+              <NavLink to="/dashboard/cenovnik" icon="📋" label="Cenovnik" />
               <NavLink
                 to="/dashboard/porudzbenice"
                 icon="📦"
@@ -792,6 +796,8 @@ export default function DashboardPage() {
           <Route path="resursi" element={<ResursiPage />} />
           <Route path="lokacije" element={<LokacijaSection />} />
           <Route path="porudzbenice" element={<PorudzbenicePage />} />
+          <Route path="dobavljaci" element={<DobavljaciPage />} />
+          <Route path="cenovnik" element={<CenovnikPage />} />
           <Route path="dogadjaj/:id" element={<EventDetailPage />} />
           <Route path="budzet" element={<BudzetPage />} />
           <Route path="fakture" element={<FakturePage />} />

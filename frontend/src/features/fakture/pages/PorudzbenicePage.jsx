@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '@/shared/services/api';
 import { useToast } from '@/shared/components/ToastNotification';
 import * as nabavkaApi from '@/features/fakture/services/nabavkaService';
@@ -229,6 +230,10 @@ export default function PorudzbenicePage() {
           <h1>Porudžbenice</h1>
           <p className="page-subtitle">ručno i automatsko poručivanje opreme iz cenovnika</p>
         </div>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <Link to="/dashboard/cenovnik" className="btn btn-outline btn-sm">Upravljaj cenovnikom</Link>
+          <Link to="/dashboard/dobavljaci" className="btn btn-outline btn-sm">Dobavljači</Link>
+        </div>
       </div>
 
       <div className="resursi-toolbar">
@@ -263,7 +268,10 @@ export default function PorudzbenicePage() {
               <div className="form-group">
                 <label>Stavke iz cenovnika (Ctrl+klik za više)</label>
                 {dostupniCenovnik.length === 0 ? (
-                  <p className="validacija-meta">Cenovnik je prazan — dodajte stavke u modulu nabavke.</p>
+                  <p className="validacija-meta">
+                    Cenovnik je prazan —{' '}
+                    <Link to="/dashboard/cenovnik">dodajte stavke u cenovniku</Link>.
+                  </p>
                 ) : (
                   <select
                     multiple

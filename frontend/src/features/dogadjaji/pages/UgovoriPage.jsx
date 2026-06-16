@@ -120,7 +120,7 @@ export default function UgovoriPage() {
                 loadUgovori();
             })
             .catch((err) => {
-                toast(err.response?.data?.message || "Kreiranje ugovora nije uspelo.", "error");
+                toast(err.response?.data?.error || err.response?.data?.message || "Kreiranje ugovora nije uspelo.", "error");
             })
             .finally(() => setSaving(false));
     };

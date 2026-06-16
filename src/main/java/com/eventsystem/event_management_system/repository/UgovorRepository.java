@@ -71,4 +71,6 @@ public interface UgovorRepository extends JpaRepository<Ugovor, Long> {
               AND u.vaziDo < :danas
             """)
     List<Ugovor> findExpiredActive(@Param("danas") LocalDate danas);
+
+    boolean existsByDobavljacDobavljacIdAndStatus(Long dobavljacId, StatusUgovora status);
 }

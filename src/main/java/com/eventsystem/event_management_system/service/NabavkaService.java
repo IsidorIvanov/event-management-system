@@ -78,6 +78,7 @@ public class NabavkaService {
 
     public NabavkaDto assignDobavljac(Long nabavkaId, Long dobavljacId) {
         Nabavka nabavka = findEntity(nabavkaId);
+        dobavljacService.assertAvailableForNabavka(dobavljacId);
         Dobavljac dobavljac = dobavljacService.findEntity(dobavljacId);
         nabavka.setDobavljac(dobavljac);
         nabavka.setStatus(StatusNabavke.PREDLOZENA);
@@ -161,6 +162,7 @@ public class NabavkaService {
                 .map(Map.Entry::getKey)
                 .orElseThrow();
 
+        dobavljacService.assertAvailableForNabavka(izabraniId);
         nabavka.setDobavljac(dobavljacService.findEntity(izabraniId));
         if (nabavka.getStatus() == StatusNabavke.NACRT) {
             nabavka.setStatus(StatusNabavke.PREDLOZENA);
