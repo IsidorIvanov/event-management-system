@@ -3,6 +3,7 @@ package com.eventsystem.event_management_system.config;
 import com.eventsystem.event_management_system.exception.BadRequestException;
 import com.eventsystem.event_management_system.exception.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -58,6 +59,21 @@ public class GlobalExceptionHandler {
         body.put("status", 404);
         body.put("error", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException ex) {
+        log.error("Data integrity violation", ex);
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("status", 400);
+        String cause = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
+        if (cause != null && cause.toLowerCase().contains("rejting")) {
+            body.put("error", "Rejting nije podešen. Restartujte backend aplikaciju da se ažurira šema baze.");
+        } else {
+            body.put("error", "Podaci nisu validni za upis u bazu.");
+        }
+        return ResponseEntity.badRequest().body(body);
     }
 
     @ExceptionHandler(RuntimeException.class)

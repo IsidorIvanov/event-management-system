@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Modal from '@/shared/components/Modal';
+import * as nabavkaApi from '@/features/fakture/services/nabavkaService';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -13,7 +14,14 @@ const initialForm = () => ({
 
 export default function TrosakModal({ budzet, stavka, onClose, onSubmit, loading }) {
   const [form, setForm] = useState(initialForm);
+  const [dobavljaci, setDobavljaci] = useState([]);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    nabavkaApi.getAktivniDobavljaci()
+      .then((res) => setDobavljaci(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setDobavljaci([]));
+  }, []);
 
   const update = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -91,14 +99,13 @@ export default function TrosakModal({ budzet, stavka, onClose, onSubmit, loading
             </select>
           </div>
           <div className="form-group">
-            <label>Dobavljač ID</label>
-            <input
-              type="number"
-              min="1"
-              value={form.dobavljacId}
-              onChange={(e) => update('dobavljacId', e.target.value)}
-              placeholder="Opciono"
-            />
+            <label>Dobavljač</label>
+            <select value={form.dobavljacId} onChange={(e) => update('dobavljacId', e.target.value)}>
+              <option value="">Opciono</option>
+              {dobavljaci.map((d) => (
+                <option key={d.dobavljacId} value={d.dobavljacId}>{d.naziv}</option>
+              ))}
+            </select>
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 package com.eventsystem.event_management_system.repository;
 
 import com.eventsystem.event_management_system.model.Nabavka;
+import com.eventsystem.event_management_system.utils.enums.StatusNabavke;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -30,4 +31,6 @@ public interface NabavkaRepository extends JpaRepository<Nabavka, Long> {
             ORDER BY n.kreiranAt DESC
             """)
     List<Nabavka> findAllWithDetalji();
+
+    boolean existsByDobavljacDobavljacIdAndStatusNotIn(Long dobavljacId, java.util.Collection<StatusNabavke> statuses);
 }

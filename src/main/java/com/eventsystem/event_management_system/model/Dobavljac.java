@@ -41,7 +41,7 @@ public class Dobavljac {
     @Column(nullable = false, length = 20)
     private StatusDobavljaca status;
 
-    @Column(nullable = false, precision = 3, scale = 2)
+    @Column(precision = 3, scale = 2)
     private BigDecimal rejting;
 
     @Column(columnDefinition = "TEXT")
@@ -59,9 +59,6 @@ public class Dobavljac {
     protected void onCreate() {
         if (status == null) {
             status = StatusDobavljaca.AKTIVAN;
-        }
-        if (rejting == null) {
-            rejting = BigDecimal.valueOf(3.0);
         }
     }
 }

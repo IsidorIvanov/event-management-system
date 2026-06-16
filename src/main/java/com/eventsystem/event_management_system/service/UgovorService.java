@@ -31,16 +31,18 @@ public class UgovorService {
     private final DogadjajRepository dogadjajRepository;
 
     @PreAuthorize("hasAnyRole('MENADZER_DOGADJAJA', 'FINANSIJSKI_KONTROLOR')")
-    @Transactional(readOnly = true)
+    @Transactional
     public List<UgovorDto> getByDobavljac(Long dobavljacId) {
+        syncExpiredUgovori();
         return ugovorRepository.findByDobavljacDobavljacId(dobavljacId).stream()
                 .map(this::toDto)
                 .toList();
     }
 
     @PreAuthorize("hasAnyRole('MENADZER_DOGADJAJA', 'FINANSIJSKI_KONTROLOR')")
-    @Transactional(readOnly = true)
+    @Transactional
     public List<UgovorDto> getActiveByDobavljac(Long dobavljacId) {
+        syncExpiredUgovori();
         return ugovorRepository.findActiveByDobavljac(dobavljacId, com.eventsystem.event_management_system.utils.enums.StatusUgovora.AKTIVAN, LocalDate.now())
                 .stream()
                 .map(this::toDto)
@@ -48,8 +50,9 @@ public class UgovorService {
     }
 
     @PreAuthorize("hasAnyRole('MENADZER_DOGADJAJA', 'FINANSIJSKI_KONTROLOR')")
-    @Transactional(readOnly = true)
+    @Transactional
     public List<UgovorDto> getAll(Long dobavljacId, Long dogadjajId, com.eventsystem.event_management_system.utils.enums.StatusUgovora status) {
+        syncExpiredUgovori();
         return ugovorRepository.findAllFiltered(dobavljacId, dogadjajId, status).stream()
                 .map(this::toDto)
                 .toList();
@@ -198,5 +201,17 @@ public class UgovorService {
 
     private String normalizeNullable(String value) {
         return value != null && !value.trim().isEmpty() ? value.trim() : null;
+    }
+
+    @Transactional
+    void syncExpiredUgovori() {
+        var expired = ugovorRepository.findExpiredActive(LocalDate.now());
+        if (expired.isEmpty()) {
+            return;
+        }
+        for (Ugovor ugovor : expired) {
+            ugovor.setStatus(com.eventsystem.event_management_system.utils.enums.StatusUgovora.ISTEKAO);
+        }
+        ugovorRepository.saveAll(expired);
     }
 }
