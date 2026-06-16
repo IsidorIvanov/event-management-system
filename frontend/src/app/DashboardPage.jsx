@@ -5,6 +5,8 @@ import ResursiPage from '@/features/resursi/pages/ResursiPage';
 import PorudzbenicePage from '@/features/fakture/pages/PorudzbenicePage';
 import DobavljaciPage from '@/features/fakture/pages/DobavljaciPage';
 import CenovnikPage from '@/features/fakture/pages/CenovnikPage';
+import InventarPage from '@/features/inventar/pages/InventarPage';
+import SredstvaDogadjajaPage from '@/features/inventar/pages/SredstvaDogadjajaPage';
 import BudzetPage from '@/features/budzet/pages/BudzetPage';
 import FakturePage from '@/features/fakture/pages/FakturePage';
 import TroskoviPage from '@/features/budzet/pages/TroskoviPage';
@@ -745,6 +747,12 @@ export default function DashboardPage() {
           {isResursi && (
             <NavLink to="/dashboard/resursi" icon="🏢" label="Resursi" />
           )}
+          {(isResursi || hasRole('MENADZER_DOGADJAJA')) && (
+            <>
+              <NavLink to="/dashboard/inventar" icon="🎛️" label="Inventar" />
+              <NavLink to="/dashboard/sredstva-dogadjaja" icon="📦" label="Sredstva događaja" />
+            </>
+          )}
           {hasRole("KOORDINATOR_PROGRAMA") && (
             <NavLink to="/dashboard/poruke" icon="💬" label="Poruke" badge={unreadPoruke} />
           )}
@@ -794,6 +802,8 @@ export default function DashboardPage() {
           />
           <Route path="profil" element={<ProfilPage />} />
           <Route path="resursi" element={<ResursiPage />} />
+          <Route path="inventar" element={<InventarPage />} />
+          <Route path="sredstva-dogadjaja" element={<SredstvaDogadjajaPage />} />
           <Route path="lokacije" element={<LokacijaSection />} />
           <Route path="porudzbenice" element={<PorudzbenicePage />} />
           <Route path="dobavljaci" element={<DobavljaciPage />} />
