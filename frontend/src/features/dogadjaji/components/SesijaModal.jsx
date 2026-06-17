@@ -1,8 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Modal from '@/shared/components/Modal';
 import * as lokacijaApi from '@/features/resursi/services/lokacijaService';
+import * as optimizacijaApi from '@/features/optimizacija/services/optimizacijaService';
 
 const TIP_OPTIONS = ['KEYNOTE', 'WORKSHOP', 'PANEL', 'NETWORKING'];
+
+function formatMoneyShort(n) {
+  if (n == null) return '—';
+  return Number(n).toLocaleString('sr-Latn', { maximumFractionDigits: 0 }) + ' RSD';
+}
 
 const EMPTY = {
   naziv: '',
@@ -38,6 +44,8 @@ export default function SesijaModal({ dogadjajId, event, sesija, preostaloKapaci
   const [sale, setSale] = useState([]);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [predloziSala, setPredloziSala] = useState([]);
+  const [upozorenjaOpreme, setUpozorenjaOpreme] = useState([]);
 
   useEffect(() => {
     lokacijaApi.getLokacije().then((res) => {
@@ -53,6 +61,34 @@ export default function SesijaModal({ dogadjajId, event, sesija, preostaloKapaci
       }
     });
   }, []);
+
+  const ucitajPredlogSala = useCallback(async () => {
+    if (!form.lokacijaId || !form.datum || !form.vremePocetka || !form.vremeZavrsetka || !form.kapacitet) {
+      setPredloziSala([]);
+      return;
+    }
+    try {
+      const res = await optimizacijaApi.postPredlogSala({
+        dogadjajId,
+        sesijaId: sesija?.sesijaId || null,
+        lokacijaId: Number(form.lokacijaId),
+        datum: form.datum,
+        vremePocetka: form.vremePocetka,
+        vremeZavrsetka: form.vremeZavrsetka,
+        tip: form.tip,
+        kapacitet: Number(form.kapacitet),
+      });
+      setPredloziSala(res.data.predlozi || []);
+      setUpozorenjaOpreme(res.data.upozorenjaOpreme || []);
+    } catch {
+      setPredloziSala([]);
+    }
+  }, [dogadjajId, sesija?.sesijaId, form]);
+
+  useEffect(() => {
+    const t = setTimeout(ucitajPredlogSala, 400);
+    return () => clearTimeout(t);
+  }, [ucitajPredlogSala]);
 
   const set = (field) => (e) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -145,6 +181,44 @@ export default function SesijaModal({ dogadjajId, event, sesija, preostaloKapaci
                   <option key={s.nazivSale} value={s.nazivSale}>{s.nazivSale}</option>
                 ))}
               </select>
+              {predloziSala.length > 0 && (
+                <div style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
+                  <strong>Predložene sale:</strong>
+                  <ul style={{ margin: '0.35rem 0 0', paddingLeft: '1.1rem' }}>
+                    {predloziSala.slice(0, 3).map((p) => (
+                      <li key={p.nazivSale}>
+                        <button
+                          type="button"
+                          className="btn-link"
+                          style={{ background: 'none', border: 'none', padding: 0, color: 'var(--accent)', cursor: 'pointer' }}
+                          onClick={() => setForm((f) => ({ ...f, nazivSale: p.nazivSale }))}
+                        >
+                          {p.nazivSale}
+                        </button>
+                        {' '}{p.dostupna ? '✓ slobodna' : '✗ zauzeta'} — skor {p.skor}
+                        {p.predlozenaCenaPoDanu != null && (
+                          <span style={{ color: 'var(--text-secondary)' }}>
+                            {' '}· {formatMoneyShort(p.predlozenaCenaPoDanu)}/dan
+                            {p.baznaCenaPoDanu != null && p.predlozenaCenaPoDanu > p.baznaCenaPoDanu
+                              ? ` (bazna ${formatMoneyShort(p.baznaCenaPoDanu)})`
+                              : ''}
+                          </span>
+                        )}
+                        {p.obrazlozenje && (
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                            {p.obrazlozenje}
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {upozorenjaOpreme.length > 0 && (
+                <ul className="validacija-lista" style={{ marginTop: '0.5rem' }}>
+                  {upozorenjaOpreme.map((u, i) => <li key={i}>{u}</li>)}
+                </ul>
+              )}
             </div>
           </div>
 

@@ -24,8 +24,8 @@ public class Porudzbenica {
     @Column(name = "porudzbenica_id")
     private Long porudzbenicaId;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "nabavka_id", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "nabavka_id", nullable = false)
     private Nabavka nabavka;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

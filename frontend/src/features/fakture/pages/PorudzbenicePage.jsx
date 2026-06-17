@@ -1,9 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '@/shared/services/api';
 import { useToast } from '@/shared/components/ToastNotification';
 import * as nabavkaApi from '@/features/fakture/services/nabavkaService';
 import * as inventarApi from '@/features/inventar/services/inventarService';
+
+const KRITERIJUMI = {
+  NAJNIZA_CENA: 'Najniža cena',
+  NAJBOLJI_REJTING: 'Najbolji rejting',
+};
 
 const STATUS_PORUDZBENICE = {
   KREIRANA: { label: 'Kreirana', cls: 'status-draft' },
@@ -58,6 +63,12 @@ export default function PorudzbenicePage() {
   const [prijemStatus, setPrijemStatus] = useState({});
   const [selectedNabavkaId, setSelectedNabavkaId] = useState('');
 
+  const [selekcijaKriterijum, setSelekcijaKriterijum] = useState('NAJNIZA_CENA');
+  const [selekcijaPredlog, setSelekcijaPredlog] = useState(null);
+  const [planAlokacije, setPlanAlokacije] = useState(null);
+  const [optimizacijaError, setOptimizacijaError] = useState(null);
+  const [optimizacijaLoading, setOptimizacijaLoading] = useState(null); // 'selekcija' | 'alokacija'
+
   const dostupniCenovnik = cenovnik.filter((c) => c.dostupnost !== false);
 
   const loadDogadjaji = useCallback(async () => {
@@ -99,6 +110,63 @@ export default function PorudzbenicePage() {
     );
   }, []);
 
+  const selectedNabavka = useMemo(
+    () => nabavke.find((n) => n.nabavkaId === Number(selectedNabavkaId)),
+    [nabavke, selectedNabavkaId],
+  );
+
+  const stavkeZaApi = useCallback((lista) =>
+    lista
+      .filter((s) => s.nazivResursa && Number(s.kolicina) >= 1)
+      .map((s) => ({
+        nazivResursa: s.nazivResursa,
+        kolicina: Number(s.kolicina),
+        ...(s.cenovnikId ? { cenovnikId: s.cenovnikId } : {}),
+      })), []);
+
+  const stavkeZaOptimizaciju = useMemo(() => {
+    const map = new Map();
+    const dodaj = (lista) => {
+      for (const s of lista) {
+        if (s?.nazivResursa && Number(s.kolicina) >= 1) {
+          map.set(s.nazivResursa.toLowerCase(), {
+            nazivResursa: s.nazivResursa,
+            kolicina: Number(s.kolicina),
+          });
+        }
+      }
+    };
+    dodaj(stavkeZaApi(manualStavke));
+    dodaj(stavkeZaApi(autoStavke));
+    dodaj((selectedNabavka?.stavke || []).map((s) => ({
+      nazivResursa: s.nazivResursa,
+      kolicina: s.kolicina,
+    })));
+    return Array.from(map.values());
+  }, [manualStavke, autoStavke, selectedNabavka, stavkeZaApi]);
+
+  const optimizacijaZaNabavku = Boolean(selectedNabavkaId && (selectedNabavka?.stavke || []).length > 0);
+
+  const osveziDetaljeNabavke = useCallback(async (nabavkaId) => {
+    if (!nabavkaId) return;
+    try {
+      const res = await nabavkaApi.getNabavkaById(nabavkaId);
+      setNabavke((prev) =>
+        prev.map((n) => (n.nabavkaId === nabavkaId ? { ...n, ...res.data } : n)),
+      );
+    } catch {
+      // lista iz dogadjaja ostaje fallback
+    }
+  }, []);
+
+  const handleIzaberiNabavku = useCallback(async (nabavkaId) => {
+    setSelectedNabavkaId(String(nabavkaId));
+    setSelekcijaPredlog(null);
+    setPlanAlokacije(null);
+    setOptimizacijaError(null);
+    await osveziDetaljeNabavke(nabavkaId);
+  }, [osveziDetaljeNabavke]);
+
   useEffect(() => {
     Promise.all([loadDogadjaji(), loadCenovnik()])
       .catch((err) => toast(extractError(err), 'error'))
@@ -111,14 +179,11 @@ export default function PorudzbenicePage() {
     }
   }, [selectedDogadjajId, loadNabavkeIPorudzbenice, toast]);
 
-  const stavkeZaApi = (lista) =>
-    lista
-      .filter((s) => s.nazivResursa && Number(s.kolicina) >= 1)
-      .map((s) => ({
-        nazivResursa: s.nazivResursa,
-        kolicina: Number(s.kolicina),
-        ...(s.cenovnikId ? { cenovnikId: s.cenovnikId } : {}),
-      }));
+  useEffect(() => {
+    if (selectedNabavkaId) {
+      osveziDetaljeNabavke(Number(selectedNabavkaId));
+    }
+  }, [selectedNabavkaId, osveziDetaljeNabavke]);
 
   const handleCenovnikMultiSelect = (e) => {
     const ids = Array.from(e.target.selectedOptions).map((o) => Number(o.value));
@@ -208,7 +273,109 @@ export default function PorudzbenicePage() {
     setBusy(true);
     try {
       const res = await nabavkaApi.generisiPorudzbenicu({ nabavkaId: Number(selectedNabavkaId) });
-      toast(`Porudžbenica ${res.data.brojPorudzbenice} generisana.`, 'success');
+      const lista = Array.isArray(res.data) ? res.data : [res.data];
+      toast(
+        lista.length > 1
+          ? `Generisano ${lista.length} porudžbenica (multi-dobavljač).`
+          : `Porudžbenica ${lista[0]?.brojPorudzbenice} generisana.`,
+        'success',
+      );
+      await loadNabavkeIPorudzbenice(selectedDogadjajId);
+    } catch (err) {
+      toast(extractError(err), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handlePredloziDobavljaca = async () => {
+    setOptimizacijaError(null);
+    if (stavkeZaOptimizaciju.length === 0) {
+      const msg = 'Dodajte stavke u ručno/automatsko poručivanje ili izaberite nabavku sa stavkama.';
+      setOptimizacijaError(msg);
+      toast(msg, 'error');
+      return;
+    }
+    setOptimizacijaLoading('selekcija');
+    setBusy(true);
+    try {
+      const res = await nabavkaApi.predloziDobavljacaDetaljno({
+        kriterijum: selekcijaKriterijum,
+        potrebneStavke: stavkeZaOptimizaciju,
+      });
+      setSelekcijaPredlog(res.data);
+      toast('Predlog dobavljača izračunat.', 'success');
+    } catch (err) {
+      const msg = extractError(err);
+      setOptimizacijaError(msg);
+      toast(msg, 'error');
+    } finally {
+      setOptimizacijaLoading(null);
+      setBusy(false);
+    }
+  };
+
+  const handlePrimeniSelekciju = async () => {
+    if (!selectedNabavkaId) {
+      toast('Izaberite nabavku u tabeli pre primene predloga.', 'error');
+      return;
+    }
+    if (stavkeZaOptimizaciju.length === 0) return;
+    setBusy(true);
+    try {
+      await nabavkaApi.primeniSelekciju({
+        nabavkaId: Number(selectedNabavkaId),
+        kriterijum: selekcijaKriterijum,
+        potrebneStavke: stavkeZaOptimizaciju,
+      });
+      toast('Selekcija dobavljača primenjena.', 'success');
+      setSelekcijaPredlog(null);
+      await loadNabavkeIPorudzbenice(selectedDogadjajId);
+    } catch (err) {
+      toast(extractError(err), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleOptimizujAlokaciju = async () => {
+    setOptimizacijaError(null);
+    if (stavkeZaOptimizaciju.length === 0) {
+      const msg = 'Dodajte stavke u ručno/automatsko poručivanje ili izaberite nabavku.';
+      setOptimizacijaError(msg);
+      toast(msg, 'error');
+      return;
+    }
+    setOptimizacijaLoading('alokacija');
+    setBusy(true);
+    try {
+      const res = await nabavkaApi.optimizujAlokaciju({ potrebneStavke: stavkeZaOptimizaciju });
+      setPlanAlokacije(res.data);
+      toast('Plan alokacije po stavci izračunat.', 'success');
+    } catch (err) {
+      const msg = extractError(err);
+      setOptimizacijaError(msg);
+      toast(msg, 'error');
+    } finally {
+      setOptimizacijaLoading(null);
+      setBusy(false);
+    }
+  };
+
+  const handlePrimeniAlokaciju = async () => {
+    if (!selectedNabavkaId) {
+      toast('Izaberite nabavku u tabeli pre primene alokacije.', 'error');
+      return;
+    }
+    if (stavkeZaOptimizaciju.length === 0) return;
+    setBusy(true);
+    try {
+      await nabavkaApi.primeniAlokaciju({
+        nabavkaId: Number(selectedNabavkaId),
+        potrebneStavke: stavkeZaOptimizaciju,
+      });
+      toast('Multi-dobavljač alokacija primenjena.', 'success');
+      setPlanAlokacije(null);
       await loadNabavkeIPorudzbenice(selectedDogadjajId);
     } catch (err) {
       toast(extractError(err), 'error');
@@ -246,8 +413,6 @@ export default function PorudzbenicePage() {
     }
   };
 
-  const selectedNabavka = nabavke.find((n) => n.nabavkaId === Number(selectedNabavkaId));
-  const imaPorudzbenicu = porudzbenice.some((p) => p.nabavkaId === Number(selectedNabavkaId));
   const selectedCenovnikIds = manualStavke.map((s) => s.cenovnikId);
 
   return (
@@ -274,6 +439,9 @@ export default function PorudzbenicePage() {
               setManualStavke([]);
               setAutoStavke([]);
               setAutoUpozorenja([]);
+              setSelekcijaPredlog(null);
+              setPlanAlokacije(null);
+              setSelectedNabavkaId('');
             }}
             disabled={loading}
           >
@@ -393,6 +561,108 @@ export default function PorudzbenicePage() {
             </div>
           </div>
 
+          <div className="events-table-card manual-stavke-card optimizacija-nabavke-card" style={{ gridColumn: '1 / -1' }}>
+            <div className="events-table-header">
+              <h2>Potražnja i alokacija resursa</h2>
+              {selectedNabavka && (
+                <span className="validacija-meta">Nabavka #{selectedNabavka.nabavkaId}</span>
+              )}
+            </div>
+            <div className="porudzbenice-manual-body">
+              <p className="validacija-meta" style={{ marginBottom: '0.75rem' }}>
+                Za svaku stavku bira najpovoljnijeg dobavljača iz cenovnika (aktuelne cene).
+                Dinamičke predloge cena pogledajte na stranici{' '}
+                <Link to="/dashboard/cenovnik">Cenovnik</Link>.
+              </p>
+
+              {stavkeZaOptimizaciju.length === 0 ? (
+                <p className="validacija-meta">
+                  Dodajte stavke (ručno/automatski) ili izaberite nabavku u tabeli ispod.
+                </p>
+              ) : (
+                <p className="validacija-meta" style={{ marginBottom: '0.75rem' }}>
+                  Stavke: {stavkeZaOptimizaciju.map((s) => `${s.nazivResursa} ×${s.kolicina}`).join(', ')}
+                  {!optimizacijaZaNabavku && ' — kreirajte/izaberite nabavku da primenite plan.'}
+                </p>
+              )}
+
+              {optimizacijaError && (
+                <div className="error-msg" style={{ marginBottom: '0.75rem' }}>{optimizacijaError}</div>
+              )}
+
+              <div className="porudzbenice-actions">
+                <button type="button" className="btn btn-primary btn-sm" onClick={handleOptimizujAlokaciju} disabled={busy}>
+                  {optimizacijaLoading === 'alokacija' ? 'Računam...' : '1. Izračunaj plan alokacije'}
+                </button>
+                <button type="button" className="btn btn-primary btn-sm" onClick={handlePrimeniAlokaciju} disabled={busy || !planAlokacije?.svePokriveno || !selectedNabavkaId}>
+                  2. Primeni na nabavku
+                </button>
+              </div>
+
+              {planAlokacije && (
+                <>
+                  <p className="validacija-meta" style={{ marginTop: '1rem' }}>
+                    <strong>Ukupno:</strong> {formatMoney(planAlokacije.ukupnaCena)}
+                    {' · '}{planAlokacije.brojDobavljaca} dobavljač(a)
+                    {planAlokacije.svePokriveno ? ' · sve stavke pokrivene' : ' · neke stavke nisu pokrivene'}
+                  </p>
+                  <table className="events-table" style={{ marginTop: '0.5rem' }}>
+                    <thead>
+                      <tr><th>STAVKA</th><th>DOBAVLJAČ</th><th>JED. CENA</th><th>UKUPNO</th></tr>
+                    </thead>
+                    <tbody>
+                      {planAlokacije.stavke.map((s, i) => (
+                        <tr key={i}>
+                          <td>{s.nazivResursa} ×{s.kolicina}</td>
+                          <td>{s.dobavljacNaziv || '—'}</td>
+                          <td>{formatMoney(s.jedinicnaCena)}</td>
+                          <td>{formatMoney(s.ukupnaCena)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              )}
+              {planAlokacije?.upozorenja?.length > 0 && (
+                <ul className="validacija-lista" style={{ marginTop: '0.75rem' }}>
+                  {planAlokacije.upozorenja.map((u, i) => <li key={i}>{u}</li>)}
+                </ul>
+              )}
+
+              <details style={{ marginTop: '1.25rem' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 600 }}>Napredno: jedan dobavljač za celu nabavku</summary>
+                <div style={{ marginTop: '0.75rem' }}>
+                  <div className="form-group" style={{ maxWidth: 280 }}>
+                    <label>Kriterijum selekcije</label>
+                    <select
+                      className="status-select"
+                      value={selekcijaKriterijum}
+                      onChange={(e) => setSelekcijaKriterijum(e.target.value)}
+                    >
+                      {Object.entries(KRITERIJUMI).map(([k, label]) => (
+                        <option key={k} value={k}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="porudzbenice-actions">
+                    <button type="button" className="btn btn-outline btn-sm" onClick={handlePredloziDobavljaca} disabled={busy}>
+                      {optimizacijaLoading === 'selekcija' ? 'Računam...' : 'Predloži dobavljača'}
+                    </button>
+                    <button type="button" className="btn btn-outline btn-sm" onClick={handlePrimeniSelekciju} disabled={busy || !selekcijaPredlog || !selectedNabavkaId}>
+                      Primeni predlog
+                    </button>
+                  </div>
+                  {selekcijaPredlog?.predlog && (
+                    <p className="validacija-meta" style={{ marginTop: '0.75rem' }}>
+                      <strong>Predlog:</strong> {selekcijaPredlog.predlog.dobavljacNaziv} — {formatMoney(selekcijaPredlog.predlog.ukupnaProcenjenaCena)}
+                      {selekcijaPredlog.predlog.pokrivaSveStavke ? ' (pokriva sve)' : ' (delimično)'}
+                    </p>
+                  )}
+                </div>
+              </details>
+            </div>
+          </div>
+
           <div className="porudzbenice-grid">
             <div className="events-table-card">
               <div className="events-table-header"><h2>Nabavke</h2></div>
@@ -414,7 +684,7 @@ export default function PorudzbenicePage() {
                         <td><span className="status-badge status-draft">{STATUS_NABAVKE[n.status] || n.status}</span></td>
                         <td>{formatMoney(n.ukupnaCena)}</td>
                         <td>
-                          <button type="button" className="btn btn-outline btn-xs" onClick={() => setSelectedNabavkaId(String(n.nabavkaId))}>
+                          <button type="button" className="btn btn-outline btn-xs" onClick={() => handleIzaberiNabavku(n.nabavkaId)}>
                             Izaberi
                           </button>
                         </td>
@@ -430,7 +700,7 @@ export default function PorudzbenicePage() {
                     type="button"
                     className="btn btn-outline btn-sm"
                     onClick={handleGenerisiPorudzbenicu}
-                    disabled={busy || !selectedNabavka.dobavljacId || imaPorudzbenicu}
+                    disabled={busy || (!selectedNabavka.dobavljacId && !(selectedNabavka.stavke || []).some((s) => s.dobavljacId))}
                   >
                     Generiši porudžbenicu
                   </button>

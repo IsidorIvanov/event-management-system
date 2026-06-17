@@ -20,4 +20,8 @@ export const otkaziDodelu = (id) => api.patch(`/inventar/dodela/${id}/otkazi`);
 
 export const validirajPotrebeInventarom = (dogadjajId) =>
   api.get(`/inventar/potrebe/dogadjaj/${dogadjajId}`);
+export const getPredlogAlokacijeOpreme = (dogadjajId) =>
+  api.get(`/inventar/alokacija/dogadjaj/${dogadjajId}/predlog`);
+export const primeniAlokacijuOpreme = (dogadjajId) =>
+  api.post(`/inventar/alokacija/dogadjaj/${dogadjajId}/primeni`);
 export const getSredstvaDogadjaja = (dogadjajId) => api.get(`/dogadjaj/${dogadjajId}/sredstva`);

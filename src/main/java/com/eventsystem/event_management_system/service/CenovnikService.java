@@ -19,22 +19,27 @@ public class CenovnikService {
 
     private final CenovnikRepository cenovnikRepository;
     private final DobavljacService dobavljacService;
+    private final DinamickoCeneService dinamickoCeneService;
 
     @Transactional(readOnly = true)
     public List<CenovnikDto> getAll() {
-        return cenovnikRepository.findAll().stream().map(this::toDto).toList();
+        List<Cenovnik> entities = cenovnikRepository.findAll();
+        int maxPotraznja = dinamickoCeneService.maxPotraznjaKolicinaProjekta(entities);
+        return entities.stream().map(e -> toDto(e, maxPotraznja)).toList();
     }
 
     @Transactional(readOnly = true)
     public CenovnikDto getById(Long id) {
-        return toDto(findEntity(id));
+        Cenovnik entity = findEntity(id);
+        int maxPotraznja = dinamickoCeneService.maxPotraznjaKolicinaProjekta(cenovnikRepository.findAll());
+        return toDto(entity, maxPotraznja);
     }
 
     @Transactional(readOnly = true)
     public List<CenovnikDto> getByDobavljac(Long dobavljacId) {
-        return cenovnikRepository.findByDobavljacDobavljacId(dobavljacId).stream()
-                .map(this::toDto)
-                .toList();
+        List<Cenovnik> entities = cenovnikRepository.findByDobavljacDobavljacId(dobavljacId);
+        int maxPotraznja = dinamickoCeneService.maxPotraznjaKolicinaProjekta(cenovnikRepository.findAll());
+        return entities.stream().map(e -> toDto(e, maxPotraznja)).toList();
     }
 
     @Transactional
@@ -48,7 +53,7 @@ public class CenovnikService {
                 .cenaJedinicna(dto.getCenaJedinicna())
                 .dostupnost(dto.getDostupnost() != null ? dto.getDostupnost() : true)
                 .build();
-        return toDto(cenovnikRepository.save(entity));
+        return toDto(cenovnikRepository.save(entity), dinamickoCeneService.maxPotraznjaKolicinaProjekta(cenovnikRepository.findAll()));
     }
 
     @Transactional
@@ -64,7 +69,7 @@ public class CenovnikService {
         if (dto.getDostupnost() != null) {
             entity.setDostupnost(dto.getDostupnost());
         }
-        return toDto(cenovnikRepository.save(entity));
+        return toDto(cenovnikRepository.save(entity), dinamickoCeneService.maxPotraznjaKolicinaProjekta(cenovnikRepository.findAll()));
     }
 
     @Transactional
@@ -98,8 +103,8 @@ public class CenovnikService {
         return value.trim();
     }
 
-    private CenovnikDto toDto(Cenovnik entity) {
-        return CenovnikDto.builder()
+    private CenovnikDto toDto(Cenovnik entity, int maxPotraznjaUProjektu) {
+        CenovnikDto dto = CenovnikDto.builder()
                 .cenovnikId(entity.getCenovnikId())
                 .dobavljacId(entity.getDobavljac().getDobavljacId())
                 .dobavljacNaziv(entity.getDobavljac().getNaziv())
@@ -109,5 +114,6 @@ public class CenovnikService {
                 .cenaJedinicna(entity.getCenaJedinicna())
                 .dostupnost(entity.getDostupnost())
                 .build();
+        return dinamickoCeneService.dopuniPredlogCene(entity, dto, maxPotraznjaUProjektu);
     }
 }

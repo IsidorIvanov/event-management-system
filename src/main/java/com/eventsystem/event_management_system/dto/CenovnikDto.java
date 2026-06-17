@@ -34,4 +34,15 @@ public class CenovnikDto {
     private BigDecimal cenaJedinicna;
 
     private Boolean dostupnost;
+
+    /** Predložena cena na osnovu potražnje u celom projektu (samo prikaz). */
+    private BigDecimal predlozenaCena;
+
+    private Integer potraznjaIndeksProcenat;
+
+    private Integer ukupnaPotraznjaKolicina;
+
+    private Integer brojDogadjajaSaPotrebom;
+
+    private String praviloPredloga;
 }

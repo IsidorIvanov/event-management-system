@@ -35,7 +35,7 @@ public class PorudzbenicaController {
     }
 
     @PostMapping("/generisi")
-    public ResponseEntity<PorudzbenicaDto> generisi(@Valid @RequestBody GenerisiPorudzbenicuRequestDto request) {
+    public ResponseEntity<List<PorudzbenicaDto>> generisi(@Valid @RequestBody GenerisiPorudzbenicuRequestDto request) {
         return ResponseEntity.ok(porudzbenicaService.generisiIzNabavke(request));
     }
 

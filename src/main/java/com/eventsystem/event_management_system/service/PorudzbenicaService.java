@@ -40,22 +40,54 @@ public class PorudzbenicaService {
     }
 
     @Transactional
-    public PorudzbenicaDto generisiIzNabavke(GenerisiPorudzbenicuRequestDto request) {
+    public List<PorudzbenicaDto> generisiIzNabavke(GenerisiPorudzbenicuRequestDto request) {
         Nabavka nabavka = nabavkaService.findEntityWithDetalji(request.getNabavkaId());
 
-        if (porudzbenicaRepository.existsByNabavkaNabavkaId(request.getNabavkaId())) {
-            throw new RuntimeException("Porudžbenica za ovu nabavku već postoji.");
-        }
-        if (nabavka.getDobavljac() == null) {
-            throw new RuntimeException("Nabavka nema dodeljenog dobavljača. Prvo pokrenite selekciju.");
-        }
         if (nabavka.getStavke() == null || nabavka.getStavke().isEmpty()) {
             throw new RuntimeException("Nabavka nema stavki za generisanje porudžbenice.");
         }
 
+        var grupe = nabavka.getStavke().stream()
+                .filter(s -> s.getCenovnik() != null && s.getCenovnik().getDobavljac() != null)
+                .collect(java.util.stream.Collectors.groupingBy(
+                        s -> s.getCenovnik().getDobavljac().getDobavljacId()));
+
+        if (grupe.isEmpty()) {
+            if (nabavka.getDobavljac() == null) {
+                throw new RuntimeException("Nabavka nema dodeljenog dobavljača. Prvo pokrenite selekciju ili alokaciju.");
+            }
+            if (porudzbenicaRepository.existsByNabavkaNabavkaIdAndDobavljacDobavljacId(
+                    request.getNabavkaId(), nabavka.getDobavljac().getDobavljacId())) {
+                throw new RuntimeException("Porudžbenica za ovu nabavku i dobavljača već postoji.");
+            }
+            return List.of(kreirajPorudzbenicu(nabavka, nabavka.getDobavljac(), nabavka.getStavke(), request));
+        }
+
+        List<PorudzbenicaDto> kreirane = new ArrayList<>();
+        for (var entry : grupe.entrySet()) {
+            if (porudzbenicaRepository.existsByNabavkaNabavkaIdAndDobavljacDobavljacId(
+                    request.getNabavkaId(), entry.getKey())) {
+                continue;
+            }
+            Dobavljac dobavljac = entry.getValue().getFirst().getCenovnik().getDobavljac();
+            kreirane.add(kreirajPorudzbenicu(nabavka, dobavljac, entry.getValue(), request));
+        }
+
+        if (kreirane.isEmpty()) {
+            throw new RuntimeException("Porudžbenice za sve dobavljače u nabavci već postoje.");
+        }
+        return kreirane;
+    }
+
+    private PorudzbenicaDto kreirajPorudzbenicu(
+            Nabavka nabavka,
+            Dobavljac dobavljac,
+            List<StavkaNabavke> stavkeNabavke,
+            GenerisiPorudzbenicuRequestDto request
+    ) {
         Porudzbenica porudzbenica = Porudzbenica.builder()
                 .nabavka(nabavka)
-                .dobavljac(nabavka.getDobavljac())
+                .dobavljac(dobavljac)
                 .brojPorudzbenice(generisiBrojPorudzbenice())
                 .status(StatusPorudzbenice.KREIRANA)
                 .rokIsporuke(request.getRokIsporuke())
@@ -64,12 +96,10 @@ public class PorudzbenicaService {
                 .build();
 
         Porudzbenica saved = porudzbenicaRepository.saveAndFlush(porudzbenica);
-        kopirajStavkeIzNabavke(saved, nabavka);
+        kopirajStavke(saved, stavkeNabavke, nabavka.getNabavkaId());
         recalculateTotal(saved);
         saved = porudzbenicaRepository.saveAndFlush(saved);
-
         syncNabavkaStatus(saved, StatusPorudzbenice.KREIRANA);
-
         return getById(saved.getPorudzbenicaId());
     }
 
@@ -115,9 +145,9 @@ public class PorudzbenicaService {
                 .orElseThrow(() -> new RuntimeException("Porudžbenica nije pronadjena sa id: " + id));
     }
 
-    private void kopirajStavkeIzNabavke(Porudzbenica porudzbenica, Nabavka nabavka) {
+    private void kopirajStavke(Porudzbenica porudzbenica, List<StavkaNabavke> stavkeNabavke, Long nabavkaId) {
         AtomicInteger rb = new AtomicInteger(1);
-        for (StavkaNabavke sn : nabavka.getStavke()) {
+        for (StavkaNabavke sn : stavkeNabavke) {
             StavkaPorudzbenice stavka = StavkaPorudzbenice.builder()
                     .id(new StavkaPorudzbeniceId(porudzbenica.getPorudzbenicaId(), rb.getAndIncrement()))
                     .porudzbenica(porudzbenica)
@@ -125,7 +155,7 @@ public class PorudzbenicaService {
                     .kolicina(sn.getKolicina())
                     .jedinicnaCena(sn.getJedinicnaCena())
                     .ukupnaCena(sn.getUkupnaCena())
-                    .razlogPotrebe("Stavka iz nabavke #" + nabavka.getNabavkaId())
+                    .razlogPotrebe("Stavka iz nabavke #" + nabavkaId)
                     .build();
             porudzbenica.getStavke().add(stavka);
         }

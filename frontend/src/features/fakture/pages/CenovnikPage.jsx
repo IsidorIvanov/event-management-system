@@ -23,6 +23,13 @@ function formatMoney(value) {
   return Number(value || 0).toLocaleString('sr-Latn', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function formatPredlog(c, aktuelna) {
+  if (c == null || Number(c) === Number(aktuelna)) return '—';
+  const diff = Number(c) - Number(aktuelna);
+  const sign = diff > 0 ? '+' : '';
+  return `${formatMoney(c)} (${sign}${diff.toLocaleString('sr-Latn', { maximumFractionDigits: 0 })})`;
+}
+
 export default function CenovnikPage() {
   const toast = useToast();
   const [stavke, setStavke] = useState([]);
@@ -132,7 +139,7 @@ export default function CenovnikPage() {
       <div className="program-header">
         <div>
           <h1>Cenovnik</h1>
-          <p className="page-subtitle">Katalog resursa i cena po dobavljaču</p>
+          <p className="page-subtitle">Katalog resursa i cena po dobavljaču — predložena cena se računa na osnovu potražnje u celom projektu</p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <Link to="/dashboard/dobavljaci" className="btn btn-outline btn-sm">Dobavljači</Link>
@@ -187,19 +194,40 @@ export default function CenovnikPage() {
         </div>
         <table className="events-table">
           <thead>
-            <tr><th>RESURS</th><th>DOBAVLJAČ</th><th>CENA</th><th>JED.</th><th>DOSTUPNO</th><th>AKCIJE</th></tr>
+            <tr>
+              <th>RESURS</th>
+              <th>DOBAVLJAČ</th>
+              <th>AKTUELNA CENA</th>
+              <th>PREDLOŽENA CENA</th>
+              <th>POTRAŽNJA</th>
+              <th>JED.</th>
+              <th>DOSTUPNO</th>
+              <th>AKCIJE</th>
+            </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }}>Učitavanje...</td></tr>
+              <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem' }}>Učitavanje...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }}>Nema stavki.</td></tr>
+              <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem' }}>Nema stavki.</td></tr>
             ) : (
               filtered.map((s) => (
                 <tr key={s.cenovnikId}>
                   <td><span className="event-name-badge">{s.nazivResursa}</span></td>
                   <td>{s.dobavljacNaziv}</td>
                   <td>{formatMoney(s.cenaJedinicna)} RSD</td>
+                  <td title={s.praviloPredloga || ''}>
+                    {formatPredlog(s.predlozenaCena, s.cenaJedinicna)}
+                  </td>
+                  <td style={{ fontSize: '0.85rem', maxWidth: 220 }}>
+                    {s.potraznjaIndeksProcenat != null ? (
+                      <>
+                        indeks {s.potraznjaIndeksProcenat}%
+                        {s.ukupnaPotraznjaKolicina != null && ` · ${s.ukupnaPotraznjaKolicina} kom`}
+                        {s.brojDogadjajaSaPotrebom > 0 && ` · ${s.brojDogadjajaSaPotrebom} događ.`}
+                      </>
+                    ) : '—'}
+                  </td>
                   <td>{s.jedinicaMere}</td>
                   <td>{s.dostupnost ? 'Da' : 'Ne'}</td>
                   <td>

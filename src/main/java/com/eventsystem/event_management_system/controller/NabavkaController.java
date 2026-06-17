@@ -1,6 +1,7 @@
 package com.eventsystem.event_management_system.controller;
 
 import com.eventsystem.event_management_system.dto.*;
+import com.eventsystem.event_management_system.service.AlokacijaNabavkeService;
 import com.eventsystem.event_management_system.service.DobavljacKontaktService;
 import com.eventsystem.event_management_system.service.DobavljacSelekcijaService;
 import com.eventsystem.event_management_system.service.NabavkaService;
@@ -21,6 +22,7 @@ public class NabavkaController {
     private final NabavkaService nabavkaService;
     private final DobavljacSelekcijaService selekcijaService;
     private final DobavljacKontaktService kontaktService;
+    private final AlokacijaNabavkeService alokacijaNabavkeService;
 
     @GetMapping("")
     public ResponseEntity<List<NabavkaDto>> getAll() {
@@ -59,6 +61,30 @@ public class NabavkaController {
             @Valid @RequestBody AutomatskaSelekcijaRequestDto request
     ) {
         return ResponseEntity.ok(selekcijaService.predloziDobavljaca(request));
+    }
+
+    @PostMapping("/selekcija/predlog-detaljno")
+    public ResponseEntity<SelekcijaDobavljacaResponseDto> predloziSaAlternativama(
+            @Valid @RequestBody AutomatskaSelekcijaRequestDto request
+    ) {
+        return ResponseEntity.ok(selekcijaService.predloziSaAlternativama(request));
+    }
+
+    @PostMapping("/alokacija/optimizuj")
+    public ResponseEntity<PlanAlokacijeDto> optimizujAlokaciju(
+            @Valid @RequestBody OptimizujAlokacijuRequestDto request
+    ) {
+        return ResponseEntity.ok(alokacijaNabavkeService.optimizuj(request.getPotrebneStavke()));
+    }
+
+    @PostMapping("/alokacija/primeni")
+    public ResponseEntity<PlanAlokacijeDto> primeniAlokaciju(
+            @Valid @RequestBody OptimizujAlokacijuRequestDto request
+    ) {
+        if (request.getNabavkaId() == null) {
+            throw new RuntimeException("ID nabavke je obavezan za primenu alokacije.");
+        }
+        return ResponseEntity.ok(alokacijaNabavkeService.primeni(request.getNabavkaId(), request.getPotrebneStavke()));
     }
 
     @PostMapping("/selekcija/primeni")

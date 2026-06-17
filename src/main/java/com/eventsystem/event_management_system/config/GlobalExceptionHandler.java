@@ -78,11 +78,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
-        log.error("Unexpected error", ex);
+        log.error("Runtime error: {}", ex.getMessage(), ex);
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now().toString());
-        body.put("status", 500);
-        body.put("error", "Interna greška servera");
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+        body.put("status", 400);
+        body.put("error", ex.getMessage() != null ? ex.getMessage() : "Greška pri obradi zahteva");
+        return ResponseEntity.badRequest().body(body);
     }
 }

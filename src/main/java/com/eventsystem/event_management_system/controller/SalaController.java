@@ -1,8 +1,8 @@
 package com.eventsystem.event_management_system.controller;
 
-import com.eventsystem.event_management_system.dto.SalaDto;
-import com.eventsystem.event_management_system.dto.SalaDostupnostResponseDto;
-import com.eventsystem.event_management_system.dto.SalaUpdateDto;
+import com.eventsystem.event_management_system.dto.*;
+import com.eventsystem.event_management_system.service.AlokacijaSaleService;
+import com.eventsystem.event_management_system.service.DinamickoCeneService;
 import com.eventsystem.event_management_system.service.SalaDostupnostService;
 import com.eventsystem.event_management_system.service.SalaService;
 import jakarta.validation.Valid;
@@ -21,6 +21,8 @@ public class SalaController {
 
     private final SalaService salaService;
     private final SalaDostupnostService salaDostupnostService;
+    private final AlokacijaSaleService alokacijaSaleService;
+    private final DinamickoCeneService dinamickoCeneService;
 
     @GetMapping("/dostupnost")
     public ResponseEntity<SalaDostupnostResponseDto> getDostupnost(
@@ -28,6 +30,33 @@ public class SalaController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate datumOd,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate datumDo) {
         return ResponseEntity.ok(salaDostupnostService.getDostupnost(lokacijaId, datumOd, datumDo));
+    }
+
+    @GetMapping("/predlog")
+    public ResponseEntity<PredlogSalaResponseDto> predlogZaSesiju(@RequestParam Long sesijaId) {
+        return ResponseEntity.ok(alokacijaSaleService.predlogZaSesiju(sesijaId));
+    }
+
+    @PostMapping("/predlog")
+    public ResponseEntity<PredlogSalaResponseDto> predlogZaParametre(
+            @Valid @RequestBody PredlogSalaRequestDto request) {
+        return ResponseEntity.ok(alokacijaSaleService.predlogZaParametre(request));
+    }
+
+    @GetMapping("/{lokacijaId}/{nazivSale}/cena/predlog")
+    public ResponseEntity<PredlogCeneSaleDto> predlogCeneSale(
+            @PathVariable Long lokacijaId,
+            @PathVariable String nazivSale,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate datum) {
+        return ResponseEntity.ok(dinamickoCeneService.predlogCeneSale(lokacijaId, nazivSale, datum));
+    }
+
+    @PatchMapping("/{lokacijaId}/{nazivSale}/cena")
+    public ResponseEntity<PredlogCeneSaleDto> primeniCenuSale(
+            @PathVariable Long lokacijaId,
+            @PathVariable String nazivSale,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate datum) {
+        return ResponseEntity.ok(dinamickoCeneService.primeniCenuSale(lokacijaId, nazivSale, datum));
     }
 
     @GetMapping("")

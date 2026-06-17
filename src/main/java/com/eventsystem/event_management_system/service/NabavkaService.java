@@ -35,7 +35,7 @@ public class NabavkaService {
 
     @Transactional(readOnly = true)
     public List<NabavkaDto> getByDogadjaj(Long dogadjajId) {
-        return nabavkaRepository.findByDogadjajDogadjajIdOrderByKreiranAtDesc(dogadjajId).stream()
+        return nabavkaRepository.findByDogadjajWithStavke(dogadjajId).stream()
                 .map(this::toDto)
                 .toList();
     }
@@ -195,6 +195,10 @@ public class NabavkaService {
                 .ukupnaCena(s.getUkupnaCena())
                 .opis(s.getOpis())
                 .cenovnikId(s.getCenovnik() != null ? s.getCenovnik().getCenovnikId() : null)
+                .dobavljacId(s.getCenovnik() != null && s.getCenovnik().getDobavljac() != null
+                        ? s.getCenovnik().getDobavljac().getDobavljacId() : null)
+                .dobavljacNaziv(s.getCenovnik() != null && s.getCenovnik().getDobavljac() != null
+                        ? s.getCenovnik().getDobavljac().getNaziv() : null)
                 .build();
     }
 }

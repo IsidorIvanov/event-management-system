@@ -1,6 +1,9 @@
 package com.eventsystem.event_management_system.controller;
 
+import com.eventsystem.event_management_system.dto.PrimeniCenuRequestDto;
+import com.eventsystem.event_management_system.dto.PredlogCeneKarteDto;
 import com.eventsystem.event_management_system.dto.TipKarteDto;
+import com.eventsystem.event_management_system.service.DinamickoCeneService;
 import com.eventsystem.event_management_system.service.TipKarteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +18,7 @@ import java.util.List;
 public class TipKarteController {
 
     private final TipKarteService tipKarteService;
+    private final DinamickoCeneService dinamickoCeneService;
 
     @PostMapping("")
     public ResponseEntity<TipKarteDto> createTipKarte(@Valid @RequestBody TipKarteDto tipKarteDto) {
@@ -35,6 +39,15 @@ public class TipKarteController {
             @PathVariable String nazivTipa) {
         tipKarteService.deleteTipKarte(dogadjajId, nazivTipa);
         return ResponseEntity.ok("Tip karte '" + nazivTipa + "' za događaj " + dogadjajId + " uspešno obrisan.");
+    }
+
+    @PatchMapping("/{dogadjajId}/{nazivTipa}/cena")
+    public ResponseEntity<PredlogCeneKarteDto> primeniCenu(
+            @PathVariable Long dogadjajId,
+            @PathVariable String nazivTipa,
+            @Valid @RequestBody PrimeniCenuRequestDto request) {
+        return ResponseEntity.ok(dinamickoCeneService.primeniCenuKarte(
+                dogadjajId, nazivTipa, request.getCena()));
     }
 
     @GetMapping("/dogadjaj/{dogadjajId}")

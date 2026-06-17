@@ -2,8 +2,10 @@ package com.eventsystem.event_management_system.controller;
 
 import com.eventsystem.event_management_system.dto.DogadjajDto;
 import com.eventsystem.event_management_system.dto.DogadjajResponseDto;
+import com.eventsystem.event_management_system.dto.PredlogCeneDogadjajaDto;
 import com.eventsystem.event_management_system.dto.SredstvaDogadjajaDto;
 import com.eventsystem.event_management_system.dto.ZauzetiTerminDto;
+import com.eventsystem.event_management_system.service.DinamickoCeneService;
 import com.eventsystem.event_management_system.service.DogadjajService;
 import com.eventsystem.event_management_system.service.SredstvaDogadjajaService;
 import jakarta.validation.Valid;
@@ -20,6 +22,7 @@ public class DogadjajController {
 
     private final DogadjajService dogadjajService;
     private final SredstvaDogadjajaService sredstvaDogadjajaService;
+    private final DinamickoCeneService dinamickoCeneService;
 
     @GetMapping("")
     public ResponseEntity<List<DogadjajResponseDto>> getAllDogadjaji() {
@@ -36,6 +39,11 @@ public class DogadjajController {
             @RequestParam Long lokacijaId,
             @RequestParam(required = false) Long excludeId) {
         return ResponseEntity.ok(dogadjajService.getZauzetiTermini(lokacijaId, excludeId));
+    }
+
+    @GetMapping("/{id}/cene/predlog")
+    public ResponseEntity<PredlogCeneDogadjajaDto> getPredlogCenaKarata(@PathVariable Long id) {
+        return ResponseEntity.ok(dinamickoCeneService.predlogCenaKarata(id));
     }
 
     @GetMapping("/{id}/sredstva")

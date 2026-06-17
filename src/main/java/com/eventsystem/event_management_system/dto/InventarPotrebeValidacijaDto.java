@@ -31,6 +31,7 @@ public class InventarPotrebeValidacijaDto {
         private String nazivResursa;
         private Integer potrebnaKolicina;
         private Integer dostupnoNaStanju;
+        private Integer dodeljenoDogadjaju;
         private boolean pokriveno;
     }
 }

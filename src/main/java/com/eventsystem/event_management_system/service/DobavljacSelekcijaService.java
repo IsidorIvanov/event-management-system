@@ -28,8 +28,23 @@ public class DobavljacSelekcijaService {
         return izracunajPredlog(request.getKriterijum(), request.getPotrebneStavke());
     }
 
+    @Transactional(readOnly = true)
+    public SelekcijaDobavljacaResponseDto predloziSaAlternativama(AutomatskaSelekcijaRequestDto request) {
+        List<PredlogDobavljacaDto> svi = izracunajSvePredloge(request.getKriterijum(), request.getPotrebneStavke());
+        if (svi.isEmpty()) {
+            throw new RuntimeException("Nema dostupnih ponuda u cenovniku za trazene stavke.");
+        }
+        return SelekcijaDobavljacaResponseDto.builder()
+                .predlog(svi.getFirst())
+                .alternative(svi.size() > 1 ? svi.subList(1, svi.size()) : List.of())
+                .build();
+    }
+
     @Transactional
     public PredlogDobavljacaDto primeniAutomatskuSelekciju(AutomatskaSelekcijaRequestDto request) {
+        if (request.getNabavkaId() == null) {
+            throw new RuntimeException("ID nabavke je obavezan za primenu selekcije.");
+        }
         PredlogDobavljacaDto predlog = izracunajPredlog(request.getKriterijum(), request.getPotrebneStavke());
         Nabavka nabavka = nabavkaService.findEntityWithDetalji(request.getNabavkaId());
 
@@ -56,20 +71,7 @@ public class DobavljacSelekcijaService {
             KriterijumSelekcijeDobavljaca kriterijum,
             List<PotrebnaStavkaDto> potrebne
     ) {
-        Map<Long, SupplierScore> scores = new HashMap<>();
-        List<Cenovnik> svePonude = cenovnikRepository.findSveDostupne();
-
-        for (PotrebnaStavkaDto potrebna : potrebne) {
-            List<Cenovnik> ponude = svePonude.stream()
-                    .filter(c -> TekstNormalizacija.naziviSePodudaraju(c.getNazivResursa(), potrebna.getNazivResursa()))
-                    .toList();
-            for (Cenovnik cenovnik : ponude) {
-                Long dobavljacId = cenovnik.getDobavljac().getDobavljacId();
-                SupplierScore score = scores.computeIfAbsent(dobavljacId, id -> new SupplierScore(cenovnik.getDobavljac()));
-                BigDecimal ukupno = cenovnik.getCenaJedinicna().multiply(BigDecimal.valueOf(potrebna.getKolicina()));
-                score.dodajStavku(potrebna.getNazivResursa(), potrebna.getKolicina(), cenovnik, ukupno);
-            }
-        }
+        Map<Long, SupplierScore> scores = buildScores(potrebne);
 
         if (scores.isEmpty()) {
             throw new RuntimeException("Nema dostupnih ponuda u cenovniku za trazene stavke.");
@@ -85,6 +87,36 @@ public class DobavljacSelekcijaService {
                 scores.values().stream().min(comparatorZa(kriterijum)).orElseThrow());
 
         return izabrani.toPredlog(kriterijum, pokrivaSve);
+    }
+
+    private List<PredlogDobavljacaDto> izracunajSvePredloge(
+            KriterijumSelekcijeDobavljaca kriterijum,
+            List<PotrebnaStavkaDto> potrebne
+    ) {
+        Map<Long, SupplierScore> scores = buildScores(potrebne);
+        int ukupnoStavki = potrebne.size();
+        return scores.values().stream()
+                .sorted(comparatorZa(kriterijum))
+                .map(s -> s.toPredlog(kriterijum, s.pokriveneStavke == ukupnoStavki))
+                .toList();
+    }
+
+    private Map<Long, SupplierScore> buildScores(List<PotrebnaStavkaDto> potrebne) {
+        Map<Long, SupplierScore> scores = new HashMap<>();
+        List<Cenovnik> svePonude = cenovnikRepository.findSveDostupne();
+
+        for (PotrebnaStavkaDto potrebna : potrebne) {
+            List<Cenovnik> ponude = svePonude.stream()
+                    .filter(c -> TekstNormalizacija.naziviSePodudaraju(c.getNazivResursa(), potrebna.getNazivResursa()))
+                    .toList();
+            for (Cenovnik cenovnik : ponude) {
+                Long dobavljacId = cenovnik.getDobavljac().getDobavljacId();
+                SupplierScore score = scores.computeIfAbsent(dobavljacId, id -> new SupplierScore(cenovnik.getDobavljac()));
+                BigDecimal ukupno = cenovnik.getCenaJedinicna().multiply(BigDecimal.valueOf(potrebna.getKolicina()));
+                score.dodajStavku(potrebna.getNazivResursa(), potrebna.getKolicina(), cenovnik, ukupno);
+            }
+        }
+        return scores;
     }
 
     private Comparator<SupplierScore> comparatorZa(KriterijumSelekcijeDobavljaca kriterijum) {

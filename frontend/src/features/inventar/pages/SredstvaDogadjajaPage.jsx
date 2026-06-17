@@ -16,6 +16,9 @@ export default function SredstvaDogadjajaPage() {
   const [sredstva, setSredstva] = useState(null);
   const [validacija, setValidacija] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [predlogAlokacije, setPredlogAlokacije] = useState(null);
+  const [predlogLoading, setPredlogLoading] = useState(false);
+  const [primenaLoading, setPrimenaLoading] = useState(false);
 
   useEffect(() => {
     api.get('/dogadjaj').then((res) => setDogadjaji(res.data)).catch(() => toast('Greška pri učitavanju događaja.', 'error'));
@@ -41,8 +44,55 @@ export default function SredstvaDogadjajaPage() {
   }, [toast]);
 
   useEffect(() => {
+    setPredlogAlokacije(null);
     if (selectedId) load(selectedId);
   }, [selectedId, load]);
+
+  const handlePredlogAlokacije = async () => {
+    if (!selectedId) return;
+    setPredlogLoading(true);
+    setPredlogAlokacije(null);
+    try {
+      const res = await inventarApi.getPredlogAlokacijeOpreme(selectedId);
+      setPredlogAlokacije(res.data);
+      if (res.data.stavke?.length === 0) {
+        toast('Nema detektovanih potreba za alokaciju.', 'warning');
+      }
+    } catch (err) {
+      toast(extractError(err), 'error');
+    } finally {
+      setPredlogLoading(false);
+    }
+  };
+
+  const handleOdbijPredlog = () => {
+    setPredlogAlokacije(null);
+    toast('Predlog alokacije odbijen.', 'info');
+  };
+
+  const handlePrihvatiPredlog = async () => {
+    if (!selectedId || !predlogAlokacije) return;
+    const imaNove = predlogAlokacije.stavke?.some((s) => s.pokriveno && s.predlozenaKolicina > 0);
+    if (!imaNove) {
+      toast('Nema novih stavki za rezervaciju — potrebe su već pokrivene ili nema zaliha.', 'warning');
+      setPredlogAlokacije(null);
+      return;
+    }
+    setPrimenaLoading(true);
+    try {
+      const res = await inventarApi.primeniAlokacijuOpreme(selectedId);
+      const broj = res.data.kreiraneDodele?.length || 0;
+      toast(`Alokacija prihvaćena — kreirano ${broj} rezervacija opreme.`, 'success');
+      setPredlogAlokacije(null);
+      await load(selectedId);
+    } catch (err) {
+      toast(extractError(err), 'error');
+    } finally {
+      setPrimenaLoading(false);
+    }
+  };
+
+  const stavkeZaPrikaz = predlogAlokacije?.stavke?.filter((s) => s.predlozenaKolicina > 0 || !s.pokriveno || s.vecDodeljeno > 0) || [];
 
   return (
     <div className="program-page">
@@ -63,6 +113,112 @@ export default function SredstvaDogadjajaPage() {
           ))}
         </select>
       </div>
+
+      {selectedId && (
+        <div className="events-table-card" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <h2 style={{ margin: 0 }}>Optimizacija alokacije opreme</h2>
+              <p className="validacija-meta" style={{ marginTop: '0.35rem' }}>
+                Sistem detektuje potrebe događaja i predlaže dodelu iz inventara.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={handlePredlogAlokacije}
+              disabled={predlogLoading || primenaLoading}
+              style={{ width: 'auto' }}
+            >
+              {predlogLoading ? 'Računam...' : 'Predloži alokaciju opreme'}
+            </button>
+          </div>
+
+          {predlogAlokacije && (
+            <div style={{ marginTop: '1.25rem' }}>
+              <p className="validacija-meta" style={{ marginBottom: '0.75rem' }}>
+                <strong>{predlogAlokacije.dogadjajNaziv}</strong>
+                {' · '}{predlogAlokacije.pokrivenoStavki}/{predlogAlokacije.ukupnoPotreba} potreba pokriveno
+                {predlogAlokacije.svePokriveno ? ' ✓' : ' (delimično)'}
+              </p>
+
+              {predlogAlokacije.upozorenja?.length > 0 && (
+                <ul className="validacija-lista" style={{ marginBottom: '0.75rem' }}>
+                  {predlogAlokacije.upozorenja.map((u, i) => <li key={i}>{u}</li>)}
+                </ul>
+              )}
+
+              <table className="events-table">
+                <thead>
+                  <tr>
+                    <th>POTREBA</th>
+                    <th>POTREBNO</th>
+                    <th>VEĆ DODELJENO</th>
+                    <th>PREDLOG</th>
+                    <th>OPREMA (INVENTAR)</th>
+                    <th>PERIOD</th>
+                    <th>STATUS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stavkeZaPrikaz.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '1rem' }}>
+                        Nema stavki u predlogu.
+                      </td>
+                    </tr>
+                  ) : (
+                    stavkeZaPrikaz.map((s, i) => (
+                      <tr key={`${s.nazivPotrebe}-${s.opremaId || i}`}>
+                        <td>{s.nazivPotrebe}</td>
+                        <td>{s.potrebnaKolicina}</td>
+                        <td>{s.vecDodeljeno || 0}</td>
+                        <td>{s.predlozenaKolicina > 0 ? `+${s.predlozenaKolicina}` : '—'}</td>
+                        <td>{s.opremaNaziv || '—'}</td>
+                        <td>{s.datumOd && s.datumDo ? `${s.datumOd} → ${s.datumDo}` : '—'}</td>
+                        <td>
+                          {s.pokriveno ? (
+                            <span style={{ color: 'var(--success, #15803d)' }}>Pokriveno</span>
+                          ) : (
+                            <span style={{ color: 'var(--warning, #b45309)' }}>Nedostaje</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+
+              {stavkeZaPrikaz.some((s) => s.obrazlozenje) && (
+                <ul className="validacija-meta" style={{ marginTop: '0.75rem', fontSize: '0.85rem' }}>
+                  {stavkeZaPrikaz.filter((s) => s.obrazlozenje).map((s, i) => (
+                    <li key={i}>{s.obrazlozenje}</li>
+                  ))}
+                </ul>
+              )}
+
+              <div className="porudzbenice-actions" style={{ marginTop: '1rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={handlePrihvatiPredlog}
+                  disabled={primenaLoading}
+                >
+                  {primenaLoading ? 'Primena...' : 'Prihvati predlog'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={handleOdbijPredlog}
+                  disabled={primenaLoading}
+                >
+                  Odbij
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {loading && <p style={{ padding: '1rem' }}>Učitavanje...</p>}
 

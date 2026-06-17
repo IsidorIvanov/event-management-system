@@ -29,4 +29,8 @@ public class StavkaNabavkeDto {
     private String opis;
 
     private Long cenovnikId;
+
+    private Long dobavljacId;
+
+    private String dobavljacNaziv;
 }

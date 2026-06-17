@@ -1,9 +1,7 @@
 package com.eventsystem.event_management_system.dto;
 
-import com.eventsystem.event_management_system.utils.enums.KriterijumSelekcijeDobavljaca;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.util.List;
@@ -13,12 +11,8 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class AutomatskaSelekcijaRequestDto {
+public class OptimizujAlokacijuRequestDto {
 
-    @NotNull(message = "Kriterijum selekcije je obavezan")
-    private KriterijumSelekcijeDobavljaca kriterijum;
-
-    /** Obavezan samo za primenu selekcije na postojeću nabavku. */
     private Long nabavkaId;
 
     @NotEmpty(message = "Lista potrebnih stavki ne sme biti prazna")

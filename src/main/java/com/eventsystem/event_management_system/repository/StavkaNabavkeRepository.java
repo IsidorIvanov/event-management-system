@@ -25,4 +25,30 @@ public interface StavkaNabavkeRepository extends JpaRepository<StavkaNabavke, St
             @Param("dogadjajId") Long dogadjajId,
             @Param("statuses") Collection<StatusNabavke> statuses
     );
+
+    @Query("""
+            SELECT COALESCE(SUM(s.kolicina), 0)
+            FROM StavkaNabavke s
+            WHERE (s.cenovnik.cenovnikId = :cenovnikId
+                   OR LOWER(TRIM(s.nazivResursa)) = LOWER(TRIM(:nazivResursa)))
+              AND s.nabavka.status IN :statuses
+            """)
+    int sumPotraznjaKolicina(
+            @Param("cenovnikId") Long cenovnikId,
+            @Param("nazivResursa") String nazivResursa,
+            @Param("statuses") Collection<StatusNabavke> statuses
+    );
+
+    @Query("""
+            SELECT COUNT(DISTINCT s.nabavka.dogadjaj.dogadjajId)
+            FROM StavkaNabavke s
+            WHERE (s.cenovnik.cenovnikId = :cenovnikId
+                   OR LOWER(TRIM(s.nazivResursa)) = LOWER(TRIM(:nazivResursa)))
+              AND s.nabavka.status IN :statuses
+            """)
+    int countDogadjajiSaPotrebom(
+            @Param("cenovnikId") Long cenovnikId,
+            @Param("nazivResursa") String nazivResursa,
+            @Param("statuses") Collection<StatusNabavke> statuses
+    );
 }

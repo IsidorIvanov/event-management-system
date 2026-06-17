@@ -14,3 +14,6 @@ export const deleteSala = (lokacijaId, nazivSale) =>
 
 export const getDostupnost = (lokacijaId, datumOd, datumDo) =>
   api.get('/sala/dostupnost', { params: { lokacijaId, datumOd, datumDo } });
+
+export const getPredlogCeneSale = (lokacijaId, nazivSale, datum) =>
+  api.get(`/sala/${lokacijaId}/${encodeURIComponent(nazivSale)}/cena/predlog`, { params: { datum } });

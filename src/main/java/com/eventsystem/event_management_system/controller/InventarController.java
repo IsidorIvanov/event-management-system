@@ -3,6 +3,9 @@ package com.eventsystem.event_management_system.controller;
 import com.eventsystem.event_management_system.dto.DodelaOpremeDto;
 import com.eventsystem.event_management_system.dto.InventarKretanjeDto;
 import com.eventsystem.event_management_system.dto.InventarPotrebeValidacijaDto;
+import com.eventsystem.event_management_system.dto.PlanAlokacijeOpremeDto;
+import com.eventsystem.event_management_system.dto.PrimeniAlokacijuOpremeResponseDto;
+import com.eventsystem.event_management_system.service.AlokacijaOpremeService;
 import com.eventsystem.event_management_system.service.DodelaOpremeService;
 import com.eventsystem.event_management_system.service.InventarPotrebeService;
 import com.eventsystem.event_management_system.service.InventarService;
@@ -22,6 +25,7 @@ public class InventarController {
     private final InventarService inventarService;
     private final DodelaOpremeService dodelaOpremeService;
     private final InventarPotrebeService inventarPotrebeService;
+    private final AlokacijaOpremeService alokacijaOpremeService;
 
     @PostMapping("/prijem/porudzbenica/{porudzbenicaId}")
     public ResponseEntity<List<InventarKretanjeDto>> primiIzPorudzbenice(@PathVariable Long porudzbenicaId) {
@@ -71,5 +75,15 @@ public class InventarController {
     @GetMapping("/potrebe/dogadjaj/{dogadjajId}")
     public ResponseEntity<InventarPotrebeValidacijaDto> validirajPotrebe(@PathVariable Long dogadjajId) {
         return ResponseEntity.ok(inventarPotrebeService.validirajPotrebeInventarom(dogadjajId));
+    }
+
+    @GetMapping("/alokacija/dogadjaj/{dogadjajId}/predlog")
+    public ResponseEntity<PlanAlokacijeOpremeDto> predlogAlokacijeOpreme(@PathVariable Long dogadjajId) {
+        return ResponseEntity.ok(alokacijaOpremeService.predlogZaDogadjaj(dogadjajId));
+    }
+
+    @PostMapping("/alokacija/dogadjaj/{dogadjajId}/primeni")
+    public ResponseEntity<PrimeniAlokacijuOpremeResponseDto> primeniAlokacijuOpreme(@PathVariable Long dogadjajId) {
+        return ResponseEntity.ok(alokacijaOpremeService.primeni(dogadjajId));
     }
 }

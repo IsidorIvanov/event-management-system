@@ -8,6 +8,7 @@ import SalaKalendar, { formatDate, addDays } from '@/features/resursi/components
 import SesijaDetaljModal from '@/features/resursi/components/SesijaDetaljModal';
 import * as lokacijaApi from '@/features/resursi/services/lokacijaService';
 import * as salaApi from '@/features/resursi/services/salaService';
+import * as optimizacijaApi from '@/features/optimizacija/services/optimizacijaService';
 import * as sesijaApi from '@/features/dogadjaji/services/sesijaService';
 
 function extractError(err) {
@@ -38,6 +39,18 @@ export default function ResursiPage() {
   const [sesijaDetaljError, setSesijaDetaljError] = useState(null);
   const [datumOd, setDatumOd] = useState(formatDate(new Date()));
   const [datumDo, setDatumDo] = useState(addDays(formatDate(new Date()), 6));
+  const [predlogCeneSale, setPredlogCeneSale] = useState(null);
+  const [primenaCeneLoading, setPrimenaCeneLoading] = useState(false);
+
+  const loadPredlogCeneSale = useCallback(async (lokacijaId, nazivSale, datum) => {
+    if (!lokacijaId || !nazivSale || !datum) return;
+    try {
+      const res = await optimizacijaApi.getPredlogCeneSale(lokacijaId, nazivSale, datum);
+      setPredlogCeneSale(res.data);
+    } catch {
+      setPredlogCeneSale(null);
+    }
+  }, []);
 
   const loadLokacije = useCallback(async () => {
     setLoading(true);
@@ -91,12 +104,35 @@ export default function ResursiPage() {
   const handleSelectSala = (sala) => {
     setSelectedSala({ lokacijaId: sala.lokacijaId, nazivSale: sala.nazivSale });
     setDostupnost(null);
+    setPredlogCeneSale(null);
     loadDostupnost(sala.lokacijaId, sala.nazivSale);
+    loadPredlogCeneSale(sala.lokacijaId, sala.nazivSale, datumOd);
   };
 
   const handlePrikaziKalendar = () => {
     if (!selectedSala) return;
     loadDostupnost(selectedSala.lokacijaId, selectedSala.nazivSale);
+    loadPredlogCeneSale(selectedSala.lokacijaId, selectedSala.nazivSale, datumOd);
+  };
+
+  const handlePrimeniCenuSale = async () => {
+    if (!selectedSala || !predlogCeneSale) return;
+    setPrimenaCeneLoading(true);
+    setError(null);
+    try {
+      const res = await optimizacijaApi.primeniCenuSale(
+        selectedSala.lokacijaId,
+        selectedSala.nazivSale,
+        predlogCeneSale.datum || datumOd,
+      );
+      setPredlogCeneSale(res.data);
+      setMessage(`Bazna cena sale ažurirana na ${Number(res.data.predlozenaCenaPoDanu).toLocaleString('sr-Latn')} RSD/dan.`);
+      await loadLokacije();
+    } catch (err) {
+      setError(extractError(err));
+    } finally {
+      setPrimenaCeneLoading(false);
+    }
   };
 
   const closeModal = () => setModal(null);
@@ -255,6 +291,29 @@ export default function ResursiPage() {
                     <span className="kalendar-subtitle"> ({kalendarLokacija.naziv})</span>
                   )}
                 </h2>
+                {predlogCeneSale && (
+                  <div className="validacija-meta" style={{ marginTop: '0.35rem' }}>
+                    <p>
+                      Dinamička cena za {predlogCeneSale.datum}:{' '}
+                      <strong>{Number(predlogCeneSale.predlozenaCenaPoDanu).toLocaleString('sr-Latn')} RSD/dan</strong>
+                      {' '}(bazna {Number(predlogCeneSale.baznaCenaPoDanu).toLocaleString('sr-Latn')} · zauzetost {predlogCeneSale.zauzetostProcenat}%)
+                    </p>
+                    {predlogCeneSale.pravilo && (
+                      <p style={{ marginTop: '0.25rem' }}>{predlogCeneSale.pravilo}</p>
+                    )}
+                    {canManageSala && predlogCeneSale.promenaProcenat > 0 && (
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-sm"
+                        style={{ marginTop: '0.5rem', width: 'auto' }}
+                        onClick={handlePrimeniCenuSale}
+                        disabled={primenaCeneLoading}
+                      >
+                        {primenaCeneLoading ? 'Primena...' : 'Primeni predloženu cenu'}
+                      </button>
+                    )}
+                  </div>
+                )}
                 <div className="date-range">
                   <label>
                     Od

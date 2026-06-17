@@ -4,6 +4,7 @@ import api from '@/shared/services/api';
 import * as sesijaApi from '@/features/dogadjaji/services/sesijaService';
 import * as govornikApi from '@/features/dogadjaji/services/govornikService';
 import * as tipKarteApi from '@/features/dogadjaji/services/tipKarteService';
+import * as optimizacijaApi from '@/features/optimizacija/services/optimizacijaService';
 import * as registracijaApi from '@/features/dogadjaji/services/registracijaService';
 import UpsertEventModal from '@/features/dogadjaji/components/UpsertEventModal';
 import SesijaModal from '@/features/dogadjaji/components/SesijaModal';
@@ -678,6 +679,8 @@ function KarteTab({ event }) {
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null); // null | 'add' | tipKarte obj
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [predlogCena, setPredlogCena] = useState(null);
+  const [predlogLoading, setPredlogLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -692,6 +695,29 @@ function KarteTab({ event }) {
   };
 
   useEffect(() => { load(); }, [event.dogadjajId]);
+
+  const loadPredlogCena = async () => {
+    setPredlogLoading(true);
+    try {
+      const res = await optimizacijaApi.getPredlogCenaKarata(event.dogadjajId);
+      setPredlogCena(res.data);
+    } catch {
+      toast('Greška pri učitavanju predloga cena.', 'error');
+    } finally {
+      setPredlogLoading(false);
+    }
+  };
+
+  const handlePrimeniPredlogCenu = async (tip) => {
+    try {
+      await optimizacijaApi.primeniCenuKarte(event.dogadjajId, tip.nazivTipa, tip.predlozenaCena);
+      toast(`Cena za „${tip.nazivTipa}" ažurirana.`, 'success');
+      await load();
+      await loadPredlogCena();
+    } catch {
+      toast('Greška pri primeni cene.', 'error');
+    }
+  };
 
   const handleSave = async (data) => {
     try {
@@ -774,11 +800,46 @@ function KarteTab({ event }) {
 
       {/* Toolbar */}
       <div className="govornici-toolbar">
-        <div />
+        <button type="button" className="btn btn-outline btn-sm" onClick={loadPredlogCena} disabled={predlogLoading}>
+          {predlogLoading ? 'Računam...' : 'Dinamičke cene'}
+        </button>
         <button className="btn btn-primary" style={{ width: 'auto' }} onClick={() => setModal('add')}>
           + Dodaj tip karte
         </button>
       </div>
+
+      {predlogCena && (
+        <div className="events-table-card" style={{ marginBottom: '1rem' }}>
+          <div className="events-table-header">
+            <h2>Predlog cena po potražnji</h2>
+            <span className="validacija-meta">
+              Popunjenost: {predlogCena.popunjenostProcenat}% · {predlogCena.danaDoDogadjaja} dana do događaja
+            </span>
+          </div>
+          <table className="events-table">
+            <thead>
+              <tr><th>TIP</th><th>TRENUTNO</th><th>PREDLOG</th><th>PRAVILO</th><th></th></tr>
+            </thead>
+            <tbody>
+              {(predlogCena.tipoviKarata || []).map((t) => (
+                <tr key={t.nazivTipa}>
+                  <td>{t.nazivTipa}</td>
+                  <td>{Number(t.trenutnaCena).toLocaleString('sr-Latn')} RSD</td>
+                  <td>{Number(t.predlozenaCena).toLocaleString('sr-Latn')} RSD ({t.promenaProcenat > 0 ? '+' : ''}{t.promenaProcenat}%)</td>
+                  <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t.pravilo}</td>
+                  <td>
+                    {Number(t.predlozenaCena) !== Number(t.trenutnaCena) && (
+                      <button type="button" className="btn btn-outline btn-xs" onClick={() => handlePrimeniPredlogCenu(t)}>
+                        Primeni
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* List */}
       {loading ? (
