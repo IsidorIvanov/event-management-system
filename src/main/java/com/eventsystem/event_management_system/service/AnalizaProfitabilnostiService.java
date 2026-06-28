@@ -31,6 +31,24 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Agregacija profitabilnosti događaja pri finalizaciji.
+ *
+ * <h2>Izvori prihoda</h2>
+ * <ul>
+ *   <li>Registracije (B2C) — suma cena potvrđenih karata</li>
+ *   <li>Izlazne fakture (B2B) — suma placeniIznos za plaćene izlazne fakture</li>
+ * </ul>
+ * Kanali su disjunktni: ista prodaja ne ulazi i kroz registraciju i kroz fakturu
+ * (nema registracijaId na fakturi).
+ *
+ * <h2>Izvori troška</h2>
+ * <ul>
+ *   <li>Trosak NETO — realizovan rashod na budžetu (AUTO_ULAZNA, ručni/gotovinski)</li>
+ *   <li>Govornik.honorar — honorari govornika (ne duplirati kao ručni Trosak)</li>
+ *   <li>StavkaNabavke — commitovaniTrosak (informativno, van ukupanTrosak i rezultatOcene)</li>
+ * </ul>
+ */
 @Service
 @RequiredArgsConstructor
 public class AnalizaProfitabilnostiService {
@@ -139,6 +157,7 @@ public class AnalizaProfitabilnostiService {
                 .toList();
     }
 
+    /** Vidi class-level JavaDoc — Izvori prihoda. */
     private BigDecimal calculateUkupanPrihod(Long dogadjajId) {
         return money(registracijaRepository.sumPrihodOdRegistracija(dogadjajId))
                 .add(money(fakturaRepository.sumNetoIzlazniPrihodByDogadjaj(dogadjajId)))
@@ -146,20 +165,23 @@ public class AnalizaProfitabilnostiService {
                 .setScale(MONEY_SCALE, RoundingMode.HALF_EVEN);
     }
 
+    /**
+     * Realizovan trošak: Trosak NETO + honorari govornika.
+     * Honorar se evidentira isključivo kroz {@code Govornik.honorar}; operativno se ne knjiži
+     * ponovo kao ručni Trosak. Duplo knjiženje nije tehnički blokirano u P1.
+     */
     private BigDecimal calculateUkupanTrosak(Long dogadjajId) {
-        return money(stavkaNabavkeRepository.sumTrosakStavkiNabavke(dogadjajId, COMMITTED_NABAVKA_STATUSES))
+        return money(trosakRepository.sumNetoByDogadjaj(dogadjajId))
                 .add(money(govornikRepository.sumHonorarByDogadjaj(dogadjajId)))
-                .add(money(trosakRepository.sumNetoByDogadjaj(dogadjajId)))
-                .add(sumTrosakRezervacijaPlaceholder(dogadjajId))
+                .setScale(MONEY_SCALE, RoundingMode.HALF_EVEN);
+    }
+
+    private BigDecimal calculateCommitovaniTrosak(Long dogadjajId) {
+        return money(stavkaNabavkeRepository.sumTrosakStavkiNabavke(dogadjajId, COMMITTED_NABAVKA_STATUSES))
                 .setScale(MONEY_SCALE, RoundingMode.HALF_EVEN);
     }
 
     private BigDecimal sumPrihodSponzorstvaPlaceholder(Long dogadjajId) {
-        // Placeholder — entitet ne postoji u trenutnom modelu, vraća 0
-        return BigDecimal.ZERO.setScale(MONEY_SCALE, RoundingMode.HALF_EVEN);
-    }
-
-    private BigDecimal sumTrosakRezervacijaPlaceholder(Long dogadjajId) {
         // Placeholder — entitet ne postoji u trenutnom modelu, vraća 0
         return BigDecimal.ZERO.setScale(MONEY_SCALE, RoundingMode.HALF_EVEN);
     }
@@ -194,18 +216,38 @@ public class AnalizaProfitabilnostiService {
     }
 
     private AnalizaProfitabilnostiDto toDto(AnalizaProfitabilnosti analiza) {
+        Long dogadjajId = analiza.getDogadjaj().getDogadjajId();
         BigDecimal prihod = money(analiza.getUkupanPrihod());
         BigDecimal trosak = money(analiza.getUkupanTrosak());
         BigDecimal neto = prihod.subtract(trosak).setScale(MONEY_SCALE, RoundingMode.HALF_EVEN);
 
+        BigDecimal commitovaniTrosak = analiza.getStatus() == AnalizaStatus.DRAFT
+                ? calculateCommitovaniTrosak(dogadjajId)
+                : null;
+
+        boolean isDraft = analiza.getStatus() == AnalizaStatus.DRAFT;
+
         return AnalizaProfitabilnostiDto.builder()
                 .analizaId(analiza.getAnalizaId())
-                .dogadjajId(analiza.getDogadjaj().getDogadjajId())
+                .dogadjajId(dogadjajId)
                 .dogadjajNaziv(analiza.getDogadjaj().getNaziv())
                 .kreiraoId(analiza.getKreirao().getKorisnikId())
                 .kreiraoImePrezime(formatImePrezime(analiza.getKreirao()))
                 .ukupanPrihod(prihod)
                 .ukupanTrosak(trosak)
+                .commitovaniTrosak(commitovaniTrosak)
+                .prihodRegistracije(isDraft
+                        ? money(registracijaRepository.sumPrihodOdRegistracija(dogadjajId))
+                        : null)
+                .prihodIzlazneFakture(isDraft
+                        ? money(fakturaRepository.sumNetoIzlazniPrihodByDogadjaj(dogadjajId))
+                        : null)
+                .trosakEvidentiran(isDraft
+                        ? money(trosakRepository.sumNetoByDogadjaj(dogadjajId))
+                        : null)
+                .trosakHonorari(isDraft
+                        ? money(govornikRepository.sumHonorarByDogadjaj(dogadjajId))
+                        : null)
                 .neto(neto)
                 .marza(prihod.compareTo(BigDecimal.ZERO) > 0
                         ? neto.divide(prihod, RATIO_SCALE, RoundingMode.HALF_EVEN)

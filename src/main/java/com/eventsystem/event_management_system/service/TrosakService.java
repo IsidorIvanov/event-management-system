@@ -98,6 +98,7 @@ public class TrosakService {
                             + "AUTO_ULAZNA trošak se kreira isključivo kroz ulaznu fakturu."
             );
         }
+        // Honorar govornika evidentira se isključivo kroz Govornik.honorar — ne unositi kao ručni/gotovinski Trosak.
         if (dto.getOpis() == null || dto.getOpis().trim().isEmpty()) {
             throw new BadRequestException("Opis troška je obavezan.");
         }

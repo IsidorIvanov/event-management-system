@@ -38,6 +38,39 @@ const extractError = (error, fallback = 'Došlo je do greške.') => {
 
 const formatMoneyString = (value) => (value == null ? '—' : `${value} RSD`);
 
+const formatCommitovaniTrosak = (analiza) => {
+  if (analiza.status === 'FINALIZOVANA') {
+    return '—';
+  }
+  return formatMoneyString(analiza.commitovaniTrosak);
+};
+
+/** Prihod: karte + izlazne fakture (B2B). Samo draft — trenutno stanje baze. */
+const formatPrihodBreakdown = (analiza) => {
+  if (analiza.status !== 'DRAFT') return null;
+  const parts = [];
+  if (analiza.prihodRegistracije != null) {
+    parts.push(`karte ${formatMoneyString(analiza.prihodRegistracije)}`);
+  }
+  if (analiza.prihodIzlazneFakture != null) {
+    parts.push(`izlazne fakture ${formatMoneyString(analiza.prihodIzlazneFakture)}`);
+  }
+  return parts.length > 0 ? parts.join(' · ') : null;
+};
+
+/** Rashod: evidentirani troškovi + honorari. Samo draft — trenutno stanje baze. */
+const formatTrosakBreakdown = (analiza) => {
+  if (analiza.status !== 'DRAFT') return null;
+  const parts = [];
+  if (analiza.trosakEvidentiran != null) {
+    parts.push(`troškovi ${formatMoneyString(analiza.trosakEvidentiran)}`);
+  }
+  if (analiza.trosakHonorari != null) {
+    parts.push(`honorari ${formatMoneyString(analiza.trosakHonorari)}`);
+  }
+  return parts.length > 0 ? parts.join(' · ') : null;
+};
+
 const formatPercent = (value) => {
   if (value == null) return '—';
   const number = Number(value);
@@ -73,7 +106,8 @@ function NapomeneModal({ title, initialValue = '', onClose, onSubmit, loading })
           <div>
             <h3 className="modal-title">{title}</h3>
             <p className="page-subtitle" style={{ marginTop: '0.35rem' }}>
-              Napomene su opcione; iznosi se računaju iz backend agregata.
+              Napomene su opcione. Prihod = kupovina karata + izlazne fakture. Rashod = evidentirani
+              troškovi (NETO) + honorari govornika. Obaveze iz nabavke nisu uključene u ocenu.
             </p>
           </div>
           <button className="modal-close" onClick={onClose} type="button">
@@ -241,7 +275,8 @@ export default function AnalizaProfitabilnostiPage() {
         <div>
           <h1>Analiza profitabilnosti</h1>
           <p className="page-subtitle">
-            F5 snapshot ukupnih prihoda, troškova i rezultata za završene događaje.
+            Prihod: kupovina karata i izlazne fakture. Rashod: evidentirani troškovi i honorari.
+            Commitovane nabavke prikazuju se samo u draft fazi.
           </p>
         </div>
         {isFinKontrolor && selectedDogadjajId && (
@@ -312,23 +347,25 @@ export default function AnalizaProfitabilnostiPage() {
                 Nema analiza za izabrani događaj.
               </p>
             ) : (
-              <table className="events-table">
-                <thead>
-                  <tr>
-                    <th>Datum</th>
-                    <th>Prihod</th>
-                    <th>Trošak</th>
-                    <th>Neto</th>
-                    <th>Marža</th>
-                    <th>ROI</th>
-                    <th>Status</th>
-                    <th>Rezultat</th>
-                    <th>Kreirao</th>
-                    <th>Napomene</th>
-                    <th>Akcije</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <div className="events-table-scroll">
+                <table className="events-table">
+                  <thead>
+                    <tr>
+                      <th>Datum</th>
+                      <th>Prihod</th>
+                      <th>Trošak (realizovan)</th>
+                      <th>Commit. nabavka</th>
+                      <th>Neto</th>
+                      <th>Marža</th>
+                      <th>ROI</th>
+                      <th>Status</th>
+                      <th>Rezultat</th>
+                      <th>Kreirao</th>
+                      <th>Napomene</th>
+                      <th>Akcije</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                   {analize.map((analiza) => {
                     const canFinalize =
                       isMenadzer &&
@@ -346,8 +383,37 @@ export default function AnalizaProfitabilnostiPage() {
                             </div>
                           )}
                         </td>
-                        <td>{formatMoneyString(analiza.ukupanPrihod)}</td>
-                        <td>{formatMoneyString(analiza.ukupanTrosak)}</td>
+                        <td>
+                          {formatMoneyString(analiza.ukupanPrihod)}
+                          {formatPrihodBreakdown(analiza) && (
+                            <div className="card-hint">
+                              {formatPrihodBreakdown(analiza)}
+                              <div style={{ marginTop: '0.15rem', opacity: 0.85 }}>
+                                Raspodela prihoda (trenutno stanje)
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          {formatMoneyString(analiza.ukupanTrosak)}
+                          {formatTrosakBreakdown(analiza) && (
+                            <div className="card-hint">
+                              {formatTrosakBreakdown(analiza)}
+                              <div style={{ marginTop: '0.15rem', opacity: 0.85 }}>
+                                Raspodela rashoda (trenutno stanje)
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          {formatCommitovaniTrosak(analiza)}
+                          {analiza.status === 'DRAFT' && (
+                            <div className="card-hint">Van ocene profitabilnosti</div>
+                          )}
+                          {analiza.status === 'FINALIZOVANA' && (
+                            <div className="card-hint">Samo u draft fazi</div>
+                          )}
+                        </td>
                         <td>{formatMoneyString(analiza.neto)}</td>
                         <td>{formatPercent(analiza.marza)}</td>
                         <td>{formatPercent(analiza.roi)}</td>
@@ -393,8 +459,9 @@ export default function AnalizaProfitabilnostiPage() {
                       </tr>
                     );
                   })}
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </>
