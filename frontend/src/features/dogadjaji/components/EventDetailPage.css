@@ -175,3 +175,93 @@
 .cover-image-placeholder {
   display: none;
 }
+
+/* ===================== Izveštaj (Reports & Analytics) ===================== */
+
+.izvestaj-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.izvestaj-title {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.izvestaj-subtitle {
+  margin: 0.15rem 0 0;
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.izvestaj-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .izvestaj-charts {
+    grid-template-columns: 1fr;
+  }
+}
+
+.izvestaj-chart-card {
+  padding: 1.25rem 1.25rem 1rem;
+}
+
+.izvestaj-chart-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  color: var(--accent);
+}
+
+.izvestaj-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.izvestaj-chart-empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.izvestaj-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+
+.izvestaj-axis {
+  fill: var(--text-muted);
+  font-size: 9px;
+}
+
+.izvestaj-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.izvestaj-area {
+  fill: var(--accent);
+  opacity: 0.12;
+  stroke: none;
+}
+
+.izvestaj-dot {
+  fill: var(--accent);
+}
+
+.izvestaj-bar {
+  fill: var(--accent);
+}
