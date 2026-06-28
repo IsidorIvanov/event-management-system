@@ -65,6 +65,7 @@ class FinansijskiIzvestajServiceTest {
         when(currentUserService.getCurrentZaposleni()).thenReturn(user);
         when(statusTx.createPending(request, user)).thenReturn(99L);
         when(generateTx.run(99L)).thenReturn(ready);
+        when(finansijskiIzvestajRepository.findByIdWithKreirao(99L)).thenReturn(Optional.of(ready));
 
         FinansijskiIzvestajDto dto = service.generate(request);
 

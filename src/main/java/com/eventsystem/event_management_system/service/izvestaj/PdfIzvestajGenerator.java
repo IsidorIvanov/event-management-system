@@ -6,17 +6,20 @@ import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.Element;
 import com.lowagie.text.Font;
-import com.lowagie.text.FontFactory;
 import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.Phrase;
+import com.lowagie.text.pdf.BaseFont;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Locale;
@@ -25,6 +28,8 @@ import java.util.Locale;
 public class PdfIzvestajGenerator {
 
     private static final DecimalFormat MONEY_FMT = moneyFormat();
+    private static final BaseFont FONT_REGULAR = loadBaseFont("Arial.ttf", "arial.ttf");
+    private static final BaseFont FONT_BOLD = loadBaseFont("Arial-Bold.ttf", "arialbd.ttf");
 
     public byte[] generate(IzvestajPodaciDto podaci, FormatIzvestaja format) {
         if (format != FormatIzvestaja.PDF) {
@@ -35,9 +40,9 @@ public class PdfIzvestajGenerator {
             PdfWriter.getInstance(document, out);
             document.open();
 
-            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16);
-            Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12);
-            Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 11);
+            Font titleFont = pdfFont(16, true);
+            Font headerFont = pdfFont(12, true);
+            Font normalFont = pdfFont(11, false);
 
             document.add(new Paragraph(podaci.getNaslov(), titleFont));
             document.add(new Paragraph(podaci.getPodnaslov(), headerFont));
@@ -131,13 +136,48 @@ public class PdfIzvestajGenerator {
     }
 
     private PdfPCell headerCell(String text) {
-        PdfPCell cell = new PdfPCell(new Phrase(text, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10)));
+        PdfPCell cell = new PdfPCell(new Phrase(text, pdfFont(10, true)));
         cell.setHorizontalAlignment(Element.ALIGN_CENTER);
         return cell;
     }
 
     private PdfPCell cell(String text) {
-        return new PdfPCell(new Phrase(text != null ? text : "—", FontFactory.getFont(FontFactory.HELVETICA, 10)));
+        return new PdfPCell(new Phrase(text != null ? text : "—", pdfFont(10, false)));
+    }
+
+    private static Font pdfFont(float size, boolean bold) {
+        return new Font(bold ? FONT_BOLD : FONT_REGULAR, size);
+    }
+
+    private static BaseFont loadBaseFont(String classpathFile, String windowsFileName) {
+        try (InputStream in = PdfIzvestajGenerator.class.getResourceAsStream("/fonts/" + classpathFile)) {
+            if (in != null) {
+                byte[] bytes = in.readAllBytes();
+                return BaseFont.createFont(
+                        classpathFile,
+                        BaseFont.IDENTITY_H,
+                        BaseFont.EMBEDDED,
+                        true,
+                        bytes,
+                        null
+                );
+            }
+        } catch (Exception ex) {
+            throw new IllegalStateException("Greška pri učitavanju PDF fonta iz classpath: " + classpathFile, ex);
+        }
+
+        try {
+            Path windowsFont = Path.of("C:/Windows/Fonts/" + windowsFileName);
+            if (Files.isRegularFile(windowsFont)) {
+                return BaseFont.createFont(windowsFont.toString(), BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+            }
+        } catch (Exception ex) {
+            throw new IllegalStateException("Greška pri učitavanju PDF fonta sa diska: " + windowsFileName, ex);
+        }
+
+        throw new IllegalStateException(
+                "Unicode font za PDF nije pronađen. Očekivan classpath:/fonts/" + classpathFile
+        );
     }
 
     static String formatMoney(BigDecimal value) {

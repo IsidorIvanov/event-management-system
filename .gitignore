@@ -34,3 +34,4 @@ specifikacija_podsistem_fianansije.md
 .vscode/
 
 .env
+storage/*

@@ -38,8 +38,8 @@ public class FinansijskiIzvestajService {
         Zaposleni kreirao = currentUserService.getCurrentZaposleni();
         Long izvestajId = statusTx.createPending(request, kreirao);
         try {
-            FinansijskiIzvestaj saved = generateTx.run(izvestajId);
-            return toDto(saved);
+            generateTx.run(izvestajId);
+            return toDto(findEntity(izvestajId));
         } catch (Exception ex) {
             statusTx.markFailed(izvestajId, ex.getMessage());
             return getById(izvestajId);
