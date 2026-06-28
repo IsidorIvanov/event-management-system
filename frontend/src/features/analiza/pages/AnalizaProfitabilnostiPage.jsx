@@ -1,9 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '@/shared/services/api';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useToast } from '@/shared/components/ToastNotification';
 import { formatDate as fmtDate, formatDateTime } from '@/shared/utils/format';
 import * as analizaApi from '@/features/analiza/services/analizaProfitabilnostiService';
+import * as nabavkaApi from '@/features/fakture/services/nabavkaService';
+
+/** Isti filter kao backend (AnalizaProfitabilnostiService). */
+const COMMITTED_NABAVKA_STATUSES = new Set(['POTVRDJENA', 'U_ISPORUCI', 'ZAVRSENA']);
+
+const STATUS_NABAVKE_LABEL = {
+  POTVRDJENA: 'Potvrđena',
+  U_ISPORUCI: 'U isporuci',
+  ZAVRSENA: 'Završena',
+};
 
 const ANALIZA_STATUS_DISPLAY = {
   DRAFT: 'Draft',
@@ -91,6 +102,138 @@ function Badge({ value, labelMap, styleMap }) {
   );
 }
 
+function CommitNabavkaModal({ dogadjajId, dogadjajNaziv, ukupno, onClose }) {
+  const toast = useToast();
+  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    nabavkaApi
+      .getNabavkeByDogadjaj(dogadjajId)
+      .then((res) => {
+        if (cancelled) return;
+        const nabavke = Array.isArray(res.data) ? res.data : [];
+        const flat = [];
+        nabavke
+          .filter((n) => COMMITTED_NABAVKA_STATUSES.has(n.status))
+          .forEach((n) => {
+            (n.stavke || []).forEach((s, index) => {
+              flat.push({
+                key: `${n.nabavkaId}-${s.redniBroj ?? index}`,
+                nabavkaId: n.nabavkaId,
+                status: n.status,
+                dobavljac: n.dobavljacNaziv || '—',
+                naziv: s.nazivResursa,
+                kolicina: s.kolicina,
+                jedinicnaCena: s.jedinicnaCena,
+                ukupnaCena: s.ukupnaCena,
+              });
+            });
+          });
+        setRows(flat);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          toast(extractError(err, 'Nije moguće učitati nabavke.'), 'error');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dogadjajId, toast]);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card modal-card-wide" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <h3 className="modal-title">Commitovane nabavke</h3>
+            <p className="page-subtitle" style={{ marginTop: '0.35rem' }}>
+              {dogadjajNaziv} · statusi POTVRĐENA, U ISPORUCI, ZAVRŠENA ·{' '}
+              <strong>ne ulazi u neto/maržu/ROI</strong>
+            </p>
+          </div>
+          <button className="modal-close" onClick={onClose} type="button">
+            ✕
+          </button>
+        </div>
+
+        <div style={{ padding: '0 1rem 1rem' }}>
+          {loading ? (
+            <p style={{ color: 'var(--text-muted)' }}>Učitavanje stavki...</p>
+          ) : rows.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)' }}>Nema commitovanih stavki nabavke za ovaj događaj.</p>
+          ) : (
+            <div className="events-table-scroll">
+              <table className="events-table">
+                <thead>
+                  <tr>
+                    <th>Nabavka</th>
+                    <th>Status</th>
+                    <th>Dobavljač</th>
+                    <th>Stavka</th>
+                    <th>Kol.</th>
+                    <th>Jed. cena</th>
+                    <th>Ukupno</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.key}>
+                      <td>#{row.nabavkaId}</td>
+                      <td>{STATUS_NABAVKE_LABEL[row.status] || row.status}</td>
+                      <td>{row.dobavljac}</td>
+                      <td>{row.naziv}</td>
+                      <td>{row.kolicina}</td>
+                      <td>{formatMoneyString(row.jedinicnaCena)}</td>
+                      <td>{formatMoneyString(row.ukupnaCena)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '1rem',
+              flexWrap: 'wrap',
+              marginTop: '1rem',
+              paddingTop: '1rem',
+              borderTop: '1px solid var(--border)',
+            }}
+          >
+            <div>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Ukupno (commit): </span>
+              <strong>{formatMoneyString(ukupno)}</strong>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <Link
+                className="btn btn-outline btn-xs"
+                to={`/dashboard/porudzbenice?dogadjajId=${dogadjajId}`}
+                onClick={onClose}
+              >
+                Otvori porudžbenice
+              </Link>
+              <button className="btn btn-primary btn-xs" type="button" onClick={onClose}>
+                Zatvori
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function NapomeneModal({ title, initialValue = '', onClose, onSubmit, loading }) {
   const [napomene, setNapomene] = useState(initialValue || '');
 
@@ -153,6 +296,7 @@ export default function AnalizaProfitabilnostiPage() {
   const [error, setError] = useState(null);
   const [draftModalOpen, setDraftModalOpen] = useState(false);
   const [editNapomeneTarget, setEditNapomeneTarget] = useState(null);
+  const [commitModalOpen, setCommitModalOpen] = useState(false);
 
   const selectedDogadjaj = useMemo(
     () => dogadjaji.find((dogadjaj) => String(dogadjaj.dogadjajId) === String(selectedDogadjajId)) || null,
@@ -268,6 +412,14 @@ export default function AnalizaProfitabilnostiPage() {
           onClose={() => setEditNapomeneTarget(null)}
           onSubmit={handleUpdateNapomene}
           loading={busy}
+        />
+      )}
+      {commitModalOpen && selectedDogadjajId && (
+        <CommitNabavkaModal
+          dogadjajId={Number(selectedDogadjajId)}
+          dogadjajNaziv={selectedDogadjaj?.naziv || `Događaj #${selectedDogadjajId}`}
+          ukupno={analize.find((a) => a.status === 'DRAFT')?.commitovaniTrosak}
+          onClose={() => setCommitModalOpen(false)}
         />
       )}
 
@@ -406,9 +558,26 @@ export default function AnalizaProfitabilnostiPage() {
                           )}
                         </td>
                         <td>
-                          {formatCommitovaniTrosak(analiza)}
+                          {analiza.status === 'DRAFT' &&
+                          analiza.commitovaniTrosak != null &&
+                          Number(analiza.commitovaniTrosak) > 0 ? (
+                            <button
+                              type="button"
+                              className="btn-link"
+                              onClick={() => setCommitModalOpen(true)}
+                              title="Prikaži stavke commitovanih nabavki"
+                            >
+                              {formatMoneyString(analiza.commitovaniTrosak)}
+                            </button>
+                          ) : (
+                            formatCommitovaniTrosak(analiza)
+                          )}
                           {analiza.status === 'DRAFT' && (
-                            <div className="card-hint">Van ocene profitabilnosti</div>
+                            <div className="card-hint">
+                              {Number(analiza.commitovaniTrosak) > 0
+                                ? 'Klikni iznos za detalje · van ocene profitabilnosti'
+                                : 'Van ocene profitabilnosti'}
+                            </div>
                           )}
                           {analiza.status === 'FINALIZOVANA' && (
                             <div className="card-hint">Samo u draft fazi</div>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import api from '@/shared/services/api';
 import { useToast } from '@/shared/components/ToastNotification';
 import * as nabavkaApi from '@/features/fakture/services/nabavkaService';
@@ -43,6 +43,8 @@ function cenovnikLabel(c) {
 
 export default function PorudzbenicePage() {
   const toast = useToast();
+  const [searchParams] = useSearchParams();
+  const dogadjajIdFromUrl = searchParams.get('dogadjajId');
   const [dogadjaji, setDogadjaji] = useState([]);
   const [selectedDogadjajId, setSelectedDogadjajId] = useState('');
   const [loading, setLoading] = useState(true);
@@ -104,6 +106,14 @@ export default function PorudzbenicePage() {
       .catch((err) => toast(extractError(err), 'error'))
       .finally(() => setLoading(false));
   }, [loadDogadjaji, loadCenovnik, toast]);
+
+  useEffect(() => {
+    if (!dogadjajIdFromUrl || dogadjaji.length === 0) return;
+    const match = dogadjaji.some((d) => String(d.dogadjajId) === dogadjajIdFromUrl);
+    if (match) {
+      setSelectedDogadjajId(dogadjajIdFromUrl);
+    }
+  }, [dogadjajIdFromUrl, dogadjaji]);
 
   useEffect(() => {
     if (selectedDogadjajId) {
