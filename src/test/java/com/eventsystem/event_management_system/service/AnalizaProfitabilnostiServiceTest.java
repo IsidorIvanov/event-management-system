@@ -17,9 +17,9 @@ import com.eventsystem.event_management_system.repository.TrosakRepository;
 import com.eventsystem.event_management_system.utils.enums.AnalizaStatus;
 import com.eventsystem.event_management_system.utils.enums.RezultatOcene;
 import com.eventsystem.event_management_system.utils.enums.StatusDogadjaja;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -30,6 +30,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,10 +59,44 @@ class AnalizaProfitabilnostiServiceTest {
     private TrosakRepository trosakRepository;
 
     @Mock
+    private com.eventsystem.event_management_system.repository.KlijentRepository klijentRepository;
+
+    @Mock
+    private com.eventsystem.event_management_system.repository.DobavljacRepository dobavljacRepository;
+
+    @Mock
+    private com.eventsystem.event_management_system.repository.UgovorRepository ugovorRepository;
+
+    @Mock
+    private AnalizaProfitabilnostiRepository analizaProfitabilnostiRepositoryForAgregacija;
+
+    @Mock
     private CurrentUserService currentUserService;
 
-    @InjectMocks
+    private FinansijskaAgregacijaService finansijskaAgregacijaService;
     private AnalizaProfitabilnostiService analizaProfitabilnostiService;
+
+    @BeforeEach
+    void setUp() {
+        finansijskaAgregacijaService = new FinansijskaAgregacijaService(
+                registracijaRepository,
+                fakturaRepository,
+                stavkaNabavkeRepository,
+                govornikRepository,
+                trosakRepository,
+                dogadjajRepository,
+                klijentRepository,
+                dobavljacRepository,
+                ugovorRepository,
+                analizaProfitabilnostiRepositoryForAgregacija
+        );
+        analizaProfitabilnostiService = new AnalizaProfitabilnostiService(
+                analizaProfitabilnostiRepository,
+                dogadjajRepository,
+                finansijskaAgregacijaService,
+                currentUserService
+        );
+    }
 
     @Test
     void createDraft_rejectsEventThatIsNotFinished() {
@@ -77,7 +113,7 @@ class AnalizaProfitabilnostiServiceTest {
         when(currentUserService.getCurrentZaposleni()).thenReturn(zaposleni(7L));
         when(registracijaRepository.sumPrihodOdRegistracija(10L)).thenReturn(new BigDecimal("1000.00"));
         when(fakturaRepository.sumNetoIzlazniPrihodByDogadjaj(10L)).thenReturn(new BigDecimal("250.50"));
-        when(stavkaNabavkeRepository.sumTrosakStavkiNabavke(any(), any())).thenReturn(new BigDecimal("400.00"));
+        when(stavkaNabavkeRepository.sumTrosakStavkiNabavke(eq(10L), any())).thenReturn(new BigDecimal("400.00"));
         when(govornikRepository.sumHonorarByDogadjaj(10L)).thenReturn(new BigDecimal("150.00"));
         when(trosakRepository.sumNetoByDogadjaj(10L)).thenReturn(new BigDecimal("75.25"));
         when(analizaProfitabilnostiRepository.save(any(AnalizaProfitabilnosti.class))).thenAnswer(invocation -> {
@@ -90,13 +126,99 @@ class AnalizaProfitabilnostiServiceTest {
 
         assertThat(dto.getAnalizaId()).isEqualTo(99L);
         assertThat(dto.getUkupanPrihod()).isEqualByComparingTo("1250.50");
-        assertThat(dto.getUkupanTrosak()).isEqualByComparingTo("625.25");
-        assertThat(dto.getNeto()).isEqualByComparingTo("625.25");
-        assertThat(dto.getMarza()).isEqualByComparingTo("0.5000");
-        assertThat(dto.getRoi()).isEqualByComparingTo("1.0000");
+        assertThat(dto.getUkupanTrosak()).isEqualByComparingTo("225.25");
+        assertThat(dto.getCommitovaniTrosak()).isEqualByComparingTo("400.00");
+        assertThat(dto.getNeto()).isEqualByComparingTo("1025.25");
+        assertThat(dto.getMarza()).isEqualByComparingTo("0.8199");
+        assertThat(dto.getRoi()).isEqualByComparingTo("4.5516");
+        assertThat(dto.getPrihodRegistracije()).isEqualByComparingTo("1000.00");
+        assertThat(dto.getPrihodIzlazneFakture()).isEqualByComparingTo("250.50");
+        assertThat(dto.getTrosakEvidentiran()).isEqualByComparingTo("75.25");
+        assertThat(dto.getTrosakHonorari()).isEqualByComparingTo("150.00");
         assertThat(dto.getStatus()).isEqualTo(AnalizaStatus.DRAFT);
         assertThat(dto.getRezultatOcene()).isNull();
         assertThat(dto.getNapomene()).isEqualTo("Snapshot za odbranu");
+    }
+
+    @Test
+    void createDraft_excludesNabavkaFromUkupanTrosak() {
+        when(dogadjajRepository.findById(10L)).thenReturn(Optional.of(dogadjaj(StatusDogadjaja.ZAVRSEN)));
+        when(currentUserService.getCurrentZaposleni()).thenReturn(zaposleni(7L));
+        when(registracijaRepository.sumPrihodOdRegistracija(10L)).thenReturn(BigDecimal.ZERO);
+        when(fakturaRepository.sumNetoIzlazniPrihodByDogadjaj(10L)).thenReturn(BigDecimal.ZERO);
+        when(stavkaNabavkeRepository.sumTrosakStavkiNabavke(eq(10L), any())).thenReturn(new BigDecimal("999.99"));
+        when(govornikRepository.sumHonorarByDogadjaj(10L)).thenReturn(new BigDecimal("100.00"));
+        when(trosakRepository.sumNetoByDogadjaj(10L)).thenReturn(new BigDecimal("50.00"));
+        when(analizaProfitabilnostiRepository.save(any(AnalizaProfitabilnosti.class))).thenAnswer(invocation -> {
+            AnalizaProfitabilnosti analiza = invocation.getArgument(0);
+            analiza.setAnalizaId(1L);
+            return analiza;
+        });
+
+        AnalizaProfitabilnostiDto dto = analizaProfitabilnostiService.createDraft(10L, createRequest());
+
+        assertThat(dto.getUkupanTrosak()).isEqualByComparingTo("150.00");
+        assertThat(dto.getCommitovaniTrosak()).isEqualByComparingTo("999.99");
+    }
+
+    @Test
+    void getById_draft_returnsLiveAggregatesNotStaleSnapshot() {
+        AnalizaProfitabilnosti analiza = analiza(AnalizaStatus.DRAFT, zaposleni(1L));
+        analiza.setUkupanPrihod(new BigDecimal("1000.00"));
+        analiza.setUkupanTrosak(new BigDecimal("98500.00"));
+        when(analizaProfitabilnostiRepository.findByIdWithDetalji(5L)).thenReturn(Optional.of(analiza));
+        when(stavkaNabavkeRepository.sumTrosakStavkiNabavke(eq(10L), any())).thenReturn(new BigDecimal("98500.00"));
+        when(registracijaRepository.sumPrihodOdRegistracija(10L)).thenReturn(new BigDecimal("1000.00"));
+        when(fakturaRepository.sumNetoIzlazniPrihodByDogadjaj(10L)).thenReturn(BigDecimal.ZERO);
+        when(trosakRepository.sumNetoByDogadjaj(10L)).thenReturn(BigDecimal.ZERO);
+        when(govornikRepository.sumHonorarByDogadjaj(10L)).thenReturn(BigDecimal.ZERO);
+
+        AnalizaProfitabilnostiDto dto = analizaProfitabilnostiService.getById(5L);
+
+        assertThat(dto.getUkupanPrihod()).isEqualByComparingTo("1000.00");
+        assertThat(dto.getUkupanTrosak()).isEqualByComparingTo("0.00");
+        assertThat(dto.getCommitovaniTrosak()).isEqualByComparingTo("98500.00");
+        assertThat(dto.getNeto()).isEqualByComparingTo("1000.00");
+        assertThat(dto.getPrihodRegistracije()).isEqualByComparingTo("1000.00");
+    }
+
+    @Test
+    void getById_finalized_returnsNullCommitovaniTrosak() {
+        when(analizaProfitabilnostiRepository.findByIdWithDetalji(5L))
+                .thenReturn(Optional.of(analiza(AnalizaStatus.FINALIZOVANA, zaposleni(1L))));
+
+        AnalizaProfitabilnostiDto dto = analizaProfitabilnostiService.getById(5L);
+
+        assertThat(dto.getCommitovaniTrosak()).isNull();
+        assertThat(dto.getPrihodRegistracije()).isNull();
+        assertThat(dto.getPrihodIzlazneFakture()).isNull();
+        assertThat(dto.getTrosakEvidentiran()).isNull();
+        assertThat(dto.getTrosakHonorari()).isNull();
+    }
+
+    @Test
+    void finalize_recalculatesFromLiveSourcesExcludingNabavka() {
+        AnalizaProfitabilnosti analiza = analiza(AnalizaStatus.DRAFT, zaposleni(1L));
+        analiza.setUkupanPrihod(new BigDecimal("300000.00"));
+        analiza.setUkupanTrosak(new BigDecimal("98500.00"));
+        when(analizaProfitabilnostiRepository.findByIdWithDetalji(5L)).thenReturn(Optional.of(analiza));
+        when(currentUserService.getCurrentZaposleni()).thenReturn(zaposleni(7L));
+        when(registracijaRepository.sumPrihodOdRegistracija(10L)).thenReturn(new BigDecimal("300000.00"));
+        when(fakturaRepository.sumNetoIzlazniPrihodByDogadjaj(10L)).thenReturn(BigDecimal.ZERO);
+        when(trosakRepository.sumNetoByDogadjaj(10L)).thenReturn(new BigDecimal("75.25"));
+        when(govornikRepository.sumHonorarByDogadjaj(10L)).thenReturn(new BigDecimal("150.00"));
+        when(analizaProfitabilnostiRepository.save(any(AnalizaProfitabilnosti.class))).thenAnswer(invocation -> {
+            AnalizaProfitabilnosti saved = invocation.getArgument(0);
+            saved.setStatus(AnalizaStatus.FINALIZOVANA);
+            return saved;
+        });
+
+        AnalizaProfitabilnostiDto dto = analizaProfitabilnostiService.finalize(5L);
+
+        assertThat(dto.getRezultatOcene()).isEqualTo(RezultatOcene.PROFITABILAN);
+        assertThat(dto.getUkupanTrosak()).isEqualByComparingTo("225.25");
+        assertThat(dto.getUkupanPrihod()).isEqualByComparingTo("300000.00");
+        assertThat(dto.getCommitovaniTrosak()).isNull();
     }
 
     @Test
@@ -182,7 +304,7 @@ class AnalizaProfitabilnostiServiceTest {
 
     private UpdateAnalizaProfitabilnostiRequest updateRequest() {
         return UpdateAnalizaProfitabilnostiRequest.builder()
-                .napomene("Izmena napomene")
+                .napomene("Izmena napomena")
                 .build();
     }
 

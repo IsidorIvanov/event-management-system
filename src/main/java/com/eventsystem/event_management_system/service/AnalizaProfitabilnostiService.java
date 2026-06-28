@@ -10,15 +10,9 @@ import com.eventsystem.event_management_system.model.Dogadjaj;
 import com.eventsystem.event_management_system.model.Zaposleni;
 import com.eventsystem.event_management_system.repository.AnalizaProfitabilnostiRepository;
 import com.eventsystem.event_management_system.repository.DogadjajRepository;
-import com.eventsystem.event_management_system.repository.FakturaRepository;
-import com.eventsystem.event_management_system.repository.GovornikRepository;
-import com.eventsystem.event_management_system.repository.RegistracijaRepository;
-import com.eventsystem.event_management_system.repository.StavkaNabavkeRepository;
-import com.eventsystem.event_management_system.repository.TrosakRepository;
 import com.eventsystem.event_management_system.utils.enums.AnalizaStatus;
 import com.eventsystem.event_management_system.utils.enums.RezultatOcene;
 import com.eventsystem.event_management_system.utils.enums.StatusDogadjaja;
-import com.eventsystem.event_management_system.utils.enums.StatusNabavke;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -31,6 +25,24 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Agregacija profitabilnosti događaja pri finalizaciji.
+ *
+ * <h2>Izvori prihoda</h2>
+ * <ul>
+ *   <li>Registracije (B2C) — suma cena potvrđenih karata</li>
+ *   <li>Izlazne fakture (B2B) — suma placeniIznos za plaćene izlazne fakture</li>
+ * </ul>
+ * Kanali su disjunktni: ista prodaja ne ulazi i kroz registraciju i kroz fakturu
+ * (nema registracijaId na fakturi).
+ *
+ * <h2>Izvori troška</h2>
+ * <ul>
+ *   <li>Trosak NETO — realizovan rashod na budžetu (AUTO_ULAZNA, ručni/gotovinski)</li>
+ *   <li>Govornik.honorar — honorari govornika (ne duplirati kao ručni Trosak)</li>
+ *   <li>StavkaNabavke — commitovaniTrosak (informativno, van ukupanTrosak i rezultatOcene)</li>
+ * </ul>
+ */
 @Service
 @RequiredArgsConstructor
 public class AnalizaProfitabilnostiService {
@@ -38,19 +50,10 @@ public class AnalizaProfitabilnostiService {
     private static final int MONEY_SCALE = 2;
     private static final int RATIO_SCALE = 4;
     private static final BigDecimal TOL_BE = new BigDecimal("0.01");
-    private static final List<StatusNabavke> COMMITTED_NABAVKA_STATUSES = List.of(
-            StatusNabavke.POTVRDJENA,
-            StatusNabavke.U_ISPORUCI,
-            StatusNabavke.ZAVRSENA
-    );
 
     private final AnalizaProfitabilnostiRepository analizaProfitabilnostiRepository;
     private final DogadjajRepository dogadjajRepository;
-    private final RegistracijaRepository registracijaRepository;
-    private final FakturaRepository fakturaRepository;
-    private final StavkaNabavkeRepository stavkaNabavkeRepository;
-    private final GovornikRepository govornikRepository;
-    private final TrosakRepository trosakRepository;
+    private final FinansijskaAgregacijaService finansijskaAgregacijaService;
     private final CurrentUserService currentUserService;
 
     @PreAuthorize("hasRole('FINANSIJSKI_KONTROLOR')")
@@ -71,8 +74,8 @@ public class AnalizaProfitabilnostiService {
         }
 
         Zaposleni kreator = currentUserService.getCurrentZaposleni();
-        BigDecimal ukupanPrihod = calculateUkupanPrihod(dogadjajId);
-        BigDecimal ukupanTrosak = calculateUkupanTrosak(dogadjajId);
+        BigDecimal ukupanPrihod = finansijskaAgregacijaService.calculateUkupanPrihod(dogadjajId);
+        BigDecimal ukupanTrosak = finansijskaAgregacijaService.calculateUkupanTrosak(dogadjajId);
 
         AnalizaProfitabilnosti analiza = AnalizaProfitabilnosti.builder()
                 .dogadjaj(dogadjaj)
@@ -100,6 +103,9 @@ public class AnalizaProfitabilnostiService {
             throw new BadRequestException("Kreator analize ne može finalizovati istu analizu.");
         }
 
+        Long dogadjajId = analiza.getDogadjaj().getDogadjajId();
+        analiza.setUkupanPrihod(finansijskaAgregacijaService.calculateUkupanPrihod(dogadjajId));
+        analiza.setUkupanTrosak(finansijskaAgregacijaService.calculateUkupanTrosak(dogadjajId));
         analiza.setRezultatOcene(classifyResult(analiza.getUkupanPrihod(), analiza.getUkupanTrosak()));
         analiza.setFinalizovanoAt(LocalDateTime.now());
         analiza.setStatus(AnalizaStatus.FINALIZOVANA);
@@ -139,34 +145,9 @@ public class AnalizaProfitabilnostiService {
                 .toList();
     }
 
-    private BigDecimal calculateUkupanPrihod(Long dogadjajId) {
-        return money(registracijaRepository.sumPrihodOdRegistracija(dogadjajId))
-                .add(money(fakturaRepository.sumNetoIzlazniPrihodByDogadjaj(dogadjajId)))
-                .add(sumPrihodSponzorstvaPlaceholder(dogadjajId))
-                .setScale(MONEY_SCALE, RoundingMode.HALF_EVEN);
-    }
-
-    private BigDecimal calculateUkupanTrosak(Long dogadjajId) {
-        return money(stavkaNabavkeRepository.sumTrosakStavkiNabavke(dogadjajId, COMMITTED_NABAVKA_STATUSES))
-                .add(money(govornikRepository.sumHonorarByDogadjaj(dogadjajId)))
-                .add(money(trosakRepository.sumNetoByDogadjaj(dogadjajId)))
-                .add(sumTrosakRezervacijaPlaceholder(dogadjajId))
-                .setScale(MONEY_SCALE, RoundingMode.HALF_EVEN);
-    }
-
-    private BigDecimal sumPrihodSponzorstvaPlaceholder(Long dogadjajId) {
-        // Placeholder — entitet ne postoji u trenutnom modelu, vraća 0
-        return BigDecimal.ZERO.setScale(MONEY_SCALE, RoundingMode.HALF_EVEN);
-    }
-
-    private BigDecimal sumTrosakRezervacijaPlaceholder(Long dogadjajId) {
-        // Placeholder — entitet ne postoji u trenutnom modelu, vraća 0
-        return BigDecimal.ZERO.setScale(MONEY_SCALE, RoundingMode.HALF_EVEN);
-    }
-
     RezultatOcene classifyResult(BigDecimal prihod, BigDecimal trosak) {
-        BigDecimal safePrihod = money(prihod);
-        BigDecimal safeTrosak = money(trosak);
+        BigDecimal safePrihod = finansijskaAgregacijaService.money(prihod);
+        BigDecimal safeTrosak = finansijskaAgregacijaService.money(trosak);
         if (safePrihod.compareTo(BigDecimal.ZERO) == 0) {
             return safeTrosak.compareTo(BigDecimal.ZERO) == 0
                     ? RezultatOcene.BREAK_EVEN
@@ -194,18 +175,40 @@ public class AnalizaProfitabilnostiService {
     }
 
     private AnalizaProfitabilnostiDto toDto(AnalizaProfitabilnosti analiza) {
-        BigDecimal prihod = money(analiza.getUkupanPrihod());
-        BigDecimal trosak = money(analiza.getUkupanTrosak());
+        Long dogadjajId = analiza.getDogadjaj().getDogadjajId();
+        boolean isDraft = analiza.getStatus() == AnalizaStatus.DRAFT;
+
+        BigDecimal prihod = finansijskaAgregacijaService.money(analiza.getUkupanPrihod());
+        BigDecimal trosak = isDraft
+                ? finansijskaAgregacijaService.calculateUkupanTrosak(dogadjajId)
+                : finansijskaAgregacijaService.money(analiza.getUkupanTrosak());
         BigDecimal neto = prihod.subtract(trosak).setScale(MONEY_SCALE, RoundingMode.HALF_EVEN);
+
+        BigDecimal commitovaniTrosak = isDraft
+                ? finansijskaAgregacijaService.calculateCommitovaniTrosak(dogadjajId)
+                : null;
 
         return AnalizaProfitabilnostiDto.builder()
                 .analizaId(analiza.getAnalizaId())
-                .dogadjajId(analiza.getDogadjaj().getDogadjajId())
+                .dogadjajId(dogadjajId)
                 .dogadjajNaziv(analiza.getDogadjaj().getNaziv())
                 .kreiraoId(analiza.getKreirao().getKorisnikId())
                 .kreiraoImePrezime(formatImePrezime(analiza.getKreirao()))
                 .ukupanPrihod(prihod)
                 .ukupanTrosak(trosak)
+                .commitovaniTrosak(commitovaniTrosak)
+                .prihodRegistracije(isDraft
+                        ? finansijskaAgregacijaService.prihodOdRegistracija(dogadjajId)
+                        : null)
+                .prihodIzlazneFakture(isDraft
+                        ? finansijskaAgregacijaService.prihodOdIzlaznihFaktura(dogadjajId)
+                        : null)
+                .trosakEvidentiran(isDraft
+                        ? finansijskaAgregacijaService.trosakEvidentiran(dogadjajId)
+                        : null)
+                .trosakHonorari(isDraft
+                        ? finansijskaAgregacijaService.trosakHonorari(dogadjajId)
+                        : null)
                 .neto(neto)
                 .marza(prihod.compareTo(BigDecimal.ZERO) > 0
                         ? neto.divide(prihod, RATIO_SCALE, RoundingMode.HALF_EVEN)
@@ -219,10 +222,6 @@ public class AnalizaProfitabilnostiService {
                 .status(analiza.getStatus())
                 .napomene(analiza.getNapomene())
                 .build();
-    }
-
-    private BigDecimal money(BigDecimal value) {
-        return (value != null ? value : BigDecimal.ZERO).setScale(MONEY_SCALE, RoundingMode.HALF_EVEN);
     }
 
     private String formatImePrezime(Zaposleni zaposleni) {

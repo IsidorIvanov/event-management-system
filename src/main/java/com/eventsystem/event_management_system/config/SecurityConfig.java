@@ -63,6 +63,7 @@ public class SecurityConfig {
                         "FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA",
                         "KOORDINATOR_RESURSA", "KOORDINATOR_PROGRAMA")
                 .requestMatchers("/api/analiza/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
+                .requestMatchers("/api/izvestaji/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
 
                 // Podsistem nabavke
                 .requestMatchers("/api/nabavka/dobavljac/**").hasAnyRole("MENADZER_DOGADJAJA", "FINANSIJSKI_KONTROLOR")

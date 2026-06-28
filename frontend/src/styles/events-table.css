@@ -134,6 +134,17 @@
   flex-wrap: wrap;
 }
 
+/* Horizontalni scroll za široke tabele na užim ekranima */
+.events-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.events-table-scroll .events-table {
+  min-width: max-content;
+}
+
 /* Floating action button */
 .fab-btn {
   position: fixed;

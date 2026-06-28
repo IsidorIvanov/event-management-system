@@ -1,6 +1,7 @@
 package com.eventsystem.event_management_system.config;
 
 import com.eventsystem.event_management_system.exception.BadRequestException;
+import com.eventsystem.event_management_system.exception.ConflictException;
 import com.eventsystem.event_management_system.exception.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -59,6 +60,15 @@ public class GlobalExceptionHandler {
         body.put("status", 404);
         body.put("error", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleConflict(ConflictException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("status", 409);
+        body.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

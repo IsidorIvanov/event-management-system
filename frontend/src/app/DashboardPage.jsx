@@ -14,6 +14,7 @@ import PlacanjaPage from '@/features/fakture/pages/PlacanjaPage';
 import UpozorenjaPage from '@/features/upozorenja/pages/UpozorenjaPage';
 import ScenarioPrognozePage from '@/features/analiza/pages/ScenarioPrognozePage';
 import AnalizaProfitabilnostiPage from '@/features/analiza/pages/AnalizaProfitabilnostiPage';
+import FinansijskiIzvestajiPage from '@/features/izvestaji/pages/FinansijskiIzvestajiPage';
 import UcesnikPage from '@/features/dogadjaji/pages/UcesnikPage';
 import UgovoriPage from '@/features/dogadjaji/pages/UgovoriPage.jsx';
 import OtkrijteDogadjajePageUcesnik from '@/features/dogadjaji/pages/OtkrijteDogadjajePageUcesnik';
@@ -739,6 +740,7 @@ export default function DashboardPage() {
               <NavLink to="/dashboard/upozorenja" icon="⚠️" label="Upozorenja" />
               <NavLink to="/dashboard/scenariji-prognoze" icon="📈" label="Scenario prognoze" />
               <NavLink to="/dashboard/analiza-profitabilnosti" icon="📉" label="Analiza profitabilnosti" />
+              <NavLink to="/dashboard/izvestaji" icon="📑" label="Finansijski izveštaji" />
             </>
           )}
           {isTroskovi && (
@@ -817,6 +819,7 @@ export default function DashboardPage() {
           <Route path="upozorenja" element={<UpozorenjaPage />} />
           <Route path="scenariji-prognoze" element={<ScenarioPrognozePage />} />
           <Route path="analiza-profitabilnosti" element={<AnalizaProfitabilnostiPage />} />
+          <Route path="izvestaji" element={<FinansijskiIzvestajiPage />} />
           <Route path="poruke" element={<PorukeStrana />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

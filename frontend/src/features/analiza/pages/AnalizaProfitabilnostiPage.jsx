@@ -1,9 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '@/shared/services/api';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useToast } from '@/shared/components/ToastNotification';
 import { formatDate as fmtDate, formatDateTime } from '@/shared/utils/format';
 import * as analizaApi from '@/features/analiza/services/analizaProfitabilnostiService';
+import * as nabavkaApi from '@/features/fakture/services/nabavkaService';
+
+/** Isti filter kao backend (AnalizaProfitabilnostiService). */
+const COMMITTED_NABAVKA_STATUSES = new Set(['POTVRDJENA', 'U_ISPORUCI', 'ZAVRSENA']);
+
+const STATUS_NABAVKE_LABEL = {
+  POTVRDJENA: 'Potvrđena',
+  U_ISPORUCI: 'U isporuci',
+  ZAVRSENA: 'Završena',
+};
 
 const ANALIZA_STATUS_DISPLAY = {
   DRAFT: 'Draft',
@@ -38,6 +49,39 @@ const extractError = (error, fallback = 'Došlo je do greške.') => {
 
 const formatMoneyString = (value) => (value == null ? '—' : `${value} RSD`);
 
+const formatCommitovaniTrosak = (analiza) => {
+  if (analiza.status === 'FINALIZOVANA') {
+    return '—';
+  }
+  return formatMoneyString(analiza.commitovaniTrosak);
+};
+
+/** Prihod: karte + izlazne fakture (B2B). Samo draft — trenutno stanje baze. */
+const formatPrihodBreakdown = (analiza) => {
+  if (analiza.status !== 'DRAFT') return null;
+  const parts = [];
+  if (analiza.prihodRegistracije != null) {
+    parts.push(`karte ${formatMoneyString(analiza.prihodRegistracije)}`);
+  }
+  if (analiza.prihodIzlazneFakture != null) {
+    parts.push(`izlazne fakture ${formatMoneyString(analiza.prihodIzlazneFakture)}`);
+  }
+  return parts.length > 0 ? parts.join(' · ') : null;
+};
+
+/** Rashod: evidentirani troškovi + honorari. Samo draft — trenutno stanje baze. */
+const formatTrosakBreakdown = (analiza) => {
+  if (analiza.status !== 'DRAFT') return null;
+  const parts = [];
+  if (analiza.trosakEvidentiran != null) {
+    parts.push(`troškovi ${formatMoneyString(analiza.trosakEvidentiran)}`);
+  }
+  if (analiza.trosakHonorari != null) {
+    parts.push(`honorari ${formatMoneyString(analiza.trosakHonorari)}`);
+  }
+  return parts.length > 0 ? parts.join(' · ') : null;
+};
+
 const formatPercent = (value) => {
   if (value == null) return '—';
   const number = Number(value);
@@ -58,6 +102,138 @@ function Badge({ value, labelMap, styleMap }) {
   );
 }
 
+function CommitNabavkaModal({ dogadjajId, dogadjajNaziv, ukupno, onClose }) {
+  const toast = useToast();
+  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    nabavkaApi
+      .getNabavkeByDogadjaj(dogadjajId)
+      .then((res) => {
+        if (cancelled) return;
+        const nabavke = Array.isArray(res.data) ? res.data : [];
+        const flat = [];
+        nabavke
+          .filter((n) => COMMITTED_NABAVKA_STATUSES.has(n.status))
+          .forEach((n) => {
+            (n.stavke || []).forEach((s, index) => {
+              flat.push({
+                key: `${n.nabavkaId}-${s.redniBroj ?? index}`,
+                nabavkaId: n.nabavkaId,
+                status: n.status,
+                dobavljac: n.dobavljacNaziv || '—',
+                naziv: s.nazivResursa,
+                kolicina: s.kolicina,
+                jedinicnaCena: s.jedinicnaCena,
+                ukupnaCena: s.ukupnaCena,
+              });
+            });
+          });
+        setRows(flat);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          toast(extractError(err, 'Nije moguće učitati nabavke.'), 'error');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dogadjajId, toast]);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card modal-card-wide" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <h3 className="modal-title">Commitovane nabavke</h3>
+            <p className="page-subtitle" style={{ marginTop: '0.35rem' }}>
+              {dogadjajNaziv} · statusi POTVRĐENA, U ISPORUCI, ZAVRŠENA ·{' '}
+              <strong>ne ulazi u neto/maržu/ROI</strong>
+            </p>
+          </div>
+          <button className="modal-close" onClick={onClose} type="button">
+            ✕
+          </button>
+        </div>
+
+        <div style={{ padding: '0 1rem 1rem' }}>
+          {loading ? (
+            <p style={{ color: 'var(--text-muted)' }}>Učitavanje stavki...</p>
+          ) : rows.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)' }}>Nema commitovanih stavki nabavke za ovaj događaj.</p>
+          ) : (
+            <div className="events-table-scroll">
+              <table className="events-table">
+                <thead>
+                  <tr>
+                    <th>Nabavka</th>
+                    <th>Status</th>
+                    <th>Dobavljač</th>
+                    <th>Stavka</th>
+                    <th>Kol.</th>
+                    <th>Jed. cena</th>
+                    <th>Ukupno</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.key}>
+                      <td>#{row.nabavkaId}</td>
+                      <td>{STATUS_NABAVKE_LABEL[row.status] || row.status}</td>
+                      <td>{row.dobavljac}</td>
+                      <td>{row.naziv}</td>
+                      <td>{row.kolicina}</td>
+                      <td>{formatMoneyString(row.jedinicnaCena)}</td>
+                      <td>{formatMoneyString(row.ukupnaCena)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '1rem',
+              flexWrap: 'wrap',
+              marginTop: '1rem',
+              paddingTop: '1rem',
+              borderTop: '1px solid var(--border)',
+            }}
+          >
+            <div>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Ukupno (commit): </span>
+              <strong>{formatMoneyString(ukupno)}</strong>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <Link
+                className="btn btn-outline btn-xs"
+                to={`/dashboard/porudzbenice?dogadjajId=${dogadjajId}`}
+                onClick={onClose}
+              >
+                Otvori porudžbenice
+              </Link>
+              <button className="btn btn-primary btn-xs" type="button" onClick={onClose}>
+                Zatvori
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function NapomeneModal({ title, initialValue = '', onClose, onSubmit, loading }) {
   const [napomene, setNapomene] = useState(initialValue || '');
 
@@ -73,7 +249,8 @@ function NapomeneModal({ title, initialValue = '', onClose, onSubmit, loading })
           <div>
             <h3 className="modal-title">{title}</h3>
             <p className="page-subtitle" style={{ marginTop: '0.35rem' }}>
-              Napomene su opcione; iznosi se računaju iz backend agregata.
+              Napomene su opcione. Prihod = kupovina karata + izlazne fakture. Rashod = evidentirani
+              troškovi (NETO) + honorari govornika. Obaveze iz nabavke nisu uključene u ocenu.
             </p>
           </div>
           <button className="modal-close" onClick={onClose} type="button">
@@ -119,6 +296,7 @@ export default function AnalizaProfitabilnostiPage() {
   const [error, setError] = useState(null);
   const [draftModalOpen, setDraftModalOpen] = useState(false);
   const [editNapomeneTarget, setEditNapomeneTarget] = useState(null);
+  const [commitModalOpen, setCommitModalOpen] = useState(false);
 
   const selectedDogadjaj = useMemo(
     () => dogadjaji.find((dogadjaj) => String(dogadjaj.dogadjajId) === String(selectedDogadjajId)) || null,
@@ -236,12 +414,21 @@ export default function AnalizaProfitabilnostiPage() {
           loading={busy}
         />
       )}
+      {commitModalOpen && selectedDogadjajId && (
+        <CommitNabavkaModal
+          dogadjajId={Number(selectedDogadjajId)}
+          dogadjajNaziv={selectedDogadjaj?.naziv || `Događaj #${selectedDogadjajId}`}
+          ukupno={analize.find((a) => a.status === 'DRAFT')?.commitovaniTrosak}
+          onClose={() => setCommitModalOpen(false)}
+        />
+      )}
 
       <div className="program-header">
         <div>
           <h1>Analiza profitabilnosti</h1>
           <p className="page-subtitle">
-            F5 snapshot ukupnih prihoda, troškova i rezultata za završene događaje.
+            Prihod: kupovina karata i izlazne fakture. Rashod: evidentirani troškovi i honorari.
+            Commitovane nabavke prikazuju se samo u draft fazi.
           </p>
         </div>
         {isFinKontrolor && selectedDogadjajId && (
@@ -312,23 +499,25 @@ export default function AnalizaProfitabilnostiPage() {
                 Nema analiza za izabrani događaj.
               </p>
             ) : (
-              <table className="events-table">
-                <thead>
-                  <tr>
-                    <th>Datum</th>
-                    <th>Prihod</th>
-                    <th>Trošak</th>
-                    <th>Neto</th>
-                    <th>Marža</th>
-                    <th>ROI</th>
-                    <th>Status</th>
-                    <th>Rezultat</th>
-                    <th>Kreirao</th>
-                    <th>Napomene</th>
-                    <th>Akcije</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <div className="events-table-scroll">
+                <table className="events-table">
+                  <thead>
+                    <tr>
+                      <th>Datum</th>
+                      <th>Prihod</th>
+                      <th>Trošak (realizovan)</th>
+                      <th>Commit nabavka</th>
+                      <th>Neto</th>
+                      <th>Marža</th>
+                      <th>ROI</th>
+                      <th>Status</th>
+                      <th>Rezultat</th>
+                      <th>Kreirao</th>
+                      <th>Napomene</th>
+                      <th>Akcije</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                   {analize.map((analiza) => {
                     const canFinalize =
                       isMenadzer &&
@@ -346,8 +535,57 @@ export default function AnalizaProfitabilnostiPage() {
                             </div>
                           )}
                         </td>
-                        <td>{formatMoneyString(analiza.ukupanPrihod)}</td>
-                        <td>{formatMoneyString(analiza.ukupanTrosak)}</td>
+                        <td>
+                          {formatMoneyString(analiza.ukupanPrihod)}
+                          {analiza.status === 'DRAFT' && (
+                            <div className="card-hint">Snimljeno pri kreiranju drafta</div>
+                          )}
+                          {formatPrihodBreakdown(analiza) && (
+                            <div className="card-hint">
+                              {formatPrihodBreakdown(analiza)}
+                              <div style={{ marginTop: '0.15rem', opacity: 0.85 }}>
+                                Raspodela prihoda (trenutno stanje)
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          {formatMoneyString(analiza.ukupanTrosak)}
+                          {formatTrosakBreakdown(analiza) && (
+                            <div className="card-hint">
+                              {formatTrosakBreakdown(analiza)}
+                              <div style={{ marginTop: '0.15rem', opacity: 0.85 }}>
+                                Raspodela rashoda (trenutno stanje)
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          {analiza.status === 'DRAFT' &&
+                          analiza.commitovaniTrosak != null &&
+                          Number(analiza.commitovaniTrosak) > 0 ? (
+                            <button
+                              type="button"
+                              className="btn-link"
+                              onClick={() => setCommitModalOpen(true)}
+                              title="Prikaži stavke commitovanih nabavki"
+                            >
+                              {formatMoneyString(analiza.commitovaniTrosak)}
+                            </button>
+                          ) : (
+                            formatCommitovaniTrosak(analiza)
+                          )}
+                          {analiza.status === 'DRAFT' && (
+                            <div className="card-hint">
+                              {Number(analiza.commitovaniTrosak) > 0
+                                ? 'Klikni iznos za detalje · van ocene profitabilnosti'
+                                : 'Van ocene profitabilnosti'}
+                            </div>
+                          )}
+                          {analiza.status === 'FINALIZOVANA' && (
+                            <div className="card-hint">Samo u draft fazi</div>
+                          )}
+                        </td>
                         <td>{formatMoneyString(analiza.neto)}</td>
                         <td>{formatPercent(analiza.marza)}</td>
                         <td>{formatPercent(analiza.roi)}</td>
@@ -393,8 +631,9 @@ export default function AnalizaProfitabilnostiPage() {
                       </tr>
                     );
                   })}
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </>

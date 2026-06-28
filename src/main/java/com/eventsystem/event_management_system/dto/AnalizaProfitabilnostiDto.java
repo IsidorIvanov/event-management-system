@@ -30,6 +30,22 @@ public class AnalizaProfitabilnostiDto {
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal ukupanTrosak;
 
+    /** Obaveze iz commitovanih nabavki — informativno, van ocene; samo za DRAFT analizu. */
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private BigDecimal commitovaniTrosak;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private BigDecimal prihodRegistracije;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private BigDecimal prihodIzlazneFakture;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private BigDecimal trosakEvidentiran;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private BigDecimal trosakHonorari;
+
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal neto;
 
