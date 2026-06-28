@@ -28,4 +28,9 @@ public interface AnalizaProfitabilnostiRepository extends JpaRepository<AnalizaP
             ORDER BY a.datumAnalize DESC, a.analizaId DESC
             """)
     List<AnalizaProfitabilnosti> findByDogadjajDogadjajIdOrderByDatumAnalizeDesc(@Param("dogadjajId") Long dogadjajId);
+
+    java.util.Optional<AnalizaProfitabilnosti> findFirstByDogadjajDogadjajIdAndStatusOrderByFinalizovanoAtDesc(
+            Long dogadjajId,
+            com.eventsystem.event_management_system.utils.enums.AnalizaStatus status
+    );
 }

@@ -27,4 +27,86 @@ public interface FakturaRepository extends JpaRepository<Faktura, Long> {
               )
             """)
     BigDecimal sumNetoIzlazniPrihodByDogadjaj(@Param("dogadjajId") Long dogadjajId);
+
+    @Query("""
+            SELECT f
+            FROM Faktura f
+            WHERE f.tip = com.eventsystem.event_management_system.utils.enums.TipFakture.IZLAZNA
+              AND f.klijentId = :klijentId
+              AND f.datumIzdavanja BETWEEN :od AND :periodDo
+            ORDER BY f.datumIzdavanja DESC
+            """)
+    List<Faktura> findIzlazneByKlijentAndPeriod(
+            @Param("klijentId") Long klijentId,
+            @Param("od") LocalDate od,
+            @Param("periodDo") LocalDate periodDo
+    );
+
+    @Query("""
+            SELECT COALESCE(SUM(f.ukupnaIznos), 0)
+            FROM Faktura f
+            WHERE f.tip = com.eventsystem.event_management_system.utils.enums.TipFakture.IZLAZNA
+              AND f.klijentId = :klijentId
+              AND f.datumIzdavanja BETWEEN :od AND :periodDo
+            """)
+    BigDecimal sumUkupnaIznosByKlijentAndPeriod(
+            @Param("klijentId") Long klijentId,
+            @Param("od") LocalDate od,
+            @Param("periodDo") LocalDate periodDo
+    );
+
+    @Query("""
+            SELECT COALESCE(SUM(f.placeniIznos), 0)
+            FROM Faktura f
+            WHERE f.tip = com.eventsystem.event_management_system.utils.enums.TipFakture.IZLAZNA
+              AND f.klijentId = :klijentId
+              AND f.datumIzdavanja BETWEEN :od AND :periodDo
+            """)
+    BigDecimal sumPlaceniIznosByKlijentAndPeriod(
+            @Param("klijentId") Long klijentId,
+            @Param("od") LocalDate od,
+            @Param("periodDo") LocalDate periodDo
+    );
+
+    @Query("""
+            SELECT f
+            FROM Faktura f
+            WHERE f.tip = com.eventsystem.event_management_system.utils.enums.TipFakture.ULAZNA
+              AND f.dobavljacId = :dobavljacId
+              AND f.datumIzdavanja BETWEEN :od AND :periodDo
+            ORDER BY f.datumIzdavanja DESC
+            """)
+    List<Faktura> findUlazneByDobavljacAndPeriod(
+            @Param("dobavljacId") Long dobavljacId,
+            @Param("od") LocalDate od,
+            @Param("periodDo") LocalDate periodDo
+    );
+
+    @Query("""
+            SELECT COALESCE(SUM(f.placeniIznos), 0)
+            FROM Faktura f
+            WHERE f.tip = com.eventsystem.event_management_system.utils.enums.TipFakture.ULAZNA
+              AND f.dobavljacId = :dobavljacId
+              AND f.datumIzdavanja BETWEEN :od AND :periodDo
+            """)
+    BigDecimal sumPlaceniIznosUlazneByDobavljacAndPeriod(
+            @Param("dobavljacId") Long dobavljacId,
+            @Param("od") LocalDate od,
+            @Param("periodDo") LocalDate periodDo
+    );
+
+    @Query("""
+            SELECT COALESCE(SUM(f.placeniIznos), 0)
+            FROM Faktura f
+            WHERE f.tip = com.eventsystem.event_management_system.utils.enums.TipFakture.IZLAZNA
+              AND f.status IN (
+                  com.eventsystem.event_management_system.utils.enums.FakturaStatus.DELIMICNO_PLACENA,
+                  com.eventsystem.event_management_system.utils.enums.FakturaStatus.PLACENA
+              )
+              AND f.datumIzdavanja BETWEEN :od AND :periodDo
+            """)
+    BigDecimal sumNetoIzlazniPrihodByPeriod(
+            @Param("od") LocalDate od,
+            @Param("periodDo") LocalDate periodDo
+    );
 }

@@ -17,9 +17,9 @@ import com.eventsystem.event_management_system.repository.TrosakRepository;
 import com.eventsystem.event_management_system.utils.enums.AnalizaStatus;
 import com.eventsystem.event_management_system.utils.enums.RezultatOcene;
 import com.eventsystem.event_management_system.utils.enums.StatusDogadjaja;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -59,10 +59,44 @@ class AnalizaProfitabilnostiServiceTest {
     private TrosakRepository trosakRepository;
 
     @Mock
+    private com.eventsystem.event_management_system.repository.KlijentRepository klijentRepository;
+
+    @Mock
+    private com.eventsystem.event_management_system.repository.DobavljacRepository dobavljacRepository;
+
+    @Mock
+    private com.eventsystem.event_management_system.repository.UgovorRepository ugovorRepository;
+
+    @Mock
+    private AnalizaProfitabilnostiRepository analizaProfitabilnostiRepositoryForAgregacija;
+
+    @Mock
     private CurrentUserService currentUserService;
 
-    @InjectMocks
+    private FinansijskaAgregacijaService finansijskaAgregacijaService;
     private AnalizaProfitabilnostiService analizaProfitabilnostiService;
+
+    @BeforeEach
+    void setUp() {
+        finansijskaAgregacijaService = new FinansijskaAgregacijaService(
+                registracijaRepository,
+                fakturaRepository,
+                stavkaNabavkeRepository,
+                govornikRepository,
+                trosakRepository,
+                dogadjajRepository,
+                klijentRepository,
+                dobavljacRepository,
+                ugovorRepository,
+                analizaProfitabilnostiRepositoryForAgregacija
+        );
+        analizaProfitabilnostiService = new AnalizaProfitabilnostiService(
+                analizaProfitabilnostiRepository,
+                dogadjajRepository,
+                finansijskaAgregacijaService,
+                currentUserService
+        );
+    }
 
     @Test
     void createDraft_rejectsEventThatIsNotFinished() {

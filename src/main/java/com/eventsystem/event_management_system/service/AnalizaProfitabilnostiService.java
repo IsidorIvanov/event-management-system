@@ -10,15 +10,9 @@ import com.eventsystem.event_management_system.model.Dogadjaj;
 import com.eventsystem.event_management_system.model.Zaposleni;
 import com.eventsystem.event_management_system.repository.AnalizaProfitabilnostiRepository;
 import com.eventsystem.event_management_system.repository.DogadjajRepository;
-import com.eventsystem.event_management_system.repository.FakturaRepository;
-import com.eventsystem.event_management_system.repository.GovornikRepository;
-import com.eventsystem.event_management_system.repository.RegistracijaRepository;
-import com.eventsystem.event_management_system.repository.StavkaNabavkeRepository;
-import com.eventsystem.event_management_system.repository.TrosakRepository;
 import com.eventsystem.event_management_system.utils.enums.AnalizaStatus;
 import com.eventsystem.event_management_system.utils.enums.RezultatOcene;
 import com.eventsystem.event_management_system.utils.enums.StatusDogadjaja;
-import com.eventsystem.event_management_system.utils.enums.StatusNabavke;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -56,19 +50,10 @@ public class AnalizaProfitabilnostiService {
     private static final int MONEY_SCALE = 2;
     private static final int RATIO_SCALE = 4;
     private static final BigDecimal TOL_BE = new BigDecimal("0.01");
-    private static final List<StatusNabavke> COMMITTED_NABAVKA_STATUSES = List.of(
-            StatusNabavke.POTVRDJENA,
-            StatusNabavke.U_ISPORUCI,
-            StatusNabavke.ZAVRSENA
-    );
 
     private final AnalizaProfitabilnostiRepository analizaProfitabilnostiRepository;
     private final DogadjajRepository dogadjajRepository;
-    private final RegistracijaRepository registracijaRepository;
-    private final FakturaRepository fakturaRepository;
-    private final StavkaNabavkeRepository stavkaNabavkeRepository;
-    private final GovornikRepository govornikRepository;
-    private final TrosakRepository trosakRepository;
+    private final FinansijskaAgregacijaService finansijskaAgregacijaService;
     private final CurrentUserService currentUserService;
 
     @PreAuthorize("hasRole('FINANSIJSKI_KONTROLOR')")
@@ -89,8 +74,8 @@ public class AnalizaProfitabilnostiService {
         }
 
         Zaposleni kreator = currentUserService.getCurrentZaposleni();
-        BigDecimal ukupanPrihod = calculateUkupanPrihod(dogadjajId);
-        BigDecimal ukupanTrosak = calculateUkupanTrosak(dogadjajId);
+        BigDecimal ukupanPrihod = finansijskaAgregacijaService.calculateUkupanPrihod(dogadjajId);
+        BigDecimal ukupanTrosak = finansijskaAgregacijaService.calculateUkupanTrosak(dogadjajId);
 
         AnalizaProfitabilnosti analiza = AnalizaProfitabilnosti.builder()
                 .dogadjaj(dogadjaj)
@@ -119,8 +104,8 @@ public class AnalizaProfitabilnostiService {
         }
 
         Long dogadjajId = analiza.getDogadjaj().getDogadjajId();
-        analiza.setUkupanPrihod(calculateUkupanPrihod(dogadjajId));
-        analiza.setUkupanTrosak(calculateUkupanTrosak(dogadjajId));
+        analiza.setUkupanPrihod(finansijskaAgregacijaService.calculateUkupanPrihod(dogadjajId));
+        analiza.setUkupanTrosak(finansijskaAgregacijaService.calculateUkupanTrosak(dogadjajId));
         analiza.setRezultatOcene(classifyResult(analiza.getUkupanPrihod(), analiza.getUkupanTrosak()));
         analiza.setFinalizovanoAt(LocalDateTime.now());
         analiza.setStatus(AnalizaStatus.FINALIZOVANA);
@@ -160,38 +145,9 @@ public class AnalizaProfitabilnostiService {
                 .toList();
     }
 
-    /** Vidi class-level JavaDoc — Izvori prihoda. */
-    private BigDecimal calculateUkupanPrihod(Long dogadjajId) {
-        return money(registracijaRepository.sumPrihodOdRegistracija(dogadjajId))
-                .add(money(fakturaRepository.sumNetoIzlazniPrihodByDogadjaj(dogadjajId)))
-                .add(sumPrihodSponzorstvaPlaceholder(dogadjajId))
-                .setScale(MONEY_SCALE, RoundingMode.HALF_EVEN);
-    }
-
-    /**
-     * Realizovan trošak: Trosak NETO + honorari govornika.
-     * Honorar se evidentira isključivo kroz {@code Govornik.honorar}; operativno se ne knjiži
-     * ponovo kao ručni Trosak. Duplo knjiženje nije tehnički blokirano u P1.
-     */
-    private BigDecimal calculateUkupanTrosak(Long dogadjajId) {
-        return money(trosakRepository.sumNetoByDogadjaj(dogadjajId))
-                .add(money(govornikRepository.sumHonorarByDogadjaj(dogadjajId)))
-                .setScale(MONEY_SCALE, RoundingMode.HALF_EVEN);
-    }
-
-    private BigDecimal calculateCommitovaniTrosak(Long dogadjajId) {
-        return money(stavkaNabavkeRepository.sumTrosakStavkiNabavke(dogadjajId, COMMITTED_NABAVKA_STATUSES))
-                .setScale(MONEY_SCALE, RoundingMode.HALF_EVEN);
-    }
-
-    private BigDecimal sumPrihodSponzorstvaPlaceholder(Long dogadjajId) {
-        // Placeholder — entitet ne postoji u trenutnom modelu, vraća 0
-        return BigDecimal.ZERO.setScale(MONEY_SCALE, RoundingMode.HALF_EVEN);
-    }
-
     RezultatOcene classifyResult(BigDecimal prihod, BigDecimal trosak) {
-        BigDecimal safePrihod = money(prihod);
-        BigDecimal safeTrosak = money(trosak);
+        BigDecimal safePrihod = finansijskaAgregacijaService.money(prihod);
+        BigDecimal safeTrosak = finansijskaAgregacijaService.money(trosak);
         if (safePrihod.compareTo(BigDecimal.ZERO) == 0) {
             return safeTrosak.compareTo(BigDecimal.ZERO) == 0
                     ? RezultatOcene.BREAK_EVEN
@@ -222,16 +178,14 @@ public class AnalizaProfitabilnostiService {
         Long dogadjajId = analiza.getDogadjaj().getDogadjajId();
         boolean isDraft = analiza.getStatus() == AnalizaStatus.DRAFT;
 
-        // Draft: trošak live (bez nabavke u oceni). Prihod: snapshot pri kreiranju drafta.
-        // Breakdown polja i dalje prikazuju trenutno stanje izvora u bazi.
-        BigDecimal prihod = money(analiza.getUkupanPrihod());
+        BigDecimal prihod = finansijskaAgregacijaService.money(analiza.getUkupanPrihod());
         BigDecimal trosak = isDraft
-                ? calculateUkupanTrosak(dogadjajId)
-                : money(analiza.getUkupanTrosak());
+                ? finansijskaAgregacijaService.calculateUkupanTrosak(dogadjajId)
+                : finansijskaAgregacijaService.money(analiza.getUkupanTrosak());
         BigDecimal neto = prihod.subtract(trosak).setScale(MONEY_SCALE, RoundingMode.HALF_EVEN);
 
         BigDecimal commitovaniTrosak = isDraft
-                ? calculateCommitovaniTrosak(dogadjajId)
+                ? finansijskaAgregacijaService.calculateCommitovaniTrosak(dogadjajId)
                 : null;
 
         return AnalizaProfitabilnostiDto.builder()
@@ -244,16 +198,16 @@ public class AnalizaProfitabilnostiService {
                 .ukupanTrosak(trosak)
                 .commitovaniTrosak(commitovaniTrosak)
                 .prihodRegistracije(isDraft
-                        ? money(registracijaRepository.sumPrihodOdRegistracija(dogadjajId))
+                        ? finansijskaAgregacijaService.prihodOdRegistracija(dogadjajId)
                         : null)
                 .prihodIzlazneFakture(isDraft
-                        ? money(fakturaRepository.sumNetoIzlazniPrihodByDogadjaj(dogadjajId))
+                        ? finansijskaAgregacijaService.prihodOdIzlaznihFaktura(dogadjajId)
                         : null)
                 .trosakEvidentiran(isDraft
-                        ? money(trosakRepository.sumNetoByDogadjaj(dogadjajId))
+                        ? finansijskaAgregacijaService.trosakEvidentiran(dogadjajId)
                         : null)
                 .trosakHonorari(isDraft
-                        ? money(govornikRepository.sumHonorarByDogadjaj(dogadjajId))
+                        ? finansijskaAgregacijaService.trosakHonorari(dogadjajId)
                         : null)
                 .neto(neto)
                 .marza(prihod.compareTo(BigDecimal.ZERO) > 0
@@ -268,10 +222,6 @@ public class AnalizaProfitabilnostiService {
                 .status(analiza.getStatus())
                 .napomene(analiza.getNapomene())
                 .build();
-    }
-
-    private BigDecimal money(BigDecimal value) {
-        return (value != null ? value : BigDecimal.ZERO).setScale(MONEY_SCALE, RoundingMode.HALF_EVEN);
     }
 
     private String formatImePrezime(Zaposleni zaposleni) {

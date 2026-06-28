@@ -46,4 +46,14 @@ public interface TrosakRepository extends JpaRepository<Trosak, Long> {
             WHERE t.dogadjajId = :dogadjajId
             """)
     BigDecimal sumNetoByDogadjaj(@Param("dogadjajId") Long dogadjajId);
+
+    @Query("""
+            SELECT COALESCE(SUM(t.iznos - COALESCE(t.refundiraniIznos, 0)), 0)
+            FROM Trosak t
+            WHERE t.datumTroska BETWEEN :od AND :periodDo
+            """)
+    BigDecimal sumNetoByPeriod(
+            @Param("od") java.time.LocalDate od,
+            @Param("periodDo") java.time.LocalDate periodDo
+    );
 }

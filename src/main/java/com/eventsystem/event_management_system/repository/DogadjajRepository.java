@@ -55,4 +55,6 @@ public interface DogadjajRepository extends JpaRepository<Dogadjaj, Long> {
            "ORDER BY d.datumPocetka")
     List<Dogadjaj> findByLokacija(@Param("lokacijaId") Long lokacijaId,
                                   @Param("excludeId") Long excludeId);
+
+    long countByDatumPocetkaBetween(LocalDate od, LocalDate periodDo);
 }
