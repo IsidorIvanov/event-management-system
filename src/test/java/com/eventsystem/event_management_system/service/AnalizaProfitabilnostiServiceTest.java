@@ -128,19 +128,24 @@ class AnalizaProfitabilnostiServiceTest {
     }
 
     @Test
-    void getById_draft_returnsLiveCommitovaniTrosak() {
-        when(analizaProfitabilnostiRepository.findByIdWithDetalji(5L))
-                .thenReturn(Optional.of(analiza(AnalizaStatus.DRAFT, zaposleni(1L))));
-        when(stavkaNabavkeRepository.sumTrosakStavkiNabavke(eq(10L), any())).thenReturn(new BigDecimal("300.00"));
+    void getById_draft_returnsLiveAggregatesNotStaleSnapshot() {
+        AnalizaProfitabilnosti analiza = analiza(AnalizaStatus.DRAFT, zaposleni(1L));
+        analiza.setUkupanPrihod(new BigDecimal("1000.00"));
+        analiza.setUkupanTrosak(new BigDecimal("98500.00"));
+        when(analizaProfitabilnostiRepository.findByIdWithDetalji(5L)).thenReturn(Optional.of(analiza));
+        when(stavkaNabavkeRepository.sumTrosakStavkiNabavke(eq(10L), any())).thenReturn(new BigDecimal("98500.00"));
         when(registracijaRepository.sumPrihodOdRegistracija(10L)).thenReturn(new BigDecimal("1000.00"));
         when(fakturaRepository.sumNetoIzlazniPrihodByDogadjaj(10L)).thenReturn(BigDecimal.ZERO);
-        when(trosakRepository.sumNetoByDogadjaj(10L)).thenReturn(new BigDecimal("75.25"));
-        when(govornikRepository.sumHonorarByDogadjaj(10L)).thenReturn(new BigDecimal("150.00"));
+        when(trosakRepository.sumNetoByDogadjaj(10L)).thenReturn(BigDecimal.ZERO);
+        when(govornikRepository.sumHonorarByDogadjaj(10L)).thenReturn(BigDecimal.ZERO);
 
         AnalizaProfitabilnostiDto dto = analizaProfitabilnostiService.getById(5L);
 
-        assertThat(dto.getCommitovaniTrosak()).isEqualByComparingTo("300.00");
-        verify(stavkaNabavkeRepository).sumTrosakStavkiNabavke(eq(10L), any());
+        assertThat(dto.getUkupanPrihod()).isEqualByComparingTo("1000.00");
+        assertThat(dto.getUkupanTrosak()).isEqualByComparingTo("0.00");
+        assertThat(dto.getCommitovaniTrosak()).isEqualByComparingTo("98500.00");
+        assertThat(dto.getNeto()).isEqualByComparingTo("1000.00");
+        assertThat(dto.getPrihodRegistracije()).isEqualByComparingTo("1000.00");
     }
 
     @Test
@@ -158,12 +163,16 @@ class AnalizaProfitabilnostiServiceTest {
     }
 
     @Test
-    void finalize_usesSnapshotUkupanTrosakWithoutNabavka() {
+    void finalize_recalculatesFromLiveSourcesExcludingNabavka() {
         AnalizaProfitabilnosti analiza = analiza(AnalizaStatus.DRAFT, zaposleni(1L));
-        analiza.setUkupanPrihod(new BigDecimal("1000.00"));
-        analiza.setUkupanTrosak(new BigDecimal("225.25"));
+        analiza.setUkupanPrihod(new BigDecimal("300000.00"));
+        analiza.setUkupanTrosak(new BigDecimal("98500.00"));
         when(analizaProfitabilnostiRepository.findByIdWithDetalji(5L)).thenReturn(Optional.of(analiza));
         when(currentUserService.getCurrentZaposleni()).thenReturn(zaposleni(7L));
+        when(registracijaRepository.sumPrihodOdRegistracija(10L)).thenReturn(new BigDecimal("300000.00"));
+        when(fakturaRepository.sumNetoIzlazniPrihodByDogadjaj(10L)).thenReturn(BigDecimal.ZERO);
+        when(trosakRepository.sumNetoByDogadjaj(10L)).thenReturn(new BigDecimal("75.25"));
+        when(govornikRepository.sumHonorarByDogadjaj(10L)).thenReturn(new BigDecimal("150.00"));
         when(analizaProfitabilnostiRepository.save(any(AnalizaProfitabilnosti.class))).thenAnswer(invocation -> {
             AnalizaProfitabilnosti saved = invocation.getArgument(0);
             saved.setStatus(AnalizaStatus.FINALIZOVANA);
@@ -174,6 +183,7 @@ class AnalizaProfitabilnostiServiceTest {
 
         assertThat(dto.getRezultatOcene()).isEqualTo(RezultatOcene.PROFITABILAN);
         assertThat(dto.getUkupanTrosak()).isEqualByComparingTo("225.25");
+        assertThat(dto.getUkupanPrihod()).isEqualByComparingTo("300000.00");
         assertThat(dto.getCommitovaniTrosak()).isNull();
     }
 

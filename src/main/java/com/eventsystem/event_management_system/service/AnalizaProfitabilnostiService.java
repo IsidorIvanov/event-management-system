@@ -118,6 +118,9 @@ public class AnalizaProfitabilnostiService {
             throw new BadRequestException("Kreator analize ne može finalizovati istu analizu.");
         }
 
+        Long dogadjajId = analiza.getDogadjaj().getDogadjajId();
+        analiza.setUkupanPrihod(calculateUkupanPrihod(dogadjajId));
+        analiza.setUkupanTrosak(calculateUkupanTrosak(dogadjajId));
         analiza.setRezultatOcene(classifyResult(analiza.getUkupanPrihod(), analiza.getUkupanTrosak()));
         analiza.setFinalizovanoAt(LocalDateTime.now());
         analiza.setStatus(AnalizaStatus.FINALIZOVANA);
@@ -217,15 +220,19 @@ public class AnalizaProfitabilnostiService {
 
     private AnalizaProfitabilnostiDto toDto(AnalizaProfitabilnosti analiza) {
         Long dogadjajId = analiza.getDogadjaj().getDogadjajId();
+        boolean isDraft = analiza.getStatus() == AnalizaStatus.DRAFT;
+
+        // Draft: trošak live (bez nabavke u oceni). Prihod: snapshot pri kreiranju drafta.
+        // Breakdown polja i dalje prikazuju trenutno stanje izvora u bazi.
         BigDecimal prihod = money(analiza.getUkupanPrihod());
-        BigDecimal trosak = money(analiza.getUkupanTrosak());
+        BigDecimal trosak = isDraft
+                ? calculateUkupanTrosak(dogadjajId)
+                : money(analiza.getUkupanTrosak());
         BigDecimal neto = prihod.subtract(trosak).setScale(MONEY_SCALE, RoundingMode.HALF_EVEN);
 
-        BigDecimal commitovaniTrosak = analiza.getStatus() == AnalizaStatus.DRAFT
+        BigDecimal commitovaniTrosak = isDraft
                 ? calculateCommitovaniTrosak(dogadjajId)
                 : null;
-
-        boolean isDraft = analiza.getStatus() == AnalizaStatus.DRAFT;
 
         return AnalizaProfitabilnostiDto.builder()
                 .analizaId(analiza.getAnalizaId())

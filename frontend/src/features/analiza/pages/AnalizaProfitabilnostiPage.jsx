@@ -506,7 +506,7 @@ export default function AnalizaProfitabilnostiPage() {
                       <th>Datum</th>
                       <th>Prihod</th>
                       <th>Trošak (realizovan)</th>
-                      <th>Commit. nabavka</th>
+                      <th>Commit nabavka</th>
                       <th>Neto</th>
                       <th>Marža</th>
                       <th>ROI</th>
@@ -537,6 +537,9 @@ export default function AnalizaProfitabilnostiPage() {
                         </td>
                         <td>
                           {formatMoneyString(analiza.ukupanPrihod)}
+                          {analiza.status === 'DRAFT' && (
+                            <div className="card-hint">Snimljeno pri kreiranju drafta</div>
+                          )}
                           {formatPrihodBreakdown(analiza) && (
                             <div className="card-hint">
                               {formatPrihodBreakdown(analiza)}
