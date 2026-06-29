@@ -880,6 +880,8 @@ const STATUS_KARTE_CLASS = {
   ISKORISCENA: 'status-badge status-finished',
 };
 
+const PRISUSTVO_PAGE_SIZE = 10;
+
 function PrisustvoTab({ event }) {
   const toast = useToast();
   const [registracije, setRegistracije] = useState([]);
@@ -887,6 +889,7 @@ function PrisustvoTab({ event }) {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterTipKarte, setFilterTipKarte] = useState('all');
+  const [page, setPage] = useState(0);
 
   const load = async () => {
     setLoading(true);
@@ -915,6 +918,15 @@ function PrisustvoTab({ event }) {
     const matchTip = filterTipKarte === 'all' || r.nazivTipa === filterTipKarte;
     return matchSearch && matchStatus && matchTip;
   });
+
+  const totalPages = Math.ceil(filtered.length / PRISUSTVO_PAGE_SIZE);
+  const pageItems = filtered.slice(
+    page * PRISUSTVO_PAGE_SIZE,
+    page * PRISUSTVO_PAGE_SIZE + PRISUSTVO_PAGE_SIZE,
+  );
+
+  // Reset to first page whenever filters/search change or data reloads.
+  useEffect(() => { setPage(0); }, [search, filterStatus, filterTipKarte, registracije]);
 
   const statsPotvrdjena = registracije.filter((r) => r.status === 'POTVRDJENA').length;
   const statsOtkazana = registracije.filter((r) => r.status === 'OTKAZANA').length;
@@ -1014,7 +1026,7 @@ function PrisustvoTab({ event }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => (
+              {pageItems.map((r) => (
                 <tr key={r.registracijaId}>
                   <td>
                     <span className="event-name-badge">
@@ -1052,6 +1064,27 @@ function PrisustvoTab({ event }) {
               ))}
             </tbody>
           </table>
+          {totalPages > 1 && (
+            <div className="prisustvo-paginacija">
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+              >
+                ← Prethodna
+              </button>
+              <span className="prisustvo-paginacija-info">
+                Strana {page + 1} od {totalPages}
+              </span>
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1}
+              >
+                Sledeća →
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

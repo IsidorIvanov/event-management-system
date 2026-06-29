@@ -312,3 +312,17 @@
 .izvestaj-bar {
   fill: var(--accent);
 }
+
+.prisustvo-paginacija {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.prisustvo-paginacija-info {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
