@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -23,6 +25,27 @@ public class DogadjajAnalitikaDto {
     private Long dogadjajId;
     private String dogadjajNaziv;
     private Integer maksKapacitet;
+
+    /** Opis događaja (slobodan tekst). */
+    private String opis;
+
+    /** Lokacija u čitljivom obliku: "Naziv, Grad, Država". */
+    private String lokacija;
+
+    private LocalDate datumPocetka;
+    private LocalDate datumZavrsetka;
+
+    /** Status događaja (DRAFT, OBJAVLJEN, ...). */
+    private String status;
+
+    /** Ukupan broj sesija na događaju. */
+    private int brojSesija;
+
+    /** Tagovi/teme događaja. */
+    private List<String> tagovi;
+
+    /** Trenutak generisanja izveštaja. */
+    private LocalDateTime generisanoU;
 
     /** Ukupno potvrđenih registracija na događaju. */
     private long ukupnoRegistracija;

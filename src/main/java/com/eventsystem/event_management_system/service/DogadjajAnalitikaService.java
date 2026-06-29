@@ -30,6 +30,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -70,6 +72,14 @@ public class DogadjajAnalitikaService {
                 .dogadjajId(dogadjaj.getDogadjajId())
                 .dogadjajNaziv(dogadjaj.getNaziv())
                 .maksKapacitet(maksKapacitet)
+                .opis(dogadjaj.getOpis())
+                .lokacija(formatLokacija(dogadjaj))
+                .datumPocetka(dogadjaj.getDatumPocetka())
+                .datumZavrsetka(dogadjaj.getDatumZavrsetka())
+                .status(dogadjaj.getStatus() != null ? dogadjaj.getStatus().name() : null)
+                .brojSesija(engagementPoSesiji.size())
+                .tagovi(new ArrayList<>(dogadjaj.getTagovi()))
+                .generisanoU(LocalDateTime.now())
                 .ukupnoRegistracija(ukupnoRegistracija)
                 .stopaPrisustva(stopaPrisustva)
                 .prosecniEngagement(prosecniEngagement)
@@ -138,6 +148,15 @@ public class DogadjajAnalitikaService {
             rezultat.add(new TackaDto(s.getNaziv(), engagement));
         }
         return rezultat;
+    }
+
+    /** Lokacija u čitljivom obliku: "Naziv, Grad, Država" (preskače nedostajuće delove). */
+    private static String formatLokacija(Dogadjaj dogadjaj) {
+        if (dogadjaj.getLokacija() == null) return null;
+        var l = dogadjaj.getLokacija();
+        return Stream.of(l.getNaziv(), l.getGrad(), l.getDrzava())
+                .filter(s -> s != null && !s.isBlank())
+                .collect(Collectors.joining(", "));
     }
 
     private static double round1(double value) {

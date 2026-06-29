@@ -14,6 +14,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 /**
@@ -36,6 +38,9 @@ public class DogadjajIzvestajPdfGenerator {
     private static final float LEFT = 50f;
     private static final float RIGHT = 545f;
 
+    private static final DateTimeFormatter DATUM_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    private static final DateTimeFormatter GEN_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+
     public byte[] generate(DogadjajAnalitikaDto a) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Document document = new Document(PageSize.A4);
@@ -44,30 +49,158 @@ public class DogadjajIzvestajPdfGenerator {
             PdfContentByte cb = writer.getDirectContent();
 
             // Header
-            text(cb, FONT_BOLD, 20, INK, LEFT, 800, "Reports & Analytics");
-            text(cb, FONT_REGULAR, 11, MUTED, LEFT, 784, "aggregated · " + safe(a.getDogadjajNaziv()));
+            text(cb, FONT_BOLD, 20, INK, LEFT, 806, "Reports & Analytics");
+            text(cb, FONT_REGULAR, 11, MUTED, LEFT, 790, safe(a.getDogadjajNaziv()));
+            cb.setColorStroke(GRID);
+            cb.setLineWidth(0.8f);
+            cb.moveTo(LEFT, 780);
+            cb.lineTo(RIGHT, 780);
+            cb.stroke();
 
-            // Summary
-            float sy = 758;
-            text(cb, FONT_REGULAR, 11, INK, LEFT, sy,
-                    "Stopa prisustva: " + a.getStopaPrisustva() + "%   ·   "
-                            + "Potvrđene registracije: " + a.getUkupnoRegistracija()
-                            + " / " + a.getMaksKapacitet() + "   ·   "
-                            + "Prosečan engagement: " + a.getProsecniEngagement() + "%");
+            // Key metrics (cards)
+            float cardGap = 12f;
+            float cardW = (RIGHT - LEFT - 2 * cardGap) / 3f;
+            float cardY = 724;
+            float cardH = 48;
+            drawMetricCard(cb, LEFT, cardY, cardW, cardH,
+                    fmtPct(a.getStopaPrisustva()), "Stopa prisustva");
+            drawMetricCard(cb, LEFT + cardW + cardGap, cardY, cardW, cardH,
+                    a.getUkupnoRegistracija() + " / " + nz(a.getMaksKapacitet()), "Potvrđene registracije");
+            drawMetricCard(cb, LEFT + 2 * (cardW + cardGap), cardY, cardW, cardH,
+                    fmtPct(a.getProsecniEngagement()), "Prosečan engagement");
+
+            // Event Details
+            text(cb, FONT_BOLD, 13, INK, LEFT, 700, "Detalji događaja");
+            drawEventDetails(cb, a, LEFT, 556, RIGHT - LEFT, 136);
 
             // Attendance Rate (line chart)
-            text(cb, FONT_BOLD, 13, INK, LEFT, 728, "Attendance Rate");
-            drawLineChart(cb, a.getStopaPrisustvaSerija(), LEFT, 540, RIGHT - LEFT, 175);
+            text(cb, FONT_BOLD, 13, INK, LEFT, 538, "Attendance Rate");
+            drawLineChart(cb, a.getStopaPrisustvaSerija(), LEFT, 398, RIGHT - LEFT, 132);
 
             // Engagement Score / Session (bar chart)
-            text(cb, FONT_BOLD, 13, INK, LEFT, 500, "Engagement Score / Session");
-            drawBarChart(cb, a.getEngagementPoSesiji(), LEFT, 300, RIGHT - LEFT, 185);
+            text(cb, FONT_BOLD, 13, INK, LEFT, 380, "Engagement Score / Session");
+            drawBarChart(cb, a.getEngagementPoSesiji(), LEFT, 234, RIGHT - LEFT, 138);
+
+            // Footer
+            String generisano = a.getGenerisanoU() != null
+                    ? a.getGenerisanoU().format(GEN_FMT)
+                    : "";
+            cb.setColorStroke(GRID);
+            cb.setLineWidth(0.6f);
+            cb.moveTo(LEFT, 40);
+            cb.lineTo(RIGHT, 40);
+            cb.stroke();
+            text(cb, FONT_REGULAR, 8, MUTED, LEFT, 28, "Generisano: " + generisano);
+            centerText(cb, FONT_REGULAR, 8, MUTED, (LEFT + RIGHT) / 2, 28, "Event Management System");
+            String idLabel = "ID događaja: " + nz(a.getDogadjajId());
+            text(cb, FONT_REGULAR, 8, MUTED, RIGHT - FONT_REGULAR.getWidthPoint(idLabel, 8), 28, idLabel);
 
             document.close();
             return out.toByteArray();
         } catch (Exception ex) {
             throw new IllegalStateException("Greška pri generisanju PDF izveštaja događaja.", ex);
         }
+    }
+
+    private void drawMetricCard(PdfContentByte cb, float x, float y, float w, float h, String value, String label) {
+        panel(cb, x, y, w, h);
+        centerText(cb, FONT_BOLD, 18, INK, x + w / 2, y + h - 26, value);
+        centerText(cb, FONT_REGULAR, 8, MUTED, x + w / 2, y + 9, label);
+    }
+
+    private void drawEventDetails(PdfContentByte cb, DogadjajAnalitikaDto a, float x, float y, float w, float h) {
+        panel(cb, x, y, w, h);
+        float pad = 14f;
+        float colW = (w - 2 * pad) / 2f;
+        float leftX = x + pad;
+        float rightX = x + pad + colW;
+        float labelW = 92f;
+
+        float row1 = y + h - 18;
+        float rowGap = 19f;
+        // Vrednost levog stuba staje do početka desnog; desni do desne ivice panela.
+        float leftValW = rightX - (leftX + labelW) - 8f;
+        float rightValW = (x + w - pad) - (rightX + labelW);
+        float fullValW = (x + w - pad) - (leftX + labelW);
+
+        kv(cb, leftX, row1, labelW, leftValW, "Lokacija", a.getLokacija());
+        kv(cb, leftX, row1 - rowGap, labelW, leftValW, "Period", formatPeriod(a));
+        kv(cb, leftX, row1 - 2 * rowGap, labelW, leftValW, "Trajanje", formatTrajanje(a));
+
+        kv(cb, rightX, row1, labelW, rightValW, "Status", a.getStatus());
+        kv(cb, rightX, row1 - rowGap, labelW, rightValW, "Maks. kapacitet", String.valueOf(nz(a.getMaksKapacitet())));
+        kv(cb, rightX, row1 - 2 * rowGap, labelW, rightValW, "Broj sesija", String.valueOf(a.getBrojSesija()));
+
+        float tagY = row1 - 3 * rowGap;
+        String tagovi = (a.getTagovi() == null || a.getTagovi().isEmpty())
+                ? "—" : String.join(", ", a.getTagovi());
+        kv(cb, leftX, tagY, labelW, fullValW, "Tagovi", tagovi);
+
+        // Opis (prelama se u najviše dva reda preko cele širine panela).
+        float opisY = tagY - rowGap;
+        text(cb, FONT_REGULAR, 8.5f, MUTED, leftX, opisY, "Opis");
+        String opis = (a.getOpis() == null || a.getOpis().isBlank()) ? "—" : a.getOpis().strip();
+        wrapText(cb, FONT_REGULAR, 9.5f, INK, leftX + labelW, opisY,
+                w - 2 * pad - labelW, opis, 2, 11f);
+    }
+
+    private void kv(PdfContentByte cb, float x, float y, float labelW, float valueW, String label, String value) {
+        text(cb, FONT_REGULAR, 8.5f, MUTED, x, y, label);
+        String v = (value == null || value.isBlank()) ? "—" : value;
+        v = skratiNaSirinu(FONT_REGULAR, 9.5f, v, valueW);
+        text(cb, FONT_REGULAR, 9.5f, INK, x + labelW, y, v);
+    }
+
+    /** Ispisuje tekst prelomljen po rečima u najviše {@code maxLines} redova. */
+    private void wrapText(PdfContentByte cb, BaseFont font, float size, Color color,
+                          float x, float y, float maxW, String s, int maxLines, float leading) {
+        if (s == null) s = "";
+        String[] reci = s.split("\\s+");
+        StringBuilder linija = new StringBuilder();
+        int line = 0;
+        for (int i = 0; i < reci.length && line < maxLines; i++) {
+            String kandidat = linija.length() == 0 ? reci[i] : linija + " " + reci[i];
+            if (font.getWidthPoint(kandidat, size) > maxW && linija.length() > 0) {
+                boolean poslednji = line == maxLines - 1;
+                String ispis = linija.toString();
+                if (poslednji) ispis = skratiNaSirinu(font, size, ispis + " …", maxW);
+                text(cb, font, size, color, x, y - line * leading, ispis);
+                linija = new StringBuilder(reci[i]);
+                line++;
+            } else {
+                if (linija.length() > 0) linija.append(' ');
+                linija.append(reci[i]);
+            }
+        }
+        if (line < maxLines && linija.length() > 0) {
+            text(cb, font, size, color, x, y - line * leading, linija.toString());
+        }
+    }
+
+    private static String skratiNaSirinu(BaseFont font, float size, String s, float maxW) {
+        while (s.length() > 1 && font.getWidthPoint(s, size) > maxW) {
+            s = s.substring(0, s.length() - 2) + "…";
+        }
+        return s;
+    }
+
+    private static String formatPeriod(DogadjajAnalitikaDto a) {
+        if (a.getDatumPocetka() == null || a.getDatumZavrsetka() == null) return "—";
+        return a.getDatumPocetka().format(DATUM_FMT) + " – " + a.getDatumZavrsetka().format(DATUM_FMT);
+    }
+
+    private static String formatTrajanje(DogadjajAnalitikaDto a) {
+        if (a.getDatumPocetka() == null || a.getDatumZavrsetka() == null) return "—";
+        long dana = ChronoUnit.DAYS.between(a.getDatumPocetka(), a.getDatumZavrsetka()) + 1;
+        return dana + (dana == 1 ? " dan" : " dana");
+    }
+
+    private static int nz(Integer v) {
+        return v != null ? v : 0;
+    }
+
+    private static long nz(Long v) {
+        return v != null ? v : 0L;
     }
 
     private void drawLineChart(PdfContentByte cb, List<TackaDto> tacke, float x, float y, float w, float h) {
