@@ -29,7 +29,7 @@ import { useUnreadNotifikacije } from '@/features/notifikacije/hooks/useNotifika
 import api from '@/shared/services/api';
 import UpsertEventModal from '@/features/dogadjaji/components/UpsertEventModal';
 import UpsertLokacijaModal from '@/features/dogadjaji/components/UpsertLokacijaModal';
-import EventDetailPage from '@/features/dogadjaji/components/EventDetailPage';
+import EventDetailPage from '@/features/dogadjaji/pages/EventDetailPage';
 import { useToast } from '@/shared/components/ToastNotification';
 import { formatDate } from '@/shared/utils/format';
 import { ULOGA_DISPLAY, TIP_DISPLAY } from '@/shared/constants/korisnik';
