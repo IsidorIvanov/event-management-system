@@ -1099,7 +1099,6 @@ function IzvestajTab({ event }) {
       <div className="izvestaj-header">
         <div>
           <h2 className="izvestaj-title">Reports &amp; Analytics</h2>
-          <p className="izvestaj-subtitle">agregirano</p>
         </div>
         <button className="btn btn-primary" style={{ width: 'auto' }} onClick={handleDownload} disabled={downloading}>
           {downloading ? 'Generisanje...' : 'Generiši PDF izveštaj'}

@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "registracija")
@@ -32,6 +33,10 @@ public class Registracija {
     @Column(name = "datum_registracije")
     private LocalDate datumRegistracije;
 
+    /** Tačan trenutak registracije (sa satom) — koristi se za satnu agregaciju izveštaja. */
+    @Column(name = "vreme_registracije")
+    private LocalDateTime vremeRegistracije;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private StatusRegistracije status;
@@ -48,7 +53,8 @@ public class Registracija {
 
     @PrePersist
     protected void onCreate() {
-        if (datumRegistracije == null) datumRegistracije = LocalDate.now();
+        if (vremeRegistracije == null) vremeRegistracije = LocalDateTime.now();
+        if (datumRegistracije == null) datumRegistracije = vremeRegistracije.toLocalDate();
         if (status == null) status = StatusRegistracije.POTVRDJENA;
         if (statusKarte == null) statusKarte = StatusKarte.VALIDNA;
     }
