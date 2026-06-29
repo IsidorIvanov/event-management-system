@@ -212,6 +212,7 @@
 
 .izvestaj-chart-card {
   padding: 1.25rem 1.25rem 1rem;
+  overflow: visible;
 }
 
 .izvestaj-chart-title {
@@ -220,10 +221,56 @@
   color: var(--accent);
 }
 
+.izvestaj-chart-wrap {
+  position: relative;
+}
+
 .izvestaj-svg {
   width: 100%;
   height: auto;
   display: block;
+}
+
+.izvestaj-hit {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.izvestaj-dot.is-active {
+  r: 4;
+}
+
+.izvestaj-bar {
+  transition: opacity 0.12s ease;
+}
+
+.izvestaj-bar.is-active {
+  opacity: 0.78;
+}
+
+.izvestaj-tooltip {
+  position: absolute;
+  z-index: 5;
+  transform: translate(-50%, calc(-100% - 12px));
+  pointer-events: none;
+  background: var(--surface, #1b1e28);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+}
+
+.izvestaj-tooltip-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 0.1rem;
+}
+
+.izvestaj-tooltip-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .izvestaj-chart-empty {

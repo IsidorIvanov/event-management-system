@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '@/shared/services/api';
 import * as sesijaApi from '@/features/dogadjaji/services/sesijaService';
@@ -1139,7 +1139,20 @@ function IzvestajTab({ event }) {
   );
 }
 
+function ChartTooltip({ tip }) {
+  if (!tip) return null;
+  return (
+    <div className="izvestaj-tooltip" style={{ left: tip.x, top: tip.y }}>
+      <div className="izvestaj-tooltip-label">{tip.label}</div>
+      <div className="izvestaj-tooltip-value">{tip.value}</div>
+    </div>
+  );
+}
+
 function LineChart({ points, unit = '' }) {
+  const wrapRef = useRef(null);
+  const [tip, setTip] = useState(null);
+
   if (!points || points.length === 0) {
     return <div className="izvestaj-chart-empty">Nema podataka o registracijama.</div>;
   }
@@ -1156,32 +1169,63 @@ function LineChart({ points, unit = '' }) {
   const area = `${path} L ${xAt(n - 1).toFixed(1)} ${(padTop + plotH).toFixed(1)} L ${xAt(0).toFixed(1)} ${(padTop + plotH).toFixed(1)} Z`;
   const step = Math.max(1, Math.ceil(n / 8));
 
+  const showTip = (e, p) => {
+    const rect = wrapRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setTip({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      label: p.oznaka,
+      value: `Prisustvo: ${p.vrednost}${unit}`,
+    });
+  };
+
   return (
-    <svg className="izvestaj-svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
-      {[0, 0.25, 0.5, 0.75, 1].map((f) => {
-        const y = padTop + plotH * f;
-        return (
-          <g key={f}>
-            <line x1={padX} y1={y} x2={W - 12} y2={y} className="izvestaj-grid" />
-            <text x={padX - 6} y={y + 3} textAnchor="end" className="izvestaj-axis">{Math.round(max * (1 - f))}</text>
+    <div className="izvestaj-chart-wrap" ref={wrapRef}>
+      <svg className="izvestaj-svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
+        {[0, 0.25, 0.5, 0.75, 1].map((f) => {
+          const y = padTop + plotH * f;
+          return (
+            <g key={f}>
+              <line x1={padX} y1={y} x2={W - 12} y2={y} className="izvestaj-grid" />
+              <text x={padX - 6} y={y + 3} textAnchor="end" className="izvestaj-axis">{Math.round(max * (1 - f))}</text>
+            </g>
+          );
+        })}
+        <path d={area} className="izvestaj-area" />
+        <path d={path} className="izvestaj-line" />
+        {points.map((p, i) => (
+          <g key={i}>
+            <circle
+              cx={xAt(i)}
+              cy={yAt(p.vrednost)}
+              r="2.5"
+              className={`izvestaj-dot${tip && tip.label === p.oznaka ? ' is-active' : ''}`}
+            />
+            {(i % step === 0 || i === n - 1) && (
+              <text x={xAt(i)} y={H - 8} textAnchor="middle" className="izvestaj-axis">{p.oznaka}</text>
+            )}
+            <circle
+              cx={xAt(i)}
+              cy={yAt(p.vrednost)}
+              r="10"
+              className="izvestaj-hit"
+              onMouseEnter={(e) => showTip(e, p)}
+              onMouseMove={(e) => showTip(e, p)}
+              onMouseLeave={() => setTip(null)}
+            />
           </g>
-        );
-      })}
-      <path d={area} className="izvestaj-area" />
-      <path d={path} className="izvestaj-line" />
-      {points.map((p, i) => (
-        <g key={i}>
-          <circle cx={xAt(i)} cy={yAt(p.vrednost)} r="2.5" className="izvestaj-dot" />
-          {(i % step === 0 || i === n - 1) && (
-            <text x={xAt(i)} y={H - 8} textAnchor="middle" className="izvestaj-axis">{p.oznaka}</text>
-          )}
-        </g>
-      ))}
-    </svg>
+        ))}
+      </svg>
+      <ChartTooltip tip={tip} />
+    </div>
   );
 }
 
 function BarChart({ points, unit = '' }) {
+  const wrapRef = useRef(null);
+  const [tip, setTip] = useState(null);
+
   if (!points || points.length === 0) {
     return <div className="izvestaj-chart-empty">Nema sesija za ovaj događaj.</div>;
   }
@@ -1196,28 +1240,49 @@ function BarChart({ points, unit = '' }) {
   const baseY = padTop + plotH;
   const trim = (s) => (s && s.length > 12 ? `${s.slice(0, 11)}…` : s || '');
 
+  const showTip = (e, p) => {
+    const rect = wrapRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setTip({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      label: p.oznaka,
+      value: `Engagement: ${p.vrednost}${unit}`,
+    });
+  };
+
   return (
-    <svg className="izvestaj-svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
-      {[0, 0.25, 0.5, 0.75, 1].map((f) => {
-        const y = padTop + plotH * f;
-        return (
-          <g key={f}>
-            <line x1={padX} y1={y} x2={W - 12} y2={y} className="izvestaj-grid" />
-            <text x={padX - 6} y={y + 3} textAnchor="end" className="izvestaj-axis">{Math.round(max * (1 - f))}</text>
-          </g>
-        );
-      })}
-      {points.map((p, i) => {
-        const cx = padX + slot * i + slot / 2;
-        const h = (plotH * p.vrednost) / max;
-        return (
-          <g key={i}>
-            <rect x={cx - barW / 2} y={baseY - h} width={barW} height={h} className="izvestaj-bar" rx="2" />
-            <text x={cx} y={baseY - h - 4} textAnchor="middle" className="izvestaj-axis">{p.vrednost}{unit}</text>
-            <text x={cx} y={H - 8} textAnchor="middle" className="izvestaj-axis">{trim(p.oznaka)}</text>
-          </g>
-        );
-      })}
-    </svg>
+    <div className="izvestaj-chart-wrap" ref={wrapRef}>
+      <svg className="izvestaj-svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
+        {[0, 0.25, 0.5, 0.75, 1].map((f) => {
+          const y = padTop + plotH * f;
+          return (
+            <g key={f}>
+              <line x1={padX} y1={y} x2={W - 12} y2={y} className="izvestaj-grid" />
+              <text x={padX - 6} y={y + 3} textAnchor="end" className="izvestaj-axis">{Math.round(max * (1 - f))}</text>
+            </g>
+          );
+        })}
+        {points.map((p, i) => {
+          const cx = padX + slot * i + slot / 2;
+          const h = (plotH * p.vrednost) / max;
+          const active = tip && tip.label === p.oznaka;
+          return (
+            <g
+              key={i}
+              onMouseEnter={(e) => showTip(e, p)}
+              onMouseMove={(e) => showTip(e, p)}
+              onMouseLeave={() => setTip(null)}
+            >
+              <rect x={padX + slot * i} y={padTop} width={slot} height={plotH} className="izvestaj-hit" />
+              <rect x={cx - barW / 2} y={baseY - h} width={barW} height={h} className={`izvestaj-bar${active ? ' is-active' : ''}`} rx="2" />
+              <text x={cx} y={baseY - h - 4} textAnchor="middle" className="izvestaj-axis">{p.vrednost}{unit}</text>
+              <text x={cx} y={H - 8} textAnchor="middle" className="izvestaj-axis">{trim(p.oznaka)}</text>
+            </g>
+          );
+        })}
+      </svg>
+      <ChartTooltip tip={tip} />
+    </div>
   );
 }
