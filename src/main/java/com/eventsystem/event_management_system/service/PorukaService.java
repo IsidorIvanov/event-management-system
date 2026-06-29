@@ -63,11 +63,16 @@ public class PorukaService {
             }
         }
 
-        // Ukloni samog sebe ako se pojavi
-        kontakti = kontakti.stream()
-                .filter(k -> !k.getKorisnikId().equals(mojId))
-                .distinct()
-                .collect(Collectors.toList());
+        // Ukloni samog sebe i deduplikuj po korisnikId. Entiteti učitani u
+        // odvojenim upitima (getKontakti nije @Transactional) ne dele identitet,
+        // pa HashSet/distinct po referenci propušta duplikate istog korisnika.
+        Map<Long, Korisnik> jedinstveni = new LinkedHashMap<>();
+        for (Korisnik k : kontakti) {
+            if (!k.getKorisnikId().equals(mojId)) {
+                jedinstveni.putIfAbsent(k.getKorisnikId(), k);
+            }
+        }
+        kontakti = new ArrayList<>(jedinstveni.values());
 
         return kontakti.stream()
                 .map(k -> toKontaktDto(k, mojId, poslednjePoruke))

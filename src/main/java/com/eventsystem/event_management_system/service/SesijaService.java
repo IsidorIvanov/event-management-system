@@ -9,7 +9,6 @@ import com.eventsystem.event_management_system.model.Govornik;
 import com.eventsystem.event_management_system.model.Registracija;
 import com.eventsystem.event_management_system.model.Sala;
 import com.eventsystem.event_management_system.model.Sesija;
-import com.eventsystem.event_management_system.model.TipKarte;
 import com.eventsystem.event_management_system.model.Ucesnik;
 import com.eventsystem.event_management_system.model.UcesnikSesija;
 import com.eventsystem.event_management_system.repository.DogadjajRepository;
@@ -22,7 +21,6 @@ import com.eventsystem.event_management_system.utils.SesijaDtoMapper;
 import com.eventsystem.event_management_system.utils.enums.KanalNotifikacije;
 import com.eventsystem.event_management_system.utils.enums.StatusRegistracije;
 import com.eventsystem.event_management_system.utils.enums.TipNotifikacije;
-import com.eventsystem.event_management_system.utils.enums.VrstaKarte;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,8 +29,10 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -67,36 +67,16 @@ public class SesijaService {
 
         List<Sesija> sesije = sesijaRepository.findAllByDogadjaj_DogadjajId(dogadjajId);
 
-        // Fetch only confirmed registrations for this event (for occupancy calculation)
-        List<Registracija> potvrdjene = registracijaRepository
-                .findByDogadjajIdWithDetails(dogadjajId)
-                .stream()
-                .filter(r -> r.getStatus() == StatusRegistracije.POTVRDJENA)
-                .toList();
+        // Popunjenost = broj učesnika koji su sesiju dodali u svoj raspored (ucesnik_sesija).
+        // Tek kreirana sesija nema prijava i ima popunjenost 0.
+        Map<Long, Integer> popunjenostPoSesiji = new HashMap<>();
+        for (Object[] red : ucesnikSesijaRepository.countBySesijaForDogadjaj(dogadjajId)) {
+            popunjenostPoSesiji.put((Long) red[0], ((Number) red[1]).intValue());
+        }
 
         return sesije.stream().map(s -> {
             SesijaDto dto = SesijaDtoMapper.toDto(s);
-
-            long popunjenost = potvrdjene.stream().filter(r -> {
-                TipKarte tk = r.getTipKarte();
-                VrstaKarte vrsta = tk.getVrsta();
-                String nazivTipa = tk.getId().getNazivTipa();
-
-                return switch (vrsta) {
-                    case VISEDNEVNA, BESPLATNA -> true;
-                    case JEDNODNEVNA -> {
-                        try {
-                            LocalDate datumKarte = LocalDate.parse(nazivTipa);
-                            yield s.getDatum().equals(datumKarte);
-                        } catch (Exception e) {
-                            yield false;
-                        }
-                    }
-                    case POJEDINACNA_SESIJA -> s.getNaziv().equalsIgnoreCase(nazivTipa);
-                };
-            }).count();
-
-            dto.setPopunjenost((int) popunjenost);
+            dto.setPopunjenost(popunjenostPoSesiji.getOrDefault(s.getSesijaId(), 0));
             return dto;
         }).collect(Collectors.toList());
     }

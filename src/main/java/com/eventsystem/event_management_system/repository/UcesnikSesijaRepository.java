@@ -23,6 +23,16 @@ public interface UcesnikSesijaRepository extends JpaRepository<UcesnikSesija, Lo
     @Query("SELECT us FROM UcesnikSesija us JOIN FETCH us.ucesnik WHERE us.sesija.sesijaId = :sesijaId")
     List<UcesnikSesija> findBySesijaIdWithUcesnik(@Param("sesijaId") Long sesijaId);
 
+    /**
+     * Broj prijavljenih učesnika po sesiji (popunjenost) za jedan događaj. Vraća redove
+     * {@code [sesijaId, count]} samo za sesije koje imaju bar jednu prijavu — sesije bez
+     * prijava (npr. tek kreirane) se ne pojavljuju i tretiraju se kao 0.
+     */
+    @Query("SELECT us.sesija.sesijaId, COUNT(us) FROM UcesnikSesija us " +
+           "WHERE us.sesija.dogadjaj.dogadjajId = :dogadjajId " +
+           "GROUP BY us.sesija.sesijaId")
+    List<Object[]> countBySesijaForDogadjaj(@Param("dogadjajId") Long dogadjajId);
+
     Optional<UcesnikSesija> findByUcesnik_KorisnikIdAndSesija_SesijaId(Long ucesnikId, Long sesijaId);
 
     boolean existsByUcesnik_KorisnikIdAndSesija_SesijaId(Long ucesnikId, Long sesijaId);

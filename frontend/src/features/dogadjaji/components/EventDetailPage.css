@@ -104,8 +104,10 @@
 }
 
 .overview-stats {
+  flex: 1;
   display: grid;
   grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
   gap: 0.75rem;
 }
 
@@ -174,4 +176,155 @@
 
 .cover-image-placeholder {
   display: none;
+}
+
+/* ===================== Izveštaj (Reports & Analytics) ===================== */
+
+.izvestaj-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.izvestaj-title {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.izvestaj-subtitle {
+  margin: 0.15rem 0 0;
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.izvestaj-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .izvestaj-charts {
+    grid-template-columns: 1fr;
+  }
+}
+
+.izvestaj-chart-card {
+  padding: 1.25rem 1.25rem 1rem;
+  overflow: visible;
+}
+
+.izvestaj-chart-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  color: var(--accent);
+}
+
+.izvestaj-chart-wrap {
+  position: relative;
+}
+
+.izvestaj-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.izvestaj-hit {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.izvestaj-dot.is-active {
+  r: 4;
+}
+
+.izvestaj-bar {
+  transition: opacity 0.12s ease;
+}
+
+.izvestaj-bar.is-active {
+  opacity: 0.78;
+}
+
+.izvestaj-tooltip {
+  position: absolute;
+  z-index: 5;
+  transform: translate(-50%, calc(-100% - 12px));
+  pointer-events: none;
+  background: var(--surface, #1b1e28);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+}
+
+.izvestaj-tooltip-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 0.1rem;
+}
+
+.izvestaj-tooltip-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.izvestaj-chart-empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.izvestaj-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+
+.izvestaj-axis {
+  fill: var(--text-muted);
+  font-size: 9px;
+}
+
+.izvestaj-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.izvestaj-area {
+  fill: var(--accent);
+  opacity: 0.12;
+  stroke: none;
+}
+
+.izvestaj-dot {
+  fill: var(--accent);
+}
+
+.izvestaj-bar {
+  fill: var(--accent);
+}
+
+.prisustvo-paginacija {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.prisustvo-paginacija-info {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  white-space: nowrap;
 }

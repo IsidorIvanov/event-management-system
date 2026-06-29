@@ -1,13 +1,16 @@
 package com.eventsystem.event_management_system.controller;
 
+import com.eventsystem.event_management_system.dto.DogadjajAnalitikaDto;
 import com.eventsystem.event_management_system.dto.DogadjajDto;
 import com.eventsystem.event_management_system.dto.DogadjajResponseDto;
 import com.eventsystem.event_management_system.dto.SredstvaDogadjajaDto;
 import com.eventsystem.event_management_system.dto.ZauzetiTerminDto;
+import com.eventsystem.event_management_system.service.DogadjajAnalitikaService;
 import com.eventsystem.event_management_system.service.DogadjajService;
 import com.eventsystem.event_management_system.service.SredstvaDogadjajaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +23,7 @@ public class DogadjajController {
 
     private final DogadjajService dogadjajService;
     private final SredstvaDogadjajaService sredstvaDogadjajaService;
+    private final DogadjajAnalitikaService dogadjajAnalitikaService;
 
     @GetMapping("")
     public ResponseEntity<List<DogadjajResponseDto>> getAllDogadjaji() {
@@ -41,6 +45,16 @@ public class DogadjajController {
     @GetMapping("/{id}/sredstva")
     public ResponseEntity<SredstvaDogadjajaDto> getSredstva(@PathVariable Long id) {
         return ResponseEntity.ok(sredstvaDogadjajaService.getSredstva(id));
+    }
+
+    @GetMapping("/{id}/analitika")
+    public ResponseEntity<DogadjajAnalitikaDto> getAnalitika(@PathVariable Long id) {
+        return ResponseEntity.ok(dogadjajAnalitikaService.getAnalitika(id));
+    }
+
+    @GetMapping("/{id}/analitika/pdf")
+    public ResponseEntity<Resource> downloadAnalitikaPdf(@PathVariable Long id) {
+        return dogadjajAnalitikaService.downloadPdf(id);
     }
 
     @GetMapping("/{id}")
