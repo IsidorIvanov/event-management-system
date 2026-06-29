@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '@/shared/services/api';
 import * as sesijaApi from '@/features/dogadjaji/services/sesijaService';
 import * as govornikApi from '@/features/dogadjaji/services/govornikService';
@@ -22,12 +22,16 @@ const TABS = ['Pregled', 'Sesije & Agenda', 'Govornici', 'Karte', 'Prisustvo', '
 export default function EventDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
 
   const [event, setEvent]       = useState(null);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState(() => {
+    const i = TABS.indexOf(location.state?.tab);
+    return i >= 0 ? i : 0;
+  });
   const [showEdit, setShowEdit] = useState(false);
 
   useEffect(() => {
@@ -190,15 +194,6 @@ function OverviewTab({ event }) {
             <div className="label">Prodate karte</div>
             <div className="value">{stats.prodateKarte ?? '—'}</div>
             <div className="card-hint">od ukupnog kapaciteta</div>
-          </div>
-        </div>
-
-        <div className="events-table-card" style={{ padding: '1.5rem' }}>
-          <h3 style={{ marginBottom: '1rem' }}>Brze akcije</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <button className="btn btn-outline" style={{ justifyContent: 'flex-start' }}>
-              📧 Pošalji email svim učesnicima
-            </button>
           </div>
         </div>
       </div>

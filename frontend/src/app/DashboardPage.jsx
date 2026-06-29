@@ -347,7 +347,9 @@ function ProgramSection({ user }) {
                       <button
                         className="btn btn-outline btn-xs"
                         onClick={() =>
-                          navigate(`/dashboard/dogadjaj/${event.dogadjajId}`)
+                          navigate(`/dashboard/dogadjaj/${event.dogadjajId}`, {
+                            state: { tab: "Izveštaj" },
+                          })
                         }
                       >
                         Izveštaj

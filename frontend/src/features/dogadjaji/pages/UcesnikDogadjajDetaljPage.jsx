@@ -170,7 +170,7 @@ function AgendaTab({ event, isRegistered, userRegistration }) {
               </span>
             </div>
             {grouped[datum].map((s) => {
-              const { pct, color } = fillBar(0, s.kapacitet);
+              const { pct, color } = fillBar(s.popunjenost ?? 0, s.kapacitet);
               const speakerText = s.govornici?.length > 0
                 ? s.govornici.map((g) => `${g.ime} ${g.prezime}`).join(', ')
                 : null;
