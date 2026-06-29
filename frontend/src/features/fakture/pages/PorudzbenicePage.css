@@ -142,7 +142,7 @@
 }
 .karte-list-header {
   display: grid;
-  grid-template-columns: 150px 1fr 140px 100px 190px;
+  grid-template-columns: 150px 1fr 140px 100px 110px 190px;
   gap: 1rem;
   padding: 0.65rem 1.25rem;
   background: var(--bg-secondary);
@@ -156,7 +156,7 @@
 }
 .karte-list-row {
   display: grid;
-  grid-template-columns: 150px 1fr 140px 100px 190px;
+  grid-template-columns: 150px 1fr 140px 100px 110px 190px;
   gap: 1rem;
   padding: 0.9rem 1.25rem;
   border-bottom: 1px dashed var(--border);
@@ -188,3 +188,7 @@
 .karte-kvota-col { display: flex; align-items: baseline; gap: 0.3rem; }
 .karte-kvota { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
 .karte-kvota-hint { font-size: 0.75rem; color: var(--text-muted); }
+.karte-prodato-col { display: flex; align-items: baseline; gap: 0.3rem; }
+.karte-prodato { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
+.karte-prodato-hint { font-size: 0.75rem; color: var(--text-muted); }
+.karte-prodato.is-full { color: var(--success); }

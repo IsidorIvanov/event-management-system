@@ -5,11 +5,13 @@ import com.eventsystem.event_management_system.model.Dogadjaj;
 import com.eventsystem.event_management_system.model.TipKarte;
 import com.eventsystem.event_management_system.model.compositePK.TipKarteId;
 import com.eventsystem.event_management_system.repository.DogadjajRepository;
+import com.eventsystem.event_management_system.repository.RegistracijaRepository;
 import com.eventsystem.event_management_system.repository.TipKarteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -19,6 +21,8 @@ public class TipKarteService {
     private final TipKarteRepository tipKarteRepository;
 
     private final DogadjajRepository dogadjajRepository;
+
+    private final RegistracijaRepository registracijaRepository;
 
     public TipKarteDto createTipKarte(TipKarteDto dto) {
         Dogadjaj dogadjaj = dogadjajRepository.findById(dto.getDogadjajId())
@@ -46,6 +50,12 @@ public class TipKarteService {
     }
 
     public List<TipKarteDto> getTipKarteByDogadjaj(Long dogadjajId) {
+        Map<String, Long> prodatoByTip = registracijaRepository.countProdatoByTipKarte(dogadjajId)
+                .stream()
+                .collect(Collectors.toMap(
+                        row -> (String) row[0],
+                        row -> (Long) row[1]));
+
         return tipKarteRepository.findAllByDogadjaj_DogadjajId(dogadjajId)
                 .stream()
                 .map(t -> TipKarteDto.builder()
@@ -55,6 +65,7 @@ public class TipKarteService {
                         .cena(t.getCena())
                         .kvota(t.getKvota())
                         .opis(t.getOpis())
+                        .prodato(prodatoByTip.getOrDefault(t.getId().getNazivTipa(), 0L))
                         .build())
                 .collect(Collectors.toList());
     }

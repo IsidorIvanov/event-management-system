@@ -31,4 +31,7 @@ public class TipKarteDto {
 
     @Size(max = 500, message = "Opis ne sme biti duži od 500 karaktera")
     private String opis;
+
+    /** Broj prodatih (registrovanih, neotkazanih) karata ovog tipa. Samo za čitanje. */
+    private Long prodato;
 }

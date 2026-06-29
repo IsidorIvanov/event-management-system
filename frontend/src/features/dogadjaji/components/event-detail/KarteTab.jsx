@@ -76,6 +76,7 @@ export default function KarteTab({ event }) {
   };
 
   const totalKvota = karte.reduce((s, k) => s + k.kvota, 0);
+  const totalProdato = karte.reduce((s, k) => s + (k.prodato || 0), 0);
 
   return (
     <div className="govornici-tab">
@@ -151,6 +152,7 @@ export default function KarteTab({ event }) {
             <span>DETALJI</span>
             <span>CENA</span>
             <span>KVOTA</span>
+            <span>PRODATO</span>
             <span></span>
           </div>
 
@@ -194,6 +196,14 @@ export default function KarteTab({ event }) {
                 <div className="karte-kvota-col">
                   <span className="karte-kvota">{k.kvota}</span>
                   <span className="karte-kvota-hint">mesta</span>
+                </div>
+
+                {/* Prodato */}
+                <div className="karte-prodato-col">
+                  <span className={`karte-prodato${(k.prodato || 0) >= k.kvota ? ' is-full' : ''}`}>
+                    {k.prodato || 0}
+                  </span>
+                  <span className="karte-prodato-hint">/ {k.kvota}</span>
                 </div>
 
                 {/* Akcije */}

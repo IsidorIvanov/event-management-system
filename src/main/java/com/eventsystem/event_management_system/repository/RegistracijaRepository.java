@@ -49,5 +49,14 @@ public interface RegistracijaRepository extends JpaRepository<Registracija, Long
               AND r.statusKarte = com.eventsystem.event_management_system.utils.enums.StatusKarte.VALIDNA
             """)
     BigDecimal sumPrihodOdRegistracija(@Param("dogadjajId") Long dogadjajId);
+
+    @Query("""
+            SELECT r.tipKarte.id.nazivTipa, COUNT(r)
+            FROM Registracija r
+            WHERE r.tipKarte.id.dogadjajId = :dogadjajId
+              AND r.status <> com.eventsystem.event_management_system.utils.enums.StatusRegistracije.OTKAZANA
+            GROUP BY r.tipKarte.id.nazivTipa
+            """)
+    List<Object[]> countProdatoByTipKarte(@Param("dogadjajId") Long dogadjajId);
 }
 
