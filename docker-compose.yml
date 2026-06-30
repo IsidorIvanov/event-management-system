@@ -9,3 +9,26 @@ services:
     environment:
       MP_SMTP_AUTH_ACCEPT_ANY: "true"
       MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+
+  # Oracle XE — PL/SQL modul (database/oracle/). Spring Boot i dalje koristi MySQL.
+  oracle-xe:
+    image: gvenzl/oracle-xe:21-slim
+    container_name: ems-oracle-xe
+    restart: unless-stopped
+    ports:
+      - "1522:1521"   # 1522 spolja ako je 1521 zauzet (lokalni Oracle)
+    environment:
+      ORACLE_PASSWORD: oracle
+      APP_USER: ems
+      APP_USER_PASSWORD: ems
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+volumes:
+  oracle-data:
