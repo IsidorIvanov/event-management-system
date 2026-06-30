@@ -8,6 +8,7 @@ import * as nabavkaApi from '@/features/fakture/services/nabavkaService';
 
 const TIP_LABEL = {
   PO_DOGADJAJU: 'Po događaju',
+  RESURSI_I_TROSKOVI_PO_DOGADJAJU: 'Resursi i troškovi po događaju',
   PO_KLIJENTU: 'Po klijentu',
   PO_DOBAVLJACU: 'Po dobavljaču',
   PO_PERIODU: 'Po periodu',
@@ -92,7 +93,7 @@ export default function FinansijskiIzvestajiPage() {
 
   const loadLookups = useCallback(async () => {
     const requests = [];
-    if (tip === 'PO_DOGADJAJU') {
+    if (tip === 'PO_DOGADJAJU' || tip === 'RESURSI_I_TROSKOVI_PO_DOGADJAJU') {
       requests.push(api.get('/dogadjaj').then((r) => setDogadjaji(r.data || [])));
     }
     if (tip === 'PO_KLIJENTU') {
@@ -124,13 +125,13 @@ export default function FinansijskiIzvestajiPage() {
     loadLookups().catch(() => toast('Greška pri učitavanju podataka za formu.', 'error'));
   }, [loadLookups, toast]);
 
-  const needsPeriod = tip !== 'PO_DOGADJAJU';
+  const needsPeriod = tip !== 'PO_DOGADJAJU' && tip !== 'RESURSI_I_TROSKOVI_PO_DOGADJAJU';
 
   const buildPayload = () => {
     const payload = { tip, format };
-    if (tip === 'PO_DOGADJAJU') {
+    if (tip === 'PO_DOGADJAJU' || tip === 'RESURSI_I_TROSKOVI_PO_DOGADJAJU') {
       payload.dogadjajId = Number(dogadjajId);
-      if (periodOd && periodDo) {
+      if (tip === 'PO_DOGADJAJU' && periodOd && periodDo) {
         payload.periodOd = periodOd;
         payload.periodDo = periodDo;
       }
@@ -213,7 +214,7 @@ export default function FinansijskiIzvestajiPage() {
               </select>
             </label>
 
-            {tip === 'PO_DOGADJAJU' && (
+            {(tip === 'PO_DOGADJAJU' || tip === 'RESURSI_I_TROSKOVI_PO_DOGADJAJU') && (
               <label>
                 Događaj
                 <select

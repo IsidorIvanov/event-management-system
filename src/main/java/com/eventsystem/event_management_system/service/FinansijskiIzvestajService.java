@@ -10,6 +10,7 @@ import com.eventsystem.event_management_system.model.Zaposleni;
 import com.eventsystem.event_management_system.repository.FinansijskiIzvestajRepository;
 import com.eventsystem.event_management_system.utils.enums.FormatIzvestaja;
 import com.eventsystem.event_management_system.utils.enums.IzvestajStatus;
+import com.eventsystem.event_management_system.utils.enums.TipIzvestaja;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -90,17 +91,21 @@ public class FinansijskiIzvestajService {
         }
 
         switch (request.getTip()) {
-            case PO_DOGADJAJU -> {
+            case PO_DOGADJAJU, RESURSI_I_TROSKOVI_PO_DOGADJAJU -> {
                 if (request.getDogadjajId() == null) {
                     throw new BadRequestException("ID događaja je obavezan za izveštaj po događaju.");
                 }
                 if (request.getKlijentId() != null || request.getDobavljacId() != null) {
                     throw new BadRequestException("Izveštaj po događaju ne sme imati klijentId ili dobavljacId.");
                 }
-                if (request.getPeriodOd() != null && request.getPeriodDo() != null) {
-                    validatePeriod(request.getPeriodOd(), request.getPeriodDo());
+                if (request.getTip() == TipIzvestaja.PO_DOGADJAJU) {
+                    if (request.getPeriodOd() != null && request.getPeriodDo() != null) {
+                        validatePeriod(request.getPeriodOd(), request.getPeriodDo());
+                    } else if (request.getPeriodOd() != null || request.getPeriodDo() != null) {
+                        throw new BadRequestException("Period mora imati i datum od i datum do.");
+                    }
                 } else if (request.getPeriodOd() != null || request.getPeriodDo() != null) {
-                    throw new BadRequestException("Period mora imati i datum od i datum do.");
+                    throw new BadRequestException("Izveštaj resursa i troškova ne podržava period filter.");
                 }
             }
             case PO_KLIJENTU -> {

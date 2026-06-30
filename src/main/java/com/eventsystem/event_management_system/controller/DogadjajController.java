@@ -2,10 +2,12 @@ package com.eventsystem.event_management_system.controller;
 
 import com.eventsystem.event_management_system.dto.DogadjajAnalitikaDto;
 import com.eventsystem.event_management_system.dto.DogadjajDto;
+import com.eventsystem.event_management_system.dto.DogadjajResursiTroskoviIzvestajDto;
 import com.eventsystem.event_management_system.dto.DogadjajResponseDto;
 import com.eventsystem.event_management_system.dto.SredstvaDogadjajaDto;
 import com.eventsystem.event_management_system.dto.ZauzetiTerminDto;
 import com.eventsystem.event_management_system.service.DogadjajAnalitikaService;
+import com.eventsystem.event_management_system.service.DogadjajIzvestajService;
 import com.eventsystem.event_management_system.service.DogadjajService;
 import com.eventsystem.event_management_system.service.SredstvaDogadjajaService;
 import jakarta.validation.Valid;
@@ -24,6 +26,7 @@ public class DogadjajController {
     private final DogadjajService dogadjajService;
     private final SredstvaDogadjajaService sredstvaDogadjajaService;
     private final DogadjajAnalitikaService dogadjajAnalitikaService;
+    private final DogadjajIzvestajService dogadjajIzvestajService;
 
     @GetMapping("")
     public ResponseEntity<List<DogadjajResponseDto>> getAllDogadjaji() {
@@ -55,6 +58,21 @@ public class DogadjajController {
     @GetMapping("/{id}/analitika/pdf")
     public ResponseEntity<Resource> downloadAnalitikaPdf(@PathVariable Long id) {
         return dogadjajAnalitikaService.downloadPdf(id);
+    }
+
+    @GetMapping("/{id}/izvestaj")
+    public ResponseEntity<DogadjajResursiTroskoviIzvestajDto> getIzvestaj(@PathVariable Long id) {
+        return ResponseEntity.ok(dogadjajIzvestajService.getKompletanIzvestaj(id));
+    }
+
+    @GetMapping("/{id}/izvestaj/resursi")
+    public ResponseEntity<DogadjajResursiTroskoviIzvestajDto.ResursiDto> getIzvestajResursi(@PathVariable Long id) {
+        return ResponseEntity.ok(dogadjajIzvestajService.getResursi(id));
+    }
+
+    @GetMapping("/{id}/izvestaj/troskovi")
+    public ResponseEntity<DogadjajResursiTroskoviIzvestajDto.TroskoviDto> getIzvestajTroskovi(@PathVariable Long id) {
+        return ResponseEntity.ok(dogadjajIzvestajService.getTroskovi(id));
     }
 
     @GetMapping("/{id}")

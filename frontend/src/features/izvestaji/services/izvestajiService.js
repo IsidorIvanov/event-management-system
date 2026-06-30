@@ -19,3 +19,9 @@ export const download = async (id, filename) => {
   link.remove();
   window.URL.revokeObjectURL(url);
 };
+
+export const getDogadjajIzvestaj = (dogadjajId) => api.get(`/dogadjaj/${dogadjajId}/izvestaj`);
+
+export const getDogadjajIzvestajResursi = (dogadjajId) => api.get(`/dogadjaj/${dogadjajId}/izvestaj/resursi`);
+
+export const getDogadjajIzvestajTroskovi = (dogadjajId) => api.get(`/dogadjaj/${dogadjajId}/izvestaj/troskovi`);

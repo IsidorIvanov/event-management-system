@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Builder
@@ -35,8 +35,34 @@ public class IzvestajPodaciDto {
 
     private Long brojDogadjaja;
 
-    private List<IzvestajFakturaRedDto> fakture;
-    private List<IzvestajUgovorRedDto> ugovori;
+    private BigDecimal prihodOdKarata;
+    private BigDecimal prihodOdIzlaznihFaktura;
+    private BigDecimal trosakEvidentiran;
+    private BigDecimal trosakHonorari;
+    private BigDecimal commitovanaNabavka;
+    private Integer prosecnaIskoriscenostSala;
+    private Integer pokrivenostInventarProcenat;
+
+    @Builder.Default
+    private List<IzvestajFakturaRedDto> fakture = new ArrayList<>();
+
+    @Builder.Default
+    private List<IzvestajUgovorRedDto> ugovori = new ArrayList<>();
+
+    @Builder.Default
+    private List<IzvestajSalaRedDto> stavkeSala = new ArrayList<>();
+
+    @Builder.Default
+    private List<IzvestajOpremeRedDto> stavkeOpreme = new ArrayList<>();
+
+    @Builder.Default
+    private List<IzvestajNabavkaRedDto> stavkeNabavke = new ArrayList<>();
+
+    @Builder.Default
+    private List<IzvestajBudzetRedDto> stavkeBudzeta = new ArrayList<>();
+
+    @Builder.Default
+    private List<String> upozorenja = new ArrayList<>();
 
     @Builder
     @Getter
@@ -61,5 +87,60 @@ public class IzvestajPodaciDto {
         private String status;
         private BigDecimal vrednost;
         private String vaziDo;
+    }
+
+    @Builder
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class IzvestajSalaRedDto {
+        private String sesijaNaziv;
+        private String nazivSale;
+        private String datum;
+        private Integer kapacitet;
+        private Integer popunjenost;
+        private Integer iskoriscenostProcenat;
+    }
+
+    @Builder
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class IzvestajOpremeRedDto {
+        private String nazivResursa;
+        private Integer potrebnaKolicina;
+        private Integer dodeljeno;
+        private Integer dostupnoNaStanju;
+        private boolean pokriveno;
+    }
+
+    @Builder
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class IzvestajNabavkaRedDto {
+        private Long nabavkaId;
+        private String status;
+        private String dobavljacNaziv;
+        private int brojStavki;
+        private BigDecimal ukupnaVrednost;
+        private boolean commitovana;
+    }
+
+    @Builder
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class IzvestajBudzetRedDto {
+        private String nazivBudzeta;
+        private String kategorijaNaziv;
+        private BigDecimal planirano;
+        private BigDecimal stvarno;
+        private BigDecimal iskoriscenostProcenat;
+        private String statusKontrole;
     }
 }

@@ -52,6 +52,14 @@ export default function SredstvaDogadjajaPage() {
           <p className="page-subtitle">Sale, nabavke i dodeljena oprema na jednom mestu</p>
         </div>
         <Link to="/dashboard/inventar" className="btn btn-outline btn-sm">Inventar</Link>
+        {selectedId && (
+          <Link
+            to={`/dashboard/izvestaj-resursi-troskovi?dogadjajId=${selectedId}`}
+            className="btn btn-outline btn-sm"
+          >
+            Izveštaj resursa i troškova
+          </Link>
+        )}
       </div>
 
       <div className="events-table-card" style={{ marginBottom: '1.5rem', padding: '1rem' }}>

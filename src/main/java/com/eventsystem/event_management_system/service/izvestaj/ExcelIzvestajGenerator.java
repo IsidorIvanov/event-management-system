@@ -62,6 +62,123 @@ public class ExcelIzvestajGenerator {
                 rowIdx = addPair(sheet, rowIdx, "Broj događaja", String.valueOf(podaci.getBrojDogadjaja()));
             }
 
+            if (podaci.getProsecnaIskoriscenostSala() != null) {
+                rowIdx++;
+                rowIdx = addRow(sheet, rowIdx, "Resursi", headerStyle);
+                rowIdx = addPair(sheet, rowIdx, "Prosečna iskorišćenost sala",
+                        podaci.getProsecnaIskoriscenostSala() + "%");
+                if (podaci.getPokrivenostInventarProcenat() != null) {
+                    rowIdx = addPair(sheet, rowIdx, "Pokrivenost inventarom",
+                            podaci.getPokrivenostInventarProcenat() + "%");
+                }
+            }
+
+            if (podaci.getPrihodOdKarata() != null) {
+                rowIdx++;
+                rowIdx = addRow(sheet, rowIdx, "Raspodela prihoda i troškova", headerStyle);
+                rowIdx = addPair(sheet, rowIdx, "Prihod od karata",
+                        PdfIzvestajGenerator.formatMoney(podaci.getPrihodOdKarata()));
+                rowIdx = addPair(sheet, rowIdx, "Prihod od izlaznih faktura",
+                        PdfIzvestajGenerator.formatMoney(podaci.getPrihodOdIzlaznihFaktura()));
+                rowIdx = addPair(sheet, rowIdx, "Evidentirani trošak",
+                        PdfIzvestajGenerator.formatMoney(podaci.getTrosakEvidentiran()));
+                rowIdx = addPair(sheet, rowIdx, "Honorari",
+                        PdfIzvestajGenerator.formatMoney(podaci.getTrosakHonorari()));
+                rowIdx = addPair(sheet, rowIdx, "Commitovana nabavka (informativno)",
+                        PdfIzvestajGenerator.formatMoney(podaci.getCommitovanaNabavka()));
+            }
+
+            if (podaci.getUpozorenja() != null && !podaci.getUpozorenja().isEmpty()) {
+                rowIdx++;
+                rowIdx = addRow(sheet, rowIdx, "Upozorenja", headerStyle);
+                for (String upozorenje : podaci.getUpozorenja()) {
+                    rowIdx = addRow(sheet, rowIdx, "• " + upozorenje, null);
+                }
+            }
+
+            if (podaci.getStavkeSala() != null && !podaci.getStavkeSala().isEmpty()) {
+                rowIdx++;
+                rowIdx = addRow(sheet, rowIdx, "Iskorišćenost sala", headerStyle);
+                Row header = sheet.createRow(rowIdx++);
+                String[] cols = {"Sesija", "Sala", "Datum", "Kapacitet", "Popunjenost", "Iskorišćenost %"};
+                for (int i = 0; i < cols.length; i++) {
+                    Cell cell = header.createCell(i);
+                    cell.setCellValue(cols[i]);
+                    cell.setCellStyle(headerStyle);
+                }
+                for (var s : podaci.getStavkeSala()) {
+                    Row row = sheet.createRow(rowIdx++);
+                    setCell(row, 0, s.getSesijaNaziv());
+                    setCell(row, 1, s.getNazivSale());
+                    setCell(row, 2, s.getDatum());
+                    setCell(row, 3, s.getKapacitet() != null ? String.valueOf(s.getKapacitet()) : "—");
+                    setCell(row, 4, s.getPopunjenost() != null ? String.valueOf(s.getPopunjenost()) : "—");
+                    setCell(row, 5, s.getIskoriscenostProcenat() != null
+                            ? s.getIskoriscenostProcenat() + "%" : "—");
+                }
+            }
+
+            if (podaci.getStavkeOpreme() != null && !podaci.getStavkeOpreme().isEmpty()) {
+                rowIdx++;
+                rowIdx = addRow(sheet, rowIdx, "Oprema", headerStyle);
+                Row header = sheet.createRow(rowIdx++);
+                String[] cols = {"Resurs", "Potrebno", "Dodeljeno", "Na stanju", "Pokriveno"};
+                for (int i = 0; i < cols.length; i++) {
+                    Cell cell = header.createCell(i);
+                    cell.setCellValue(cols[i]);
+                    cell.setCellStyle(headerStyle);
+                }
+                for (var o : podaci.getStavkeOpreme()) {
+                    Row row = sheet.createRow(rowIdx++);
+                    setCell(row, 0, o.getNazivResursa());
+                    setCell(row, 1, String.valueOf(o.getPotrebnaKolicina()));
+                    setCell(row, 2, String.valueOf(o.getDodeljeno()));
+                    setCell(row, 3, String.valueOf(o.getDostupnoNaStanju()));
+                    setCell(row, 4, o.isPokriveno() ? "Da" : "Ne");
+                }
+            }
+
+            if (podaci.getStavkeNabavke() != null && !podaci.getStavkeNabavke().isEmpty()) {
+                rowIdx++;
+                rowIdx = addRow(sheet, rowIdx, "Nabavke", headerStyle);
+                Row header = sheet.createRow(rowIdx++);
+                String[] cols = {"ID", "Status", "Dobavljač", "Stavki", "Vrednost"};
+                for (int i = 0; i < cols.length; i++) {
+                    Cell cell = header.createCell(i);
+                    cell.setCellValue(cols[i]);
+                    cell.setCellStyle(headerStyle);
+                }
+                for (var n : podaci.getStavkeNabavke()) {
+                    Row row = sheet.createRow(rowIdx++);
+                    setCell(row, 0, n.getNabavkaId() != null ? String.valueOf(n.getNabavkaId()) : "—");
+                    setCell(row, 1, n.getStatus());
+                    setCell(row, 2, n.getDobavljacNaziv());
+                    setCell(row, 3, String.valueOf(n.getBrojStavki()));
+                    setCell(row, 4, PdfIzvestajGenerator.formatMoney(n.getUkupnaVrednost()));
+                }
+            }
+
+            if (podaci.getStavkeBudzeta() != null && !podaci.getStavkeBudzeta().isEmpty()) {
+                rowIdx++;
+                rowIdx = addRow(sheet, rowIdx, "Budžet", headerStyle);
+                Row header = sheet.createRow(rowIdx++);
+                String[] cols = {"Budžet", "Kategorija", "Planirano", "Stvarno", "Iskorišćenost %"};
+                for (int i = 0; i < cols.length; i++) {
+                    Cell cell = header.createCell(i);
+                    cell.setCellValue(cols[i]);
+                    cell.setCellStyle(headerStyle);
+                }
+                for (var b : podaci.getStavkeBudzeta()) {
+                    Row row = sheet.createRow(rowIdx++);
+                    setCell(row, 0, b.getNazivBudzeta());
+                    setCell(row, 1, b.getKategorijaNaziv());
+                    setCell(row, 2, PdfIzvestajGenerator.formatMoney(b.getPlanirano()));
+                    setCell(row, 3, PdfIzvestajGenerator.formatMoney(b.getStvarno()));
+                    setCell(row, 4, b.getIskoriscenostProcenat() != null
+                            ? b.getIskoriscenostProcenat().toPlainString() + "%" : "—");
+                }
+            }
+
             if (podaci.getFakture() != null && !podaci.getFakture().isEmpty()) {
                 rowIdx++;
                 rowIdx = addRow(sheet, rowIdx, "Fakture", headerStyle);

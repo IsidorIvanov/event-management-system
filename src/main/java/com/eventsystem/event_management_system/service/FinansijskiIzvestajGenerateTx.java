@@ -22,6 +22,7 @@ public class FinansijskiIzvestajGenerateTx {
 
     private final FinansijskiIzvestajRepository finansijskiIzvestajRepository;
     private final FinansijskaAgregacijaService finansijskaAgregacijaService;
+    private final DogadjajIzvestajService dogadjajIzvestajService;
     private final LocalFileStorageService fileStorageService;
     private final PdfIzvestajGenerator pdfIzvestajGenerator;
     private final ExcelIzvestajGenerator excelIzvestajGenerator;
@@ -54,6 +55,8 @@ public class FinansijskiIzvestajGenerateTx {
     private IzvestajPodaciDto buildPodaci(FinansijskiIzvestaj izvestaj) {
         return switch (izvestaj.getTip()) {
             case PO_DOGADJAJU -> finansijskaAgregacijaService.agregacijaPoDogadjaju(izvestaj.getDogadjajId());
+            case RESURSI_I_TROSKOVI_PO_DOGADJAJU -> dogadjajIzvestajService.toIzvestajPodaci(
+                    dogadjajIzvestajService.getKompletanIzvestaj(izvestaj.getDogadjajId()));
             case PO_KLIJENTU -> finansijskaAgregacijaService.agregacijaPoKlijentu(
                     izvestaj.getKlijentId(), izvestaj.getPeriodOd(), izvestaj.getPeriodDo());
             case PO_DOBAVLJACU -> finansijskaAgregacijaService.agregacijaPoDobavljacu(

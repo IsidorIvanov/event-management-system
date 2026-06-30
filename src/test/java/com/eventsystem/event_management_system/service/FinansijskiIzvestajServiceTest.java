@@ -94,6 +94,21 @@ class FinansijskiIzvestajServiceTest {
     }
 
     @Test
+    void generate_resursiTip_rejectsPeriod() {
+        GenerateIzvestajRequest request = GenerateIzvestajRequest.builder()
+                .tip(TipIzvestaja.RESURSI_I_TROSKOVI_PO_DOGADJAJU)
+                .format(FormatIzvestaja.PDF)
+                .dogadjajId(10L)
+                .periodOd(LocalDate.of(2026, 1, 1))
+                .periodDo(LocalDate.of(2026, 1, 31))
+                .build();
+
+        assertThatThrownBy(() -> service.generate(request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("period");
+    }
+
+    @Test
     void generate_xorValidation_rejectsMixedParameters() {
         GenerateIzvestajRequest request = GenerateIzvestajRequest.builder()
                 .tip(TipIzvestaja.PO_KLIJENTU)

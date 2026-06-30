@@ -77,6 +77,61 @@ public class PdfIzvestajGenerator {
                 addLine(document, "Broj događaja:", String.valueOf(podaci.getBrojDogadjaja()), normalFont);
             }
 
+            if (podaci.getProsecnaIskoriscenostSala() != null) {
+                document.add(new Paragraph("Resursi", headerFont));
+                addLine(document, "Prosečna iskorišćenost sala:",
+                        podaci.getProsecnaIskoriscenostSala() + "%", normalFont);
+                if (podaci.getPokrivenostInventarProcenat() != null) {
+                    addLine(document, "Pokrivenost inventarom:",
+                            podaci.getPokrivenostInventarProcenat() + "%", normalFont);
+                }
+                document.add(new Paragraph(" "));
+            }
+
+            if (podaci.getPrihodOdKarata() != null) {
+                document.add(new Paragraph("Raspodela prihoda i troškova", headerFont));
+                addLine(document, "Prihod od karata:", formatMoney(podaci.getPrihodOdKarata()), normalFont);
+                addLine(document, "Prihod od izlaznih faktura:",
+                        formatMoney(podaci.getPrihodOdIzlaznihFaktura()), normalFont);
+                addLine(document, "Evidentirani trošak:", formatMoney(podaci.getTrosakEvidentiran()), normalFont);
+                addLine(document, "Honorari:", formatMoney(podaci.getTrosakHonorari()), normalFont);
+                addLine(document, "Commitovana nabavka (informativno):",
+                        formatMoney(podaci.getCommitovanaNabavka()), normalFont);
+                document.add(new Paragraph(" "));
+            }
+
+            if (podaci.getUpozorenja() != null && !podaci.getUpozorenja().isEmpty()) {
+                document.add(new Paragraph("Upozorenja", headerFont));
+                for (String upozorenje : podaci.getUpozorenja()) {
+                    document.add(new Paragraph("• " + upozorenje, normalFont));
+                }
+                document.add(new Paragraph(" "));
+            }
+
+            if (podaci.getStavkeSala() != null && !podaci.getStavkeSala().isEmpty()) {
+                document.add(new Paragraph("Iskorišćenost sala", headerFont));
+                document.add(buildSalaTable(podaci));
+                document.add(new Paragraph(" "));
+            }
+
+            if (podaci.getStavkeOpreme() != null && !podaci.getStavkeOpreme().isEmpty()) {
+                document.add(new Paragraph("Oprema", headerFont));
+                document.add(buildOpremeTable(podaci));
+                document.add(new Paragraph(" "));
+            }
+
+            if (podaci.getStavkeNabavke() != null && !podaci.getStavkeNabavke().isEmpty()) {
+                document.add(new Paragraph("Nabavke", headerFont));
+                document.add(buildNabavkaTable(podaci));
+                document.add(new Paragraph(" "));
+            }
+
+            if (podaci.getStavkeBudzeta() != null && !podaci.getStavkeBudzeta().isEmpty()) {
+                document.add(new Paragraph("Budžet", headerFont));
+                document.add(buildBudzetTable(podaci));
+                document.add(new Paragraph(" "));
+            }
+
             if (podaci.getFakture() != null && !podaci.getFakture().isEmpty()) {
                 document.add(new Paragraph("Fakture", headerFont));
                 document.add(buildFakturaTable(podaci));
@@ -109,6 +164,82 @@ public class PdfIzvestajGenerator {
             table.addCell(cell(red.getDatum()));
             table.addCell(cell(formatMoney(red.getUkupanIznos())));
             table.addCell(cell(formatMoney(red.getPlaceniIznos())));
+        }
+        return table;
+    }
+
+    private PdfPTable buildSalaTable(IzvestajPodaciDto podaci) throws DocumentException {
+        PdfPTable table = new PdfPTable(6);
+        table.setWidthPercentage(100);
+        table.addCell(headerCell("Sesija"));
+        table.addCell(headerCell("Sala"));
+        table.addCell(headerCell("Datum"));
+        table.addCell(headerCell("Kapacitet"));
+        table.addCell(headerCell("Popunjenost"));
+        table.addCell(headerCell("Iskorišćenost"));
+        for (var red : podaci.getStavkeSala()) {
+            table.addCell(cell(red.getSesijaNaziv()));
+            table.addCell(cell(red.getNazivSale()));
+            table.addCell(cell(red.getDatum()));
+            table.addCell(cell(red.getKapacitet() != null ? String.valueOf(red.getKapacitet()) : null));
+            table.addCell(cell(red.getPopunjenost() != null ? String.valueOf(red.getPopunjenost()) : null));
+            table.addCell(cell(red.getIskoriscenostProcenat() != null
+                    ? red.getIskoriscenostProcenat() + "%" : null));
+        }
+        return table;
+    }
+
+    private PdfPTable buildOpremeTable(IzvestajPodaciDto podaci) throws DocumentException {
+        PdfPTable table = new PdfPTable(5);
+        table.setWidthPercentage(100);
+        table.addCell(headerCell("Resurs"));
+        table.addCell(headerCell("Potrebno"));
+        table.addCell(headerCell("Dodeljeno"));
+        table.addCell(headerCell("Na stanju"));
+        table.addCell(headerCell("Pokriveno"));
+        for (var red : podaci.getStavkeOpreme()) {
+            table.addCell(cell(red.getNazivResursa()));
+            table.addCell(cell(String.valueOf(red.getPotrebnaKolicina())));
+            table.addCell(cell(String.valueOf(red.getDodeljeno())));
+            table.addCell(cell(String.valueOf(red.getDostupnoNaStanju())));
+            table.addCell(cell(red.isPokriveno() ? "Da" : "Ne"));
+        }
+        return table;
+    }
+
+    private PdfPTable buildNabavkaTable(IzvestajPodaciDto podaci) throws DocumentException {
+        PdfPTable table = new PdfPTable(5);
+        table.setWidthPercentage(100);
+        table.addCell(headerCell("ID"));
+        table.addCell(headerCell("Status"));
+        table.addCell(headerCell("Dobavljač"));
+        table.addCell(headerCell("Stavki"));
+        table.addCell(headerCell("Vrednost"));
+        for (var red : podaci.getStavkeNabavke()) {
+            table.addCell(cell(red.getNabavkaId() != null ? String.valueOf(red.getNabavkaId()) : null));
+            table.addCell(cell(red.getStatus()));
+            table.addCell(cell(red.getDobavljacNaziv()));
+            table.addCell(cell(String.valueOf(red.getBrojStavki())));
+            table.addCell(cell(formatMoney(red.getUkupnaVrednost())));
+        }
+        return table;
+    }
+
+    private PdfPTable buildBudzetTable(IzvestajPodaciDto podaci) throws DocumentException {
+        PdfPTable table = new PdfPTable(5);
+        table.setWidthPercentage(100);
+        table.addCell(headerCell("Budžet"));
+        table.addCell(headerCell("Kategorija"));
+        table.addCell(headerCell("Planirano"));
+        table.addCell(headerCell("Stvarno"));
+        table.addCell(headerCell("Iskorišćenost"));
+        for (var red : podaci.getStavkeBudzeta()) {
+            table.addCell(cell(red.getNazivBudzeta()));
+            table.addCell(cell(red.getKategorijaNaziv()));
+            table.addCell(cell(formatMoney(red.getPlanirano())));
+            table.addCell(cell(formatMoney(red.getStvarno())));
+            table.addCell(cell(red.getIskoriscenostProcenat() != null
+                    ? red.getIskoriscenostProcenat().toPlainString() + "%" : null));
         }
         return table;
     }
