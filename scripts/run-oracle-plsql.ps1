@@ -1,8 +1,12 @@
 # Pokreće Oracle PL/SQL modul preko Docker kontejnera (sqlplus).
-# Upotreba: .\scripts\run-oracle-plsql.ps1
-#          .\scripts\run-oracle-plsql.ps1 -OnlyTest   # samo test blok (objekti već postoje)
+# Upotreba:
+#   .\scripts\run-oracle-plsql.ps1              # F5 modul (podrazumevano)
+#   .\scripts\run-oracle-plsql.ps1 -Module F3   # F3 budzetska kontrola
+#   .\scripts\run-oracle-plsql.ps1 -OnlyTest    # samo F5 test blok
 
 param(
+    [ValidateSet("F5", "F3")]
+    [string]$Module = "F5",
     [string]$ContainerName = "ems-oracle-xe",
     [string]$User = "ems",
     [string]$Password = "ems",
@@ -15,6 +19,7 @@ param(
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 $OracleDir = Join-Path $Root "database\oracle"
+$F3Dir = Join-Path $OracleDir "f3"
 
 if (-not (Test-Path $OracleDir)) {
     Write-Error "Folder database/oracle ne postoji."
@@ -45,15 +50,17 @@ function Wait-OracleReady {
 }
 
 function Invoke-SqlFile {
-    param([string]$RelativePath)
-    $full = Join-Path $OracleDir $RelativePath
-    if (-not (Test-Path $full)) {
-        Write-Error "Fajl ne postoji: $full"
+    param(
+        [string]$FullPath,
+        [string]$RemoteDir = "/tmp"
+    )
+    if (-not (Test-Path $FullPath)) {
+        Write-Error "Fajl ne postoji: $FullPath"
     }
-    $name = Split-Path $full -Leaf
+    $name = Split-Path $FullPath -Leaf
     Write-Host ">> $name" -ForegroundColor Cyan
-    docker cp $full "${ContainerName}:/tmp/$name"
-    docker exec $ContainerName bash -c "cd /tmp && sqlplus -s $User/$Password@//localhost:1521/$Service @$name"
+    docker cp $FullPath "${ContainerName}:${RemoteDir}/$name"
+    docker exec $ContainerName bash -c "cd $RemoteDir && sqlplus -s $User/$Password@//localhost:1521/$Service @$name"
     if ($LASTEXITCODE -ne 0) {
         Write-Error "Greška pri izvršavanju $name"
     }
@@ -71,8 +78,30 @@ if ($WaitForOracle) {
     Write-Host "Kontejner $ContainerName je aktivan." -ForegroundColor Green
 }
 
-if ($OnlyTest) {
-    Invoke-SqlFile "06_test_simulacija_klijenta.sql"
+if ($Module -eq "F3") {
+    if (-not (Test-Path $F3Dir)) {
+        Write-Error "Folder database/oracle/f3 ne postoji."
+    }
+    Write-Host "=== F3 modul (PKG_BUDZET_KONTROLA) ===" -ForegroundColor Magenta
+    docker exec $ContainerName bash -c "mkdir -p /tmp/f3"
+    $f3Files = @(
+        "00_f3_prerequisite_check.sql",
+        "00_f3_drop.sql",
+        "01_f3_tables.sql",
+        "02_f3_indeksi.sql",
+        "03_f3_types.sql",
+        "04_f3_functions.sql",
+        "05_pkg_budzet_kontrola.pks",
+        "05_pkg_budzet_kontrola.pkb",
+        "06_f3_trg_trosak_cmp.sql",
+        "07_f3_seed_demo.sql",
+        "08_f3_run_demo.sql"
+    )
+    foreach ($f in $f3Files) {
+        Invoke-SqlFile -FullPath (Join-Path $F3Dir $f) -RemoteDir "/tmp/f3"
+    }
+} elseif ($OnlyTest) {
+    Invoke-SqlFile -FullPath (Join-Path $OracleDir "06_test_simulacija_klijenta.sql")
 } else {
     $files = @(
         "00_bootstrap_standalone.sql",
@@ -84,9 +113,9 @@ if ($OnlyTest) {
         "06_test_simulacija_klijenta.sql"
     )
     foreach ($f in $files) {
-        Invoke-SqlFile $f
+        Invoke-SqlFile -FullPath (Join-Path $OracleDir $f)
     }
 }
 
 Write-Host ""
-Write-Host "PL/SQL modul je primenjen. Proveri output iznad (DBMS_OUTPUT)." -ForegroundColor Green
+Write-Host "PL/SQL modul ($Module) je primenjen. Proveri output iznad (DBMS_OUTPUT)." -ForegroundColor Green
