@@ -35,3 +35,4 @@ specifikacija_podsistem_fianansije.md
 
 .env
 storage/*
+*.log
