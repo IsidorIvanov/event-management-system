@@ -14,6 +14,9 @@ public interface PorudzbenicaRepository extends JpaRepository<Porudzbenica, Long
 
     boolean existsByNabavkaNabavkaId(Long nabavkaId);
 
+    @Query("SELECT p FROM Porudzbenica p JOIN FETCH p.nabavka WHERE p.porudzbenicaId = :id")
+    Optional<Porudzbenica> findByIdWithNabavka(@Param("id") Long id);
+
     @Query("""
             SELECT p FROM Porudzbenica p
             JOIN FETCH p.nabavka n

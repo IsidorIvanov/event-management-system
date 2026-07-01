@@ -5,6 +5,7 @@ import com.eventsystem.event_management_system.model.Cenovnik;
 import com.eventsystem.event_management_system.model.Dobavljac;
 import com.eventsystem.event_management_system.model.Nabavka;
 import com.eventsystem.event_management_system.repository.CenovnikRepository;
+import com.eventsystem.event_management_system.utils.TekstNormalizacija;
 import com.eventsystem.event_management_system.utils.enums.KriterijumSelekcijeDobavljaca;
 import com.eventsystem.event_management_system.utils.enums.StatusNabavke;
 import lombok.RequiredArgsConstructor;
@@ -56,9 +57,12 @@ public class DobavljacSelekcijaService {
             List<PotrebnaStavkaDto> potrebne
     ) {
         Map<Long, SupplierScore> scores = new HashMap<>();
+        List<Cenovnik> svePonude = cenovnikRepository.findSveDostupne();
 
         for (PotrebnaStavkaDto potrebna : potrebne) {
-            List<Cenovnik> ponude = cenovnikRepository.findDostupnePoNazivuResursa(potrebna.getNazivResursa());
+            List<Cenovnik> ponude = svePonude.stream()
+                    .filter(c -> TekstNormalizacija.naziviSePodudaraju(c.getNazivResursa(), potrebna.getNazivResursa()))
+                    .toList();
             for (Cenovnik cenovnik : ponude) {
                 Long dobavljacId = cenovnik.getDobavljac().getDobavljacId();
                 SupplierScore score = scores.computeIfAbsent(dobavljacId, id -> new SupplierScore(cenovnik.getDobavljac()));
@@ -84,12 +88,13 @@ public class DobavljacSelekcijaService {
     }
 
     private Comparator<SupplierScore> comparatorZa(KriterijumSelekcijeDobavljaca kriterijum) {
+        Comparator<BigDecimal> rejtingDesc = Comparator.nullsLast(Comparator.<BigDecimal>reverseOrder());
         if (kriterijum == KriterijumSelekcijeDobavljaca.NAJBOLJI_REJTING) {
-            return Comparator.comparing((SupplierScore s) -> s.dobavljac.getRejting()).reversed()
+            return Comparator.comparing((SupplierScore s) -> s.dobavljac.getRejting(), rejtingDesc)
                     .thenComparing(s -> s.ukupnaCena);
         }
         return Comparator.comparing((SupplierScore s) -> s.ukupnaCena)
-                .thenComparing(s -> s.dobavljac.getRejting(), Comparator.reverseOrder());
+                .thenComparing((SupplierScore s) -> s.dobavljac.getRejting(), rejtingDesc);
     }
 
     private static class SupplierScore {

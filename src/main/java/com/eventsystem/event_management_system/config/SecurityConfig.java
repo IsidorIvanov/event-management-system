@@ -46,25 +46,61 @@ public class SecurityConfig {
                 // Javni endpointi
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
+                // WebSocket endpoint
+                .requestMatchers("/ws/**").permitAll()
+                .requestMatchers("/ws-native/**").permitAll()
 
                 // Finansijski podsistem — samo ZAPOSLENI sa ulogama FINANSIJSKI_KONTROLOR ili MENADZER_DOGADJAJA
+                .requestMatchers(HttpMethod.GET, "/api/budzet/**").hasAnyRole(
+                        "FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA",
+                        "KOORDINATOR_RESURSA", "KOORDINATOR_PROGRAMA")
                 .requestMatchers("/api/budzet/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
+                .requestMatchers(HttpMethod.GET, "/api/ugovori/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
+                .requestMatchers("/api/ugovori/**").hasRole("MENADZER_DOGADJAJA")
                 .requestMatchers("/api/fakture/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
                 .requestMatchers("/api/placanja/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
-                .requestMatchers("/api/troskovi/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
+                .requestMatchers("/api/troskovi/**").hasAnyRole(
+                        "FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA",
+                        "KOORDINATOR_RESURSA", "KOORDINATOR_PROGRAMA")
                 .requestMatchers("/api/analiza/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
+                .requestMatchers("/api/izvestaji/**").hasAnyRole("FINANSIJSKI_KONTROLOR", "MENADZER_DOGADJAJA")
 
                 // Podsistem nabavke
-                .requestMatchers("/api/nabavka/**").hasRole("MENADZER_DOGADJAJA")
+                .requestMatchers("/api/nabavka/dobavljac/**").hasAnyRole("MENADZER_DOGADJAJA", "FINANSIJSKI_KONTROLOR")
+                .requestMatchers(HttpMethod.GET, "/api/nabavka/**").hasAnyRole(
+                        "MENADZER_DOGADJAJA", "FINANSIJSKI_KONTROLOR", "KOORDINATOR_RESURSA")
+                .requestMatchers("/api/nabavka/**").hasAnyRole("MENADZER_DOGADJAJA", "FINANSIJSKI_KONTROLOR")
+
+                // Inventar opreme
+                .requestMatchers(HttpMethod.GET, "/api/inventar/**").hasAnyRole(
+                        "MENADZER_DOGADJAJA", "KOORDINATOR_RESURSA", "FINANSIJSKI_KONTROLOR")
+                .requestMatchers("/api/inventar/**").hasAnyRole("MENADZER_DOGADJAJA", "KOORDINATOR_RESURSA")
 
                 .requestMatchers("/api/lokacija/**").hasAnyRole(
-                        "MENADZER_DOGADJAJA", "KOORDINATOR_RESURSA", "KOORDINATOR_PROGRAMA")    
+                        "MENADZER_DOGADJAJA", "KOORDINATOR_RESURSA", "KOORDINATOR_PROGRAMA")
+                .requestMatchers(HttpMethod.GET, "/api/dogadjaj/**").hasAnyRole(
+                        "KOORDINATOR_PROGRAMA", "MENADZER_DOGADJAJA",
+                        "FINANSIJSKI_KONTROLOR", "KOORDINATOR_RESURSA", "UCESNIK")
                 .requestMatchers("/api/dogadjaj/**").hasAnyRole("KOORDINATOR_PROGRAMA", "MENADZER_DOGADJAJA")
                 .requestMatchers(HttpMethod.GET, "/api/sesija/**").hasAnyRole(
-                        "KOORDINATOR_PROGRAMA", "MENADZER_DOGADJAJA", "KOORDINATOR_RESURSA")
+                        "KOORDINATOR_PROGRAMA", "MENADZER_DOGADJAJA", "KOORDINATOR_RESURSA", "UCESNIK")
                 .requestMatchers("/api/sesija/**").hasAnyRole("KOORDINATOR_PROGRAMA")
-                .requestMatchers("/api/govornik/**").hasAnyRole("KOORDINATOR_PROGRAMA")
-                .requestMatchers("/api/tip-karte/**").hasAnyRole("KOORDINATOR_PROGRAMA")
+                .requestMatchers("/api/govornik/**").hasAnyRole("KOORDINATOR_PROGRAMA", "MENADZER_DOGADJAJA", "UCESNIK")
+                .requestMatchers(HttpMethod.GET, "/api/tip-karte/**").hasAnyRole("KOORDINATOR_PROGRAMA", "MENADZER_DOGADJAJA", "UCESNIK")
+                .requestMatchers("/api/tip-karte/**").hasAnyRole("KOORDINATOR_PROGRAMA", "MENADZER_DOGADJAJA")
+
+                .requestMatchers(HttpMethod.GET, "/api/registracija/dogadjaj/**").hasAnyRole(
+                        "KOORDINATOR_PROGRAMA", "MENADZER_DOGADJAJA", "UCESNIK")
+                .requestMatchers("/api/registracija/**").hasAnyRole("UCESNIK")
+
+                .requestMatchers("/api/raspored/**").hasAnyRole("UCESNIK")
+
+                .requestMatchers("/api/preporuka/**").hasAnyRole("UCESNIK")
+
+                .requestMatchers("/api/notifikacije/**").hasAnyRole("UCESNIK")
+
+                // Poruke — Ucesnik i Koordinator programa
+                .requestMatchers("/api/poruke/**").hasAnyRole("UCESNIK", "KOORDINATOR_PROGRAMA")
 
                 .requestMatchers(HttpMethod.GET, "/api/sala/**").hasAnyRole(
                         "KOORDINATOR_RESURSA", "MENADZER_DOGADJAJA", "KOORDINATOR_PROGRAMA")
@@ -95,7 +131,7 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService); // ← prosleđuješ odmah
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }

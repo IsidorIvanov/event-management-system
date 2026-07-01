@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 public class RegisterRequest {
@@ -48,4 +49,6 @@ public class RegisterRequest {
     private String kompanija;
     // pozicija se deli sa ZAPOSLENI
     private LocalDate datumRodjenja;
+    // Interesovanja koja se koriste za sistem preporuka događaja
+    private List<String> interesi;
 }

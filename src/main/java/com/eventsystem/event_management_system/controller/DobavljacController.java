@@ -46,4 +46,9 @@ public class DobavljacController {
         dobavljacService.delete(id);
         return ResponseEntity.ok("Dobavljac uspesno obrisan.");
     }
+
+    @PatchMapping("/{id}/deaktiviraj")
+    public ResponseEntity<DobavljacDto> deactivate(@PathVariable Long id) {
+        return ResponseEntity.ok(dobavljacService.deactivate(id));
+    }
 }

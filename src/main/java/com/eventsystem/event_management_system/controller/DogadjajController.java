@@ -1,10 +1,18 @@
 package com.eventsystem.event_management_system.controller;
 
+import com.eventsystem.event_management_system.dto.DogadjajAnalitikaDto;
 import com.eventsystem.event_management_system.dto.DogadjajDto;
+import com.eventsystem.event_management_system.dto.DogadjajResursiTroskoviIzvestajDto;
 import com.eventsystem.event_management_system.dto.DogadjajResponseDto;
+import com.eventsystem.event_management_system.dto.SredstvaDogadjajaDto;
+import com.eventsystem.event_management_system.dto.ZauzetiTerminDto;
+import com.eventsystem.event_management_system.service.DogadjajAnalitikaService;
+import com.eventsystem.event_management_system.service.DogadjajIzvestajService;
 import com.eventsystem.event_management_system.service.DogadjajService;
+import com.eventsystem.event_management_system.service.SredstvaDogadjajaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +24,9 @@ import java.util.List;
 public class DogadjajController {
 
     private final DogadjajService dogadjajService;
+    private final SredstvaDogadjajaService sredstvaDogadjajaService;
+    private final DogadjajAnalitikaService dogadjajAnalitikaService;
+    private final DogadjajIzvestajService dogadjajIzvestajService;
 
     @GetMapping("")
     public ResponseEntity<List<DogadjajResponseDto>> getAllDogadjaji() {
@@ -25,6 +36,43 @@ public class DogadjajController {
     @PostMapping("")
     public ResponseEntity<DogadjajResponseDto> createDogadjaj(@Valid @RequestBody DogadjajDto dto) {
         return ResponseEntity.ok(dogadjajService.saveDogadjaj(dto));
+    }
+
+    @GetMapping("/zauzeti-termini")
+    public ResponseEntity<List<ZauzetiTerminDto>> getZauzetiTermini(
+            @RequestParam Long lokacijaId,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(dogadjajService.getZauzetiTermini(lokacijaId, excludeId));
+    }
+
+    @GetMapping("/{id}/sredstva")
+    public ResponseEntity<SredstvaDogadjajaDto> getSredstva(@PathVariable Long id) {
+        return ResponseEntity.ok(sredstvaDogadjajaService.getSredstva(id));
+    }
+
+    @GetMapping("/{id}/analitika")
+    public ResponseEntity<DogadjajAnalitikaDto> getAnalitika(@PathVariable Long id) {
+        return ResponseEntity.ok(dogadjajAnalitikaService.getAnalitika(id));
+    }
+
+    @GetMapping("/{id}/analitika/pdf")
+    public ResponseEntity<Resource> downloadAnalitikaPdf(@PathVariable Long id) {
+        return dogadjajAnalitikaService.downloadPdf(id);
+    }
+
+    @GetMapping("/{id}/izvestaj")
+    public ResponseEntity<DogadjajResursiTroskoviIzvestajDto> getIzvestaj(@PathVariable Long id) {
+        return ResponseEntity.ok(dogadjajIzvestajService.getKompletanIzvestaj(id));
+    }
+
+    @GetMapping("/{id}/izvestaj/resursi")
+    public ResponseEntity<DogadjajResursiTroskoviIzvestajDto.ResursiDto> getIzvestajResursi(@PathVariable Long id) {
+        return ResponseEntity.ok(dogadjajIzvestajService.getResursi(id));
+    }
+
+    @GetMapping("/{id}/izvestaj/troskovi")
+    public ResponseEntity<DogadjajResursiTroskoviIzvestajDto.TroskoviDto> getIzvestajTroskovi(@PathVariable Long id) {
+        return ResponseEntity.ok(dogadjajIzvestajService.getTroskovi(id));
     }
 
     @GetMapping("/{id}")

@@ -54,6 +54,10 @@ public class Sesija {
     @Column(columnDefinition = "TEXT")
     private String opis;
 
+    /** Da li je već poslat podsetnik „sesija počinje uskoro" (P2) — sprečava ponovno slanje. */
+    @Column(name = "podsetnik_poslat", columnDefinition = "boolean default false")
+    private boolean podsetnikPoslat;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "sesija_govornik",

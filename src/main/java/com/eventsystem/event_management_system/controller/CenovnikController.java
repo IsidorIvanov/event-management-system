@@ -21,6 +21,11 @@ public class CenovnikController {
         return ResponseEntity.ok(cenovnikService.getAll());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<CenovnikDto> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(cenovnikService.getById(id));
+    }
+
     @GetMapping("/dobavljac/{dobavljacId}")
     public ResponseEntity<List<CenovnikDto>> getByDobavljac(@PathVariable Long dobavljacId) {
         return ResponseEntity.ok(cenovnikService.getByDobavljac(dobavljacId));

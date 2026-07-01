@@ -5,11 +5,13 @@ import com.eventsystem.event_management_system.model.Dogadjaj;
 import com.eventsystem.event_management_system.model.TipKarte;
 import com.eventsystem.event_management_system.model.compositePK.TipKarteId;
 import com.eventsystem.event_management_system.repository.DogadjajRepository;
+import com.eventsystem.event_management_system.repository.RegistracijaRepository;
 import com.eventsystem.event_management_system.repository.TipKarteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,6 +22,8 @@ public class TipKarteService {
 
     private final DogadjajRepository dogadjajRepository;
 
+    private final RegistracijaRepository registracijaRepository;
+
     public TipKarteDto createTipKarte(TipKarteDto dto) {
         Dogadjaj dogadjaj = dogadjajRepository.findById(dto.getDogadjajId())
                 .orElseThrow(() -> new RuntimeException("Događaj nije pronađen sa id: " + dto.getDogadjajId()));
@@ -27,6 +31,8 @@ public class TipKarteService {
         if (tipKarteRepository.existsByDogadjaj_DogadjajIdAndId_NazivTipa(dto.getDogadjajId(), dto.getNazivTipa())) {
             throw new RuntimeException("Tip karte '" + dto.getNazivTipa() + "' već postoji za ovaj događaj.");
         }
+
+        validateZbirKvota(dogadjaj, dto.getNazivTipa(), dto.getKvota());
 
         TipKarteId id = new TipKarteId(dto.getDogadjajId(), dto.getNazivTipa());
 
@@ -44,6 +50,12 @@ public class TipKarteService {
     }
 
     public List<TipKarteDto> getTipKarteByDogadjaj(Long dogadjajId) {
+        Map<String, Long> prodatoByTip = registracijaRepository.countProdatoByTipKarte(dogadjajId)
+                .stream()
+                .collect(Collectors.toMap(
+                        row -> (String) row[0],
+                        row -> (Long) row[1]));
+
         return tipKarteRepository.findAllByDogadjaj_DogadjajId(dogadjajId)
                 .stream()
                 .map(t -> TipKarteDto.builder()
@@ -53,6 +65,7 @@ public class TipKarteService {
                         .cena(t.getCena())
                         .kvota(t.getKvota())
                         .opis(t.getOpis())
+                        .prodato(prodatoByTip.getOrDefault(t.getId().getNazivTipa(), 0L))
                         .build())
                 .collect(Collectors.toList());
     }
@@ -62,6 +75,11 @@ public class TipKarteService {
         TipKarte existing = tipKarteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Tip karte nije pronađen."));
 
+        Dogadjaj dogadjaj = dogadjajRepository.findById(dogadjajId)
+                .orElseThrow(() -> new RuntimeException("Događaj nije pronađen sa id: " + dogadjajId));
+
+        validateZbirKvota(dogadjaj, nazivTipa, dto.getKvota());
+
         existing.setVrsta(dto.getVrsta());
         existing.setCena(dto.getCena());
         existing.setKvota(dto.getKvota());
@@ -69,6 +87,25 @@ public class TipKarteService {
 
         tipKarteRepository.save(existing);
         return dto;
+    }
+
+    /**
+     * Proverava da li zbir kvota svih tipova karata događaja (uz novu/izmenjenu
+     * vrednost za {@code nazivTipa}) prelazi maksimalni kapacitet događaja.
+     */
+    private void validateZbirKvota(Dogadjaj dogadjaj, String nazivTipa, int novaKvota) {
+        int zbirOstalih = tipKarteRepository.findAllByDogadjaj_DogadjajId(dogadjaj.getDogadjajId())
+                .stream()
+                .filter(t -> !t.getId().getNazivTipa().equals(nazivTipa))
+                .mapToInt(TipKarte::getKvota)
+                .sum();
+
+        int ukupno = zbirOstalih + novaKvota;
+        if (ukupno > dogadjaj.getMaksKapacitet()) {
+            throw new RuntimeException("Zbir kvota tipova karata (" + ukupno
+                    + ") ne sme biti veći od maksimalnog kapaciteta događaja ("
+                    + dogadjaj.getMaksKapacitet() + ").");
+        }
     }
 
     public void deleteTipKarte(Long dogadjajId, String nazivTipa) {

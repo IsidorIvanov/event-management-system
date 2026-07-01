@@ -1,0 +1,35 @@
+package com.eventsystem.event_management_system.dto;
+
+import com.eventsystem.event_management_system.utils.enums.StatusKarte;
+import com.eventsystem.event_management_system.utils.enums.StatusRegistracije;
+import com.eventsystem.event_management_system.utils.enums.VrstaKarte;
+import lombok.*;
+
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor @Builder
+public class RegistracijaResponseDto {
+
+    private Long registracijaId;
+    private Long dogadjajId;
+    private String dogadjajNaziv;
+    private String dogadjajDatumPocetka;
+    private String dogadjajDatumZavrsetka;
+    private String dogadjajStatus;
+    private String lokacijaGrad;
+    private String lokacijaDrzava;
+    private String nazivTipa;
+    private VrstaKarte vrstaKarte;
+    private String datumRegistracije;
+    private StatusRegistracije status;
+    private String brojKarte;
+    private StatusKarte statusKarte;
+
+    // Participant info (populated for admin/coordinator endpoints)
+    private Long ucesnikId;
+    private String ucesnikIme;
+    private String ucesnikPrezime;
+    private String ucesnikEmail;
+    private String ucesnikKompanija;
+    private String ucesnikPozicija;
+}
+

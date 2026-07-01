@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter @Setter
 @RequiredArgsConstructor
 public class DogadjajDto {
@@ -30,4 +32,7 @@ public class DogadjajDto {
     private final Integer maksKapacitet;
 
     private final String opis;
+
+    // Tagovi/teme događaja koji se koriste za sistem preporuka
+    private final List<String> tagovi;
 }

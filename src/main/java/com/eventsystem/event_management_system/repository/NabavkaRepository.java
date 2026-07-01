@@ -1,6 +1,7 @@
 package com.eventsystem.event_management_system.repository;
 
 import com.eventsystem.event_management_system.model.Nabavka;
+import com.eventsystem.event_management_system.utils.enums.StatusNabavke;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,6 +12,15 @@ import java.util.Optional;
 public interface NabavkaRepository extends JpaRepository<Nabavka, Long> {
 
     List<Nabavka> findByDogadjajDogadjajIdOrderByKreiranAtDesc(Long dogadjajId);
+
+    @Query("""
+            SELECT DISTINCT n FROM Nabavka n
+            LEFT JOIN FETCH n.stavke
+            LEFT JOIN FETCH n.dobavljac
+            WHERE n.dogadjaj.dogadjajId = :dogadjajId
+            ORDER BY n.kreiranAt DESC
+            """)
+    List<Nabavka> findByDogadjajWithStavke(@Param("dogadjajId") Long dogadjajId);
 
     @Query("""
             SELECT n FROM Nabavka n
@@ -30,4 +40,6 @@ public interface NabavkaRepository extends JpaRepository<Nabavka, Long> {
             ORDER BY n.kreiranAt DESC
             """)
     List<Nabavka> findAllWithDetalji();
+
+    boolean existsByDobavljacDobavljacIdAndStatusNotIn(Long dobavljacId, java.util.Collection<StatusNabavke> statuses);
 }

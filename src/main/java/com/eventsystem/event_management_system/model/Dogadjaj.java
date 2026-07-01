@@ -43,6 +43,24 @@ public class Dogadjaj {
     @Column(nullable = false, length = 20)
     private StatusDogadjaja status;
 
+    /** Da li je već poslat podsetnik „događaj uskoro" (P1) — sprečava ponovno slanje. */
+    @Column(name = "podsetnik_poslat", columnDefinition = "boolean default false")
+    private boolean podsetnikPoslat;
+
+    /**
+     * Tagovi/teme događaja (npr. "Tehnologija", "Biznis") koji opisuju o čemu se
+     * radi na događaju. Koriste se za sistem preporuka — porede se sa interesima
+     * učesnika. Čuvaju se kao slobodne oznake u zasebnoj tabeli.
+     */
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(
+            name = "dogadjaj_tag",
+            joinColumns = @JoinColumn(name = "dogadjaj_id")
+    )
+    @Column(name = "tag", length = 100, nullable = false)
+    @Builder.Default
+    private Set<String> tagovi = new HashSet<>();
+
     @OneToMany(mappedBy = "dogadjaj", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<TipKarte> tipoviKarata = new HashSet<>();
 

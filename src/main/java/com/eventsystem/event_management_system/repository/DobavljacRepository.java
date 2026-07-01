@@ -9,4 +9,8 @@ import java.util.List;
 public interface DobavljacRepository extends JpaRepository<Dobavljac, Long> {
 
     List<Dobavljac> findByStatus(StatusDobavljaca status);
+
+    boolean existsByPib(String pib);
+
+    boolean existsByPibAndDobavljacIdNot(String pib, Long dobavljacId);
 }

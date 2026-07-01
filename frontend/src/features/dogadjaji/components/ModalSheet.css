@@ -1,0 +1,203 @@
+/* =============================================
+   Modal Sheet (Add/Edit speaker)
+   ============================================= */
+
+.modal-sheet {
+  background: var(--bg-card);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  padding: 2rem;
+  width: 100%;
+}
+
+.modal-sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.modal-sheet-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.modal-sheet-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.4rem;
+}
+
+.modal-sheet-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.modal-sheet-close {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.modal-sheet-close:hover {
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.modal-sheet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 520px) {
+  .form-row-2 { grid-template-columns: 1fr; }
+}
+
+.modal-sheet-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+  margin-top: 0.5rem;
+}
+
+/* Sesija checkbox list inside modal */
+.sesija-checkbox-list {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  max-height: 240px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  background: var(--bg-secondary);
+}
+
+.sesija-checkbox-item {
+  display: block;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s;
+  user-select: none;
+}
+
+.sesija-checkbox-item:last-child {
+  border-bottom: none;
+}
+
+.sesija-checkbox-item:hover {
+  background: var(--bg-input);
+}
+
+.sesija-checkbox-item:has(input:checked) {
+  background: var(--accent-subtle);
+}
+
+.sesija-checkbox-inner {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.65rem 1rem;
+}
+
+.sesija-checkbox-item input[type="checkbox"] {
+  display: block;
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  margin: 0;
+}
+
+.sesija-checkbox-naziv {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sesija-checkbox-time {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.sesija-checkbox-item:has(input:checked) .sesija-checkbox-time {
+  color: var(--accent-hover);
+}
+
+.form-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.form-hint::before {
+  content: 'ℹ';
+  font-size: 0.85rem;
+  opacity: 0.6;
+}
+
+.form-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--danger-subtle);
+  border-radius: 6px;
+}
+
+/* Bio section label styling */
+.bio-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.45rem;
+}
+
+.bio-char-count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+
+/* Sessions section label */
+.sessions-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.sessions-count-badge {
+  font-size: 0.75rem;
+  background: var(--accent-subtle);
+  color: var(--accent-hover);
+  padding: 0.1rem 0.55rem;
+  border-radius: 20px;
+  font-weight: 600;
+}
