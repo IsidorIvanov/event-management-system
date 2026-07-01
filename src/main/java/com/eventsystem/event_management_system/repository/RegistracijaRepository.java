@@ -31,13 +31,6 @@ public interface RegistracijaRepository extends JpaRepository<Registracija, Long
 
     boolean existsByUcesnikKorisnikIdAndTipKarteIdDogadjajId(Long korisnikId, Long dogadjajId);
 
-    boolean existsByUcesnikKorisnikIdAndTipKarteIdDogadjajIdAndStatusNot(Long korisnikId, Long dogadjajId, StatusRegistracije status);
-
-    long countByTipKarteIdDogadjajIdAndStatus(Long dogadjajId, StatusRegistracije status);
-
-    Optional<Registracija> findFirstByTipKarteIdDogadjajIdAndStatusOrderByRegistracijaIdAsc(
-            Long dogadjajId, StatusRegistracije status);
-
     @Query("SELECT r FROM Registracija r JOIN FETCH r.ucesnik u JOIN FETCH r.tipKarte tk JOIN FETCH tk.dogadjaj d LEFT JOIN FETCH d.lokacija WHERE tk.id.dogadjajId = :dogadjajId")
     List<Registracija> findByDogadjajIdWithDetails(@Param("dogadjajId") Long dogadjajId);
 
@@ -58,5 +51,14 @@ public interface RegistracijaRepository extends JpaRepository<Registracija, Long
             GROUP BY r.tipKarte.id.nazivTipa
             """)
     List<Object[]> countProdatoByTipKarte(@Param("dogadjajId") Long dogadjajId);
-}
 
+    @Query("""
+        SELECT r FROM Registracija r
+        JOIN FETCH r.ucesnik u
+        JOIN FETCH r.tipKarte tk
+        JOIN FETCH tk.dogadjaj d
+        LEFT JOIN FETCH d.lokacija
+        WHERE r.registracijaId = :id
+        """)
+    Optional<Registracija> findByIdWithDetails(@Param("id") Long id);
+}

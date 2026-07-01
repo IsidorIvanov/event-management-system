@@ -2,12 +2,11 @@ package com.eventsystem.event_management_system.service;
 
 import com.eventsystem.event_management_system.dto.RegistracijaDto;
 import com.eventsystem.event_management_system.dto.RegistracijaResponseDto;
+import com.eventsystem.event_management_system.exception.BadRequestException;
+import com.eventsystem.event_management_system.exception.NotFoundException;
 import com.eventsystem.event_management_system.model.*;
-import com.eventsystem.event_management_system.model.compositePK.TipKarteId;
 import com.eventsystem.event_management_system.repository.RegistracijaRepository;
-import com.eventsystem.event_management_system.repository.TipKarteRepository;
 import com.eventsystem.event_management_system.utils.enums.KanalNotifikacije;
-import com.eventsystem.event_management_system.utils.enums.StatusKarte;
 import com.eventsystem.event_management_system.utils.enums.StatusRegistracije;
 import com.eventsystem.event_management_system.utils.enums.TipNotifikacije;
 import lombok.RequiredArgsConstructor;
@@ -17,57 +16,44 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Prijava i otkazivanje registracija su premesteni u proceduralni sloj baze
+ * (sp_reg_prijavi, sp_reg_otkazi) preko {@link RegistracijaProcedureDao}.
+ * Provera kapaciteta, lista cekanja, generisanje broja karte i atomarnost
+ * su odgovornost baze; ovaj servis zadrzava autorizaciju, ucitavanje podataka
+ * za odgovor i slanje notifikacija/mejlova.
+ *
+ * NAPOMENA: register() i cancelRegistration() NISU @Transactional — transakciju
+ * u potpunosti drzi uskladistena procedura. Citanja radi DTO-a idu preko
+ * JOIN FETCH upita, pa nema LazyInitialization problema van sesije.
+ */
 @Service
 @RequiredArgsConstructor
 public class RegistracijaService {
 
     private final RegistracijaRepository registracijaRepository;
-    private final TipKarteRepository tipKarteRepository;
+    private final RegistracijaProcedureDao registracijaProcedureDao;
     private final CurrentUserService currentUserService;
     private final EmailService emailService;
     private final NotifikacijaService notifikacijaService;
 
-    @Transactional
     public RegistracijaResponseDto register(RegistracijaDto dto) {
         Korisnik korisnik = currentUserService.getCurrentKorisnik();
         if (!(korisnik instanceof Ucesnik ucesnik)) {
-            throw new RuntimeException("Samo učesnici mogu da se registruju na događaje.");
+            throw new BadRequestException("Samo učesnici mogu da se registruju na događaje.");
         }
 
-        TipKarteId tipKarteId = new TipKarteId(dto.getDogadjajId(), dto.getNazivTipa());
-        TipKarte tipKarte = tipKarteRepository.findById(tipKarteId)
-                .orElseThrow(() -> new RuntimeException("Tip karte nije pronađen."));
+        // Sva poslovna logika (kapacitet, lista čekanja, duplikat, broj karte) je u proceduri.
+        RegistracijaProcedureDao.PrijavaRezultat rezultat =
+                registracijaProcedureDao.prijavi(ucesnik.getKorisnikId(), dto.getDogadjajId(), dto.getNazivTipa());
 
-        // Check for duplicate registration on same event (ignoring cancelled registrations)
-        if (registracijaRepository.existsByUcesnikKorisnikIdAndTipKarteIdDogadjajIdAndStatusNot(
-                ucesnik.getKorisnikId(), dto.getDogadjajId(), StatusRegistracije.OTKAZANA)) {
-            throw new RuntimeException("Već ste registrovani na ovaj događaj.");
-        }
+        Registracija reg = registracijaRepository.findByIdWithDetails(rezultat.registracijaId())
+                .orElseThrow(() -> new NotFoundException("Registracija nije pronađena nakon kreiranja."));
 
-        Dogadjaj dogadjaj = tipKarte.getDogadjaj();
+        Dogadjaj dogadjaj = reg.getTipKarte().getDogadjaj();
 
-        // Provera kapaciteta događaja. Ako je broj potvrđenih prijava dostigao
-        // maksimalni kapacitet, učesnik se stavlja na listu čekanja (D2) umesto
-        // da prijava bude odmah potvrđena.
-        long potvrdjenih = registracijaRepository.countByTipKarteIdDogadjajIdAndStatus(
-                dogadjaj.getDogadjajId(), StatusRegistracije.POTVRDJENA);
-        boolean naCekanju = dogadjaj.getMaksKapacitet() != null
-                && potvrdjenih >= dogadjaj.getMaksKapacitet();
-
-        Registracija reg = Registracija.builder()
-                .ucesnik(ucesnik)
-                .tipKarte(tipKarte)
-                .status(naCekanju ? StatusRegistracije.NA_CEKANJU : StatusRegistracije.POTVRDJENA)
-                .statusKarte(naCekanju ? StatusKarte.NA_CEKANJU : StatusKarte.VALIDNA)
-                .build();
-
-        reg = registracijaRepository.save(reg);
-        // Generate unique ticket number after save
-        reg.setBrojKarte("KT-" + reg.getRegistracijaId() + "-" + dto.getDogadjajId());
-        reg = registracijaRepository.save(reg);
-
-        if (naCekanju) {
-            // D2 — obavesti učesnika da je stavljen na listu čekanja (PUSH, tip DOGADJAJ).
+        if (StatusRegistracije.NA_CEKANJU.name().equals(rezultat.status())) {
+            // D2 — obavesti učesnika da je na listi čekanja (PUSH, tip DOGADJAJ).
             notifikacijaService.posalji(
                     ucesnik,
                     TipNotifikacije.DOGADJAJ,
@@ -77,7 +63,7 @@ public class RegistracijaService {
                     dogadjaj
             );
         } else {
-            // Pošalji potvrdu registracije na email (asinhrono, ne blokira odgovor)
+            // Potvrda registracije na email.
             Lokacija lokacija = dogadjaj.getLokacija();
             String drzava = lokacija != null && lokacija.getDrzava() != null ? lokacija.getDrzava() : "";
             String grad = lokacija != null ? lokacija.getGrad() : "";
@@ -91,9 +77,9 @@ public class RegistracijaService {
                     String.valueOf(dogadjaj.getDatumPocetka()),
                     String.valueOf(dogadjaj.getDatumZavrsetka()),
                     lokacijaText,
-                    tipKarte.getId().getNazivTipa(),
-                    String.valueOf(tipKarte.getVrsta()),
-                    String.valueOf(tipKarte.getCena())
+                    reg.getTipKarte().getId().getNazivTipa(),
+                    String.valueOf(reg.getTipKarte().getVrsta()),
+                    String.valueOf(reg.getTipKarte().getCena())
             ));
         }
 
@@ -117,71 +103,48 @@ public class RegistracijaService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional
     public RegistracijaResponseDto cancelRegistration(Long registracijaId) {
         Korisnik korisnik = currentUserService.getCurrentKorisnik();
-        Registracija reg = registracijaRepository.findById(registracijaId)
-                .orElseThrow(() -> new RuntimeException("Registracija nije pronađena."));
-        if (!reg.getUcesnik().getKorisnikId().equals(korisnik.getKorisnikId())) {
-            throw new RuntimeException("Nemate pravo da otkazujete ovu registraciju.");
-        }
 
-        boolean biloPotvrdjeno = reg.getStatus() == StatusRegistracije.POTVRDJENA;
-        Dogadjaj dogadjaj = reg.getTipKarte().getDogadjaj();
+        // Podatke za D4 notifikaciju učitavamo pre poziva procedure (naziv događaja, broj karte).
+        Registracija pre = registracijaRepository.findByIdWithDetails(registracijaId)
+                .orElseThrow(() -> new NotFoundException("Registracija nije pronađena."));
+        Dogadjaj dogadjaj = pre.getTipKarte().getDogadjaj();
+        String brojKarte = pre.getBrojKarte();
 
-        reg.setStatus(StatusRegistracije.OTKAZANA);
-        reg.setStatusKarte(StatusKarte.NEVAZECA);
-        RegistracijaResponseDto rezultat = toDto(registracijaRepository.save(reg));
+        // Otkazivanje + FIFO promocija su u proceduri (atomarno). Vraća ID promovisanog ili null.
+        Long promovisanId = registracijaProcedureDao.otkazi(registracijaId, korisnik.getKorisnikId());
 
-        // D4 — potvrda otkaza prijave (samo email).
+        // Ponovo učitaj otkazanu registraciju sa ažuriranim statusom za odgovor.
+        Registracija otkazana = registracijaRepository.findByIdWithDetails(registracijaId)
+                .orElseThrow(() -> new NotFoundException("Registracija nije pronađena."));
+
+        // D4 — potvrda otkaza (samo email).
         notifikacijaService.posaljiEmail(
-                reg.getUcesnik(),
+                otkazana.getUcesnik(),
                 TipNotifikacije.DOGADJAJ,
                 "Vaša prijava za događaj \"" + dogadjaj.getNaziv() + "\" je otkazana, a karta "
-                        + (reg.getBrojKarte() != null ? "\"" + reg.getBrojKarte() + "\" " : "")
+                        + (brojKarte != null ? "\"" + brojKarte + "\" " : "")
                         + "je poništena.",
                 dogadjaj,
                 "Otkazana prijava - " + dogadjaj.getNaziv()
         );
 
-        // Otkazivanjem potvrđene prijave oslobađa se mesto — promoviši prvog sa liste čekanja (D3).
-        if (biloPotvrdjeno) {
-            promoviSiSaListeCekanja(dogadjaj);
-        }
-
-        return rezultat;
-    }
-
-    /**
-     * Kada se oslobodi mesto na popunjenom događaju, promoviše najstariju prijavu
-     * sa liste čekanja (NA_CEKANJU → POTVRDJENA) i šalje joj notifikaciju (D3).
-     */
-    private void promoviSiSaListeCekanja(Dogadjaj dogadjaj) {
-        if (dogadjaj.getMaksKapacitet() != null) {
-            long potvrdjenih = registracijaRepository.countByTipKarteIdDogadjajIdAndStatus(
-                    dogadjaj.getDogadjajId(), StatusRegistracije.POTVRDJENA);
-            if (potvrdjenih >= dogadjaj.getMaksKapacitet()) {
-                return; // i dalje nema slobodnog mesta
-            }
-        }
-
-        registracijaRepository
-                .findFirstByTipKarteIdDogadjajIdAndStatusOrderByRegistracijaIdAsc(
-                        dogadjaj.getDogadjajId(), StatusRegistracije.NA_CEKANJU)
-                .ifPresent(prva -> {
-                    prva.setStatus(StatusRegistracije.POTVRDJENA);
-                    prva.setStatusKarte(StatusKarte.VALIDNA);
-                    registracijaRepository.save(prva);
-
+        // D3 — ako je neko promovisan sa liste čekanja, obavesti ga.
+        if (promovisanId != null) {
+            registracijaRepository.findByIdWithDetails(promovisanId).ifPresent(prom ->
                     notifikacijaService.posaljiSaEmailom(
-                            prva.getUcesnik(),
+                            prom.getUcesnik(),
                             TipNotifikacije.DOGADJAJ,
                             "Oslobodilo se mesto na događaju \"" + dogadjaj.getNaziv() + "\". "
                                     + "Vaša prijava je potvrđena i karta je sada validna.",
                             dogadjaj,
                             "Oslobodilo se mesto - " + dogadjaj.getNaziv()
-                    );
-                });
+                    )
+            );
+        }
+
+        return toDto(otkazana);
     }
 
     private RegistracijaResponseDto toDto(Registracija r) {
